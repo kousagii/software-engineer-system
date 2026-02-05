@@ -1,0 +1,114 @@
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        margin: 0;
+        background: #f3eee8;
+        display: flex;
+        height: 100vh;
+        color: #333;
+    }
+
+    .sidebar {
+        width: 230px;
+        background: #264027;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 0;
+        height: 100vh;
+    }
+
+    .sidebar h2 {
+        font-size: 20px;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .menu a {
+        display: block;
+        color: white;
+        padding: 12px 20px;
+        text-decoration: none;
+        transition: 0.3s;
+    }
+    .menu a:hover, .menu a.active {
+        background: #3a593f;
+    }
+    .bottom-menu {
+        border-top: 1px solid #3a593f;
+        padding-top: 10px;
+    }
+    .logout {
+        background: #416647;
+        color: white;
+        border: none;
+        width: 80%;
+        margin: 10px auto;
+        padding: 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        display: block;
+    }
+
+    main {
+        flex: 1;
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .tab-content {
+        display: none;
+        width: 80%;
+        background: #fff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .tab-content.active {
+        display: block;
+    }
+
+    h3 {
+        color: #2b4c34;
+        margin-bottom: 15px;
+    }
+
+    label {
+        display: block;
+        margin-top: 10px;
+        font-weight: 600;
+    }
+
+    input, select, textarea, button {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        margin-top: 5px;
+        font-family: inherit;
+    }
+
+    textarea { resize: vertical; }
+
+    button {
+        background: #264027;
+        color: white;
+        border: none;
+        padding: 10px;
+        margin-top: 15px;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: 0.3s;
+    }
+    button:hover { background: #3a593f; }
+
+    .split {
+        display: flex;
+        gap: 40px;
+    }
+    .split > div {
+        flex: 1;
+    }
