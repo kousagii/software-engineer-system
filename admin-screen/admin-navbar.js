@@ -1,7 +1,7 @@
 document.getElementById("sidebar").innerHTML = ` 
   <nav class="sidebar">     
     <div>
-        <h2>UDICON <span style="color:#8fc96a;">Trading</span></h2>
+        <img id="logo" src="../assets/uc_logo.png" />
         <div class="menu">
             <a href="admin-dashboard.html">Dashboard</a>
             <a href="admin&inventory-search.html">Search</a>
