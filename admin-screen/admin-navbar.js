@@ -4,9 +4,9 @@ document.getElementById("sidebar").innerHTML = `
         <img id="logo" src="../assets/uc_logo.png" />
         <div class="menu">
             <a href="../admin-screen/admin-dashboard.html">Dashboard</a>
-            <a href="../admin&inventory-screen/admin&inventory-search.html">Search</a>
-            <a href="../admin&inventory-screen/admin&inventory-product.html">Product</a>
-            <a href="../admin&inventory-screen/admin&inventory-supplier.html">Supplier</a>
+            <a href="../admin-screen/admin-search.html">Search</a>
+            <a href="../admin-screen/admin-product.html">Product</a>
+            <a href="../admin-screen/admin-supplier.html">Supplier</a>
             <a href="../admin-screen/admin-report.html">Reports</a>
         </div>
     </div>
