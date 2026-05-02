@@ -8,7 +8,7 @@ const path = require('path');
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'program_codes')));
 
 app.use(session({
     secret: process.env.SESSION_SECRET, 
@@ -24,6 +24,14 @@ const db = mysql.createConnection({
     database: process.env.DB_NAME
 });
 
+// Added this diagnostic check back in so you know your DB is connected!
+db.connect((err) => {
+    if (err) {
+        console.error('❌ DATABASE CONNECTION ERROR:', err.message);
+        return;
+    }
+    console.log('✅ Connected to MySQL Database!');
+});
 
 // Route to add a new user (Admin only)
 app.post('/api/users', async (req, res) => {
@@ -48,7 +56,8 @@ app.post('/api/users', async (req, res) => {
     }
 });
 
-app.post('/api/login', (req, res) => {
+app.post('/api/login', (req, res) => {  
+    
     const { username, password } = req.body;
 
     const sql = `SELECT * FROM users WHERE username = ?`;
@@ -87,4 +96,32 @@ app.get('/api/auth-status', (req, res) => {
 app.post('/api/logout', (req, res) => {
     req.session.destroy();
     res.json({ message: "Logged out" });
+});
+
+app.get('/api/setup-test-admin', async (req, res) => {
+    try {
+        // We will set the password to "admin123"
+        const hashedPassword = await bcrypt.hash('admin123', 10);
+        
+        const sql = `INSERT INTO users (username, firstName, lastName, userPassword, role, contactInfo) 
+                     VALUES (?, ?, ?, ?, ?, ?)`;
+                     
+        db.query(sql, ['admin', 'Test', 'Admin', hashedPassword, 'Admin', '09123456789'], (err, result) => {
+            if (err) {
+                if (err.code === 'ER_DUP_ENTRY') {
+                    return res.send("<h1>Admin already exists! Go to the login page.</h1>");
+                }
+                console.error(err);
+                return res.status(500).send("Database error");
+            }
+            res.send("<h1>Success! Test Admin created.</h1><p>You can now go to your login page and use:<br><b>Username:</b> admin<br><b>Password:</b> admin123</p>");
+        });
+    } catch (error) {
+        res.status(500).send("Hashing error");
+    }
+});
+
+const PORT = 3000;
+app.listen(PORT, () => {
+    console.log(`✅ Server is successfully running on http://localhost:${PORT}/log-in.html`);
 });

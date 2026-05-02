@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -9,14 +10,66 @@
     <div id="login-box">
         <form id="login-form">
             <h1 class="center-text">UDICON <span style="color:#8fc96a;">Trading</span></h1>
+            
+            <p id="error-message" style="color: red; display: none; text-align: center; font-size: 14px; margin-bottom: 10px;"></p>
+
             <label for="username">Username</label>
             <input type="text" id="username" name="username" required/>
-            <label for="'password">Password</label>
+            
+            <label for="password">Password</label>
             <input type="password" id="password" name="password" required/>
+            
             <p class="center-text"> <a href="#">Forgot password?</a></p>
 
             <button type="submit">Log in</button>
         </form>
     </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async function(event) {
+           
+            event.preventDefault(); 
+            const usernameInput = document.getElementById('username').value;
+            const passwordInput = document.getElementById('password').value;
+            const errorMessage = document.getElementById('error-message');
+
+            errorMessage.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        username: usernameInput, 
+                        password: passwordInput 
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Login successful
+                    if (data.role === 'Admin') {
+                        window.location.href = 'admin-screen/admin-dashboard.html';
+                    } else if (data.role === 'SalesStaff') {
+                        window.location.href = 'sales-screen/sales-transaction.html';
+                    } else if (data.role === 'InventoryStaff') {
+                        window.location.href = 'inventory-screen/inventory-search.html';
+                    }
+                } else {
+                    // Login failed (wrong password/username), show the error text
+                    errorMessage.textContent = data.error;
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                // Handle cases where the server is down or unreachable
+                console.error("Login Error:", error);
+                errorMessage.textContent = "Could not connect to the server. Is it running?";
+                errorMessage.style.display = 'block';
+            }
+        });
+    </script>
 </body>
 </html>
