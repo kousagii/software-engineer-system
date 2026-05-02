@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Udicon Trading | Sales & Inventory System</title>
+    <link rel="stylesheet" href="../style.css"/>
+</head>
+<body>
+    
+<div id="sidebar"></div>
+
+<main>
+ <div id="product" class="tab-content active">
+            <div class="split">
+                <div>
+                    <h3>📦 Create Product</h3>
+                    <form id="productForm" onsubmit="return saveProduct()">
+                        <label for="pname">Name</label>
+                        <input type="text" id="pname" placeholder="Enter product name" required>
+
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex:1;">
+                                <label for="pcategory">Category</label>
+                                <select id="pcategory" required>
+                                    <option value="">Select</option>
+                                    <option>Cement & Concrete</option>
+                                    <option>Wood & Steel</option>
+                                    <option>Roofing & Bricks</option>
+                                    <option>Tools & Paints</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;">
+                                <label for="pqty">Stock Quantity</label>
+                                <input type="number" id="pqty" min="0" value="0">
+                            </div>
+                        </div>
+
+                        <label for="pprice">Price (₱)</label>
+                        <input type="number" id="pprice" placeholder="e.g. 150" min="0" required>
+
+                        <label for="pdesc">Description</label>
+                        <textarea id="pdesc" rows="3" placeholder="Enter description"></textarea>
+
+                        <label for="pimg">Upload Image</label>
+                        <input type="file" id="pimg" accept=".jpg,.png">
+
+                        <button type="button" onclick="generateBarcode()">Generate Barcode</button>
+                        <button type="submit">Create Product</button>
+                    </form>
+                </div>
+
+            <div>
+                <h3>🧾 Product Details</h3>
+                <p><strong>Name:</strong> <span id="dname">—</span></p>
+                <p><strong>Category:</strong> <span id="dcategory">—</span></p>
+                <p><strong>Stock Quantity:</strong> <span id="dqty">—</span></p>
+                <p><strong>Price:</strong> ₱<span id="dprice">—</span></p>
+                <p><strong>Description:</strong> <span id="ddesc">—</span></p>
+                <hr>
+                <p><strong>Product ID:</strong> <span id="did">—</span></p>
+                <p><strong>Barcode:</strong></p>
+                <div id="barcodeDisplay" style="font-family:monospace; letter-spacing:3px;">[Barcode will appear here]</div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="../inventory-screen/inventory-navbar.js"></script>
+
+<script>
+    function generateBarcode() {
+    const name = document.getElementById("pname").value.trim();
+    const category = document.getElementById("pcategory").value.trim();
+    const qty = document.getElementById("pqty").value.trim();
+    const price = document.getElementById("pprice").value.trim();
+    const desc = document.getElementById("pdesc").value.trim();
+
+    if (!name || !category) {
+        alert("Please fill in product name and category first!");
+        return;
+    }
+
+    // Generate product ID and barcode
+    const productID = Math.floor(Math.random() * 10000);
+    const barcode = "UDC-" + category.slice(0,3).toUpperCase() + "-" + Math.floor(Math.random() * 9000 + 1000);
+
+    document.getElementById("dname").textContent = name;
+    document.getElementById("dcategory").textContent = category;
+    document.getElementById("dqty").textContent = qty || "0";
+    document.getElementById("dprice").textContent = price || "0";
+    document.getElementById("ddesc").textContent = desc || "No description";
+    document.getElementById("did").textContent = productID;
+    document.getElementById("barcodeDisplay").textContent = barcode;
+}
+
+function saveProduct() {
+    alert("Product successfully created!");
+    return false;
+}
+</script>
+
+</body>
+</html>
+

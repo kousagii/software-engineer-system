@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Udicon Trading | Sales Staff Access</title>
+<style>
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    background: #f3eee8;
+    display: flex;
+    height: 100vh;
+    color: #333;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 230px;
+    background: #264027;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px 0;
+}
+.sidebar h2 {
+    font-size: 20px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+.menu a {
+    display: block;
+    color: white;
+    padding: 12px 20px;
+    text-decoration: none;
+    transition: 0.3s;
+}
+.menu a:hover, .menu a.active {
+    background: #3a593f;
+}
+.bottom {
+    border-top: 1px solid #3a593f;
+    padding-top: 10px;
+}
+.logout {
+    background: #416647;
+    color: white;
+    border: none;
+    width: 80%;
+    margin: 10px auto;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: block;
+}
+
+/* Main Content */
+.main {
+    flex: 1;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+}
+
+.tab-content {
+    display: none;
+    width: 90%;
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+.tab-content.active {
+    display: block;
+}
+
+h3 {
+    color: #2b4c34;
+    margin-bottom: 15px;
+}
+
+input, button {
+    font-family: inherit;
+}
+
+/* Sales Layout */
+.sales-container {
+    display: flex;
+    gap: 25px;
+}
+
+.sales-left, .sales-right {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.sales-left {
+    flex: 2;
+}
+
+.input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.input-row input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+.input-row button {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    background: #264027;
+    color: white;
+    cursor: pointer;
+}
+
+.input-row button:hover {
+    background: #3a593f;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+table th, table td {
+    padding: 10px;
+    text-align: left;
+}
+
+table th {
+    background: #264027;
+    color: white;
+}
+
+table tr:nth-child(even) {
+    background: #f8f8f8;
+}
+
+.remove-btn {
+    background: #c0392b;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.remove-btn:hover {
+    background: #a93226;
+}
+
+.sales-right {
+    flex: 1;
+    background: #fffaf4;
+}
+
+.sales-right h3 {
+    color: #264027;
+    margin-bottom: 15px;
+}
+
+.checkout-btn {
+    background: #264027;
+    color: white;
+    border: none;
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 10px 0;
+}
+
+.checkout-btn:hover {
+    background: #3a593f;
+}
+
+/* Modal / Popup */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    width: 400px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.modal h3 {
+    margin-bottom: 20px;
+}
+
+.modal p {
+    margin: 8px 0;
+}
+
+.modal input {
+    width: 80%;
+    padding: 8px;
+    margin-top: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+.modal button {
+    margin-top: 15px;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.confirm-btn {
+    background: #264027;
+    color: white;
+}
+
+.confirm-btn:hover {
+    background: #3a593f;
+}
+
+.close-btn {
+    background: #c0392b;
+    color: white;
+}
+
+.close-btn:hover {
+    background: #a93226;
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div>
+        <h2>UDICON <span style="color:#8fc96a;">Trading</span></h2>
+        <div class="menu">
+            <a href="#" class="active" onclick="showTab('sales')">Sales Transaction</a>
+            <a href="#" onclick="showTab('product')">Product List</a>
+            <a href="#" onclick="showTab('refund')">Refund / Change Item</a>
+        </div>
+    </div>
+
+    <div class="bottom">
+        <div class="menu">
+            <a href="#" onclick="showTab('Help')">Help</a>
+        </div>
+        <button class="logout">Logout</button>
+    </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+    <!-- Sales Transaction Tab -->
+    <div id="sales" class="tab-content active">
+        <h3>🛒 Sales Transaction</h3>
+        <div class="sales-container">
+            <div class="sales-left">
+                <div class="input-row">
+                    <input type="text" id="barcode" placeholder="Scan or Enter Barcode">
+                    <input type="number" id="quantity" placeholder="Enter Quantity">
+                    <button onclick="addItem()">Add</button>
+                </div>
+
+                <table id="cartTable">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Qty</th>
+                            <th>Subtotal</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="sales-right">
+                <h3>🧾 Cart Summary</h3>
+                <p><strong>Total:</strong> ₱<span id="total">0.00</span></p>
+                <button class="checkout-btn" onclick="openPaymentModal()">Payment & Print Receipt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product List Tab -->
+    <div id="product" class="tab-content">
+        <h3>📦 Product List</h3>
+        <p>This section will show all available products for sale.</p>
+    </div>
+
+    <!-- Refund Tab -->
+    <div id="refund" class="tab-content">
+        <h3>🔄 Refund / Change Item</h3>
+        <p>Record and process refund transactions here.</p>
+    </div>
+
+    <!-- Help Tab -->
+    <div id="Help" class="tab-content">
+        <h3>❓ Help</h3>
+        <p>This section will show help information for the sales staff.</p>
+    </div>
+
+</div>
+
+<!-- Payment & Receipt Modal -->
+<div id="paymentModal" class="modal">
+    <div class="modal-content">
+        <h3>🧾 Payment & Receipt</h3>
+        <p><strong>Total:</strong> ₱<span id="modalTotal">0.00</span></p>
+        <input type="number" id="modalPayment" placeholder="Enter payment amount" oninput="computeModalChange()">
+        <p><strong>Change:</strong> ₱<span id="modalChange">0.00</span></p>
+        <button class="confirm-btn" onclick="printReceipt()">Print Receipt</button>
+        <button class="close-btn" onclick="closePaymentModal()">Close</button>
+    </div>
+</div>
+
+<script>
+// Show tab function
+function showTab(tab) {
+    document.querySelectorAll(".menu a").forEach(a => a.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    document.getElementById(tab).classList.add("active");
+    document.querySelector(`.menu a[onclick="showTab('${tab}')"]`).classList.add("active");
+}
+
+// Products
+const products = {
+    "1001": { name: "Tape Measure", price: 190 },
+    "1002": { name: "PVC Pipe", price: 180 },
+    "UDC-T00-2731": { name: "Pliers", price: 250 } 
+};
+
+// Preloaded cart
+let cart = [
+    { barcode: "1001", name: "Tape Measure", price: 190, qty: 2 },
+    { barcode: "1002", name: "PVC Pipe", price: 180, qty: 1 }
+];
+
+// Render cart table
+function renderCart() {
+    const tbody = document.querySelector("#cartTable tbody");
+    tbody.innerHTML = "";
+    let total = 0;
+    cart.forEach((item, index) => {
+        const subtotal = item.price * item.qty;
+        total += subtotal;
+        tbody.innerHTML += `
+            <tr>
+                <td>${item.name}</td>
+                <td>₱${item.price.toFixed(2)}</td>
+                <td>${item.qty}</td>
+                <td>₱${subtotal.toFixed(2)}</td>
+                <td><button class="remove-btn" onclick="removeItem(${index})">Remove</button></td>
+            </tr>
+        `;
+    });
+    document.getElementById('total').textContent = total.toFixed(2);
+}
+
+// Add item to cart
+function addItem() {
+    const barcode = document.getElementById('barcode').value.trim();
+    let qty = parseInt(document.getElementById('quantity').value);
+
+    if (!barcode || !products[barcode]) { 
+        alert("❌ Product not found!"); 
+        return; 
+    }
+
+    // Default quantity to 1 if empty or invalid
+    if (!qty || qty <= 0) { 
+        qty = 1; 
+    }
+
+    const product = products[barcode];
+    const existing = cart.find(item => item.barcode === barcode);
+    if (existing) { 
+        existing.qty += qty; 
+    } else { 
+        cart.push({ ...product, barcode, qty }); 
+    }
+
+    renderCart();
+    document.getElementById('barcode').value = '';
+    document.getElementById('quantity').value = '';
+    document.getElementById('barcode').focus(); // Focus back to barcode for faster scanning
+}
+
+document.getElementById('barcode').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        addItem();
+    }
+});
+
+// Remove item from cart
+function removeItem(index) { cart.splice(index, 1); renderCart(); }
+
+// Open payment modal
+function openPaymentModal() {
+    if (cart.length === 0) {
+        alert("❌ Cart is empty! Please add items before proceeding.");
+        return; 
+    }
+    const total = parseFloat(document.getElementById('total').textContent);
+    if (total <= 0) { alert("Cart is empty!"); return; }
+    document.getElementById('modalTotal').textContent = total.toFixed(2);
+    document.getElementById('modalPayment').value = '';
+    document.getElementById('modalChange').textContent = '0.00';
+    document.getElementById('paymentModal').style.display = 'flex';
+}
+
+// Close modal
+function closePaymentModal() { document.getElementById('paymentModal').style.display = 'none'; }
+
+// Compute change
+function computeModalChange() {
+    const total = parseFloat(document.getElementById('modalTotal').textContent);
+    const payment = parseFloat(document.getElementById('modalPayment').value) || 0;
+    const change = payment - total;
+    document.getElementById('modalChange').textContent = change >= 0 ? change.toFixed(2) : '0.00';
+}
+
+// Print receipt
+function printReceipt() {
+    const total = parseFloat(document.getElementById('modalTotal').textContent);
+    const payment = parseFloat(document.getElementById('modalPayment').value) || 0;
+    const change = parseFloat(document.getElementById('modalChange').textContent);
+
+    // Generate Transaction ID
+    const now = new Date();
+    const txnId = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}` +
+                  `${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}${now.getSeconds().toString().padStart(2,'0')}` +
+                  `${Math.floor(Math.random()*90+10)}`;
+
+    // Build items table
+    let itemsTable = `
+        <table style="width:100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align:left; border-bottom:1px solid #333;">Product</th>
+                    <th style="text-align:center; border-bottom:1px solid #333;">Qty</th>
+                    <th style="text-align:right; border-bottom:1px solid #333;">Price</th>
+                    <th style="text-align:right; border-bottom:1px solid #333;">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    cart.forEach(item => {
+        const subtotal = item.price * item.qty;
+        itemsTable += `
+            <tr>
+                <td>${item.name}</td>
+                <td style="text-align:center;">${item.qty}</td>
+                <td style="text-align:right;">₱${item.price.toFixed(2)}</td>
+                <td style="text-align:right;">₱${subtotal.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    itemsTable += `
+            </tbody>
+        </table>
+    `;
+
+    // Open new window for receipt
+    const win = window.open('', '', 'width=450,height=650');
+    win.document.write(`
+        <div style="font-family:sans-serif; padding:20px; color:#333;">
+            <h2 style="text-align:center; color:#264027; margin-bottom:5px;">UDICON Trading</h2>
+            <p style="text-align:center; margin-top:0;">Sales Receipt</p>
+            <p>Transaction ID: <strong>${txnId}</strong></p>
+            <p>Date/Time: ${now.toLocaleString()}</p>
+            <hr style="border:1px dashed #333;">
+            ${itemsTable}
+            <hr style="border:1px dashed #333;">
+            <p style="text-align:right;"><strong>Total:</strong> ₱${total.toFixed(2)}</p>
+            <p style="text-align:right;"><strong>Payment:</strong> ₱${payment.toFixed(2)}</p>
+            <p style="text-align:right;"><strong>Change:</strong> ₱${change.toFixed(2)}</p>
+            <hr style="border:1px dashed #333;">
+            <p style="text-align:center; margin-top:10px;">Thank you for shopping at UDICON Trading!</p>
+        </div>
+    `);
+    win.document.close();
+    win.print();
+
+    // Clear cart after printing
+    cart = [];
+    renderCart();
+    closePaymentModal();
+}
+
+// Initialize cart
+window.onload = renderCart;
+</script>
+</body>
+</html>
