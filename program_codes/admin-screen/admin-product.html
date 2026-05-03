@@ -148,7 +148,6 @@
             document.getElementById('custom-modal').style.display = 'none';
         }
 
-        // Use this for standard messages (replaces alert)
         function showAlert(message) {
             document.getElementById('modal-message').innerText = message;
             document.getElementById('modal-actions').innerHTML = `
@@ -157,7 +156,6 @@
             document.getElementById('custom-modal').style.display = 'flex';
         }
 
-        // Use this for Yes/No actions (replaces confirm)
         function showConfirm(message, onConfirmCallback) {
             document.getElementById('modal-message').innerText = message;
             document.getElementById('modal-actions').innerHTML = `
@@ -299,7 +297,7 @@
             toggleView('create-product-view');
         }
 
-        // 7. DELETE Function (Now uses custom modal)
+        // 7. DELETE Function 
         function deleteProduct(id) {
             showConfirm("Are you sure you want to delete this product?", async function() {
                 try {

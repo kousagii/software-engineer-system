@@ -3,62 +3,351 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Udicon Trading | Sales & Inventory System</title>
-    <link rel="stylesheet" href="../style.css"/>
+    <title>Supplier Management | Udicon Trading</title>
+    <link rel="stylesheet" href="../style.css">
 </head>
 <body>
-    
-<div id="sidebar"></div>
+    <div id="sidebar"></div>
 
-<main>
-<div id="supplier" class="tab-content">
-            <div class="split">
-                <div>
-                    <h3>🏢 Create Supplier</h3>
-                    <form id="supplierForm" onsubmit="return saveSupplier()">
-                        <label for="sname">Supplier Name</label>
-                        <input type="text" id="sname" required>
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-box">
+            <p id="modal-message"></p>
+            <div id="modal-actions">
+                </div>
+        </div>
+    </div>
 
-                        <label for="scontact">Contact Number</label>
-                        <input type="number" id="scontact" placeholder="09XXXXXXXXX" required>
+    <main class="dashboard-main">
+        
+        <div id="supplier-list-view" style="display: block; width: 100%;">
+            <div class="page-header">
+                <h2>Supplier Management</h2>
+                <button class="btn-create" onclick="openCreateView()">+ Create Supplier</button>
+            </div>
 
-                        <label for="semail">Email <span style="font-weight: normal; color: #888;">(optional)</span></label>
-                        <input type="email" id="semail" placeholder="Leave blank if none">
+            <div class="table-container">
+                <div class="toolbar">
+                    <div class="filter-group">
+                        <label>Filter</label>
+                        <input type="text" placeholder="Search here..." style="width: 250px;">
+                    </div>
+                    <div class="sort-group">
+                        <label>Show</label>
+                        <select style="width: 70px;"><option>16</option></select>
+                        <label style="margin-left: 20px;">Sort by</label>
+                        <select style="width: 120px;"><option>Default</option></select>
+                    </div>
+                </div>
 
-                        <label for="saddress">Address</label>
-                        <textarea id="saddress" rows="3" placeholder="Enter supplier address" required></textarea>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Supplier</th>
+                            <th>Contact Number</th>
+                            <th>Email</th>
+                            <th>Address</th>
+                            <th>Product List</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="supplier-table-body">
+                        </tbody>
+                </table>
+            </div>
+        </div>
 
-                        <button type="submit">Create Supplier</button>
-                    </form>
+        <div id="create-supplier-view" style="display: none; width: 100%;">
+            <div class="page-header">
+                <button class="btn-back" onclick="toggleView('supplier-list-view')">← Back to List</button>
+            </div>
+
+            <div class="form-panel-wide">
+                <h3 id="form-title" style="border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px;">
+                    📝 Create Supplier
+                </h3>
+                
+                <div class="split" style="gap: 40px;">
+                    <div style="flex: 1;">
+                        <label>Name</label>
+                        <input type="text" id="supName" placeholder="Supplier Name">
+                        
+                        <label>Contact Number</label>
+                        <input type="text" id="supContact" placeholder="09135513434">
+                        
+                        <label>Email</label>
+                        <input type="email" id="supEmail" placeholder="@gmail.com">
+                        
+                        <label>Address</label>
+                        <textarea id="supAddress" rows="3" placeholder="Address"></textarea>
+                    </div>
+
+                    <div style="flex: 1;">
+                        <label>Product list (Select all that apply)</label>
+                        <div class="product-select-box" style="max-height: 250px; overflow-y: auto;" id="product-checkbox-container">
+                            <p style="color: #888; text-align: center; margin-top: 50px;">Loading products...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="align-right">
+                    <button class="btn-create-supplier active" id="btn-save" onclick="saveSupplier()">Create</button>
                 </div>
             </div>
         </div>
-</main>
 
-<script src="../admin-screen/admin-navbar.js"></script>
+    </main>
 
+    <script src="../authGuard.js"></script>
+    
 <script>
-function saveSupplier() {
-    const contact = document.getElementById("scontact").value;
-    const email = document.getElementById("semail").value.trim();
+        let supplierList = []; 
+        let productList = []; // Store products for the checkboxes
+        let currentEditId = null;
 
-    // Validate contact number
-    if (contact.length !== 11) {
-        alert("Contact number must be 11 digits.");
-        return false;
-    }
+        // --- CUSTOM MODAL LOGIC ---
+        function closeModal() {
+            document.getElementById('custom-modal').style.display = 'none';
+        }
 
-    // Validate email if provided
-    if (email && !email.includes("@")) {
-        alert("Please enter a valid email address or leave it blank.");
-        return false;
-    }
+        function showAlert(message) {
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-actions').innerHTML = `
+                <button class="modal-btn btn-ok" onclick="closeModal()">OK</button>
+            `;
+            document.getElementById('custom-modal').style.display = 'flex';
+        }
 
-    alert("Supplier successfully registered!");
-    return false;
-}
-</script>
+        function showConfirm(message, onConfirmCallback) {
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-actions').innerHTML = `
+                <button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="modal-btn btn-danger" id="modal-confirm-btn">Yes, Delete</button>
+            `;
+            document.getElementById('custom-modal').style.display = 'flex';
+            
+            document.getElementById('modal-confirm-btn').onclick = function() {
+                closeModal();
+                onConfirmCallback();
+            };
+        }
 
+        // New function specifically to show the product list nicely
+        function viewProducts(supplierName, productsStr) {
+            const listItems = productsStr ? productsStr.split(', ').map(p => `<li style="padding: 5px 0; border-bottom: 1px solid #eee;">${p}</li>`).join('') : '<li>No products assigned.</li>';
+            document.getElementById('modal-message').innerHTML = `
+                <strong>Products for ${supplierName}:</strong>
+                <ul style="text-align: left; margin-top: 15px; max-height: 200px; overflow-y: auto; list-style-type: square; padding-left: 20px;">
+                    ${listItems}
+                </ul>
+            `;
+            document.getElementById('modal-actions').innerHTML = `
+                <button class="modal-btn btn-ok" onclick="closeModal()">Close</button>
+            `;
+            document.getElementById('custom-modal').style.display = 'flex';
+        }
+        // ---------------------------
+
+        // 1. View Toggling
+        function toggleView(viewId) {
+            document.getElementById('supplier-list-view').style.display = 'none';
+            document.getElementById('create-supplier-view').style.display = 'none';
+            document.getElementById(viewId).style.display = 'block';
+            if(viewId === 'supplier-list-view') loadSuppliers();
+        }
+
+        function openCreateView() {
+            currentEditId = null; 
+            document.getElementById('form-title').innerHTML = "📝 Create Supplier";
+            document.getElementById('btn-save').innerText = "Create";
+
+            // Clear fields & uncheck all boxes
+            document.getElementById('supName').value = '';
+            document.getElementById('supContact').value = '';
+            document.getElementById('supEmail').value = '';
+            document.getElementById('supAddress').value = '';
+            
+            document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false);
+            
+            toggleView('create-supplier-view');
+        }
+
+        // 2. Fetch Products for the Checkboxes
+        async function fetchProductsForCheckboxes() {
+            try {
+                const res = await fetch('/api/products');
+                productList = await res.json();
+                
+                const container = document.getElementById('product-checkbox-container');
+                container.innerHTML = '';
+                
+                if(productList.length === 0) {
+                    container.innerHTML = '<p style="color: #888;">No products available in database.</p>';
+                    return;
+                }
+
+                // Create a checkbox for every product
+                productList.forEach(p => {
+                    container.innerHTML += `
+                        <label style="display: flex; align-items: center; font-weight: normal; margin-top: 5px; cursor: pointer;">
+                            <input type="checkbox" class="product-checkbox" value="${p.productID}" style="width: auto; margin-right: 10px; transform: scale(1.2);">
+                            ${p.productName}
+                        </label>
+                    `;
+                });
+            } catch (err) {
+                console.error("Failed to load products for checkboxes.");
+            }
+        }
+
+        // 3. Fetch & Load Suppliers into Table
+        async function loadSuppliers() {
+            try {
+                const res = await fetch('/api/suppliers');
+                supplierList = await res.json();
+                
+                const tbody = document.getElementById('supplier-table-body');
+                tbody.innerHTML = '';
+
+                if(supplierList.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No suppliers found.</td></tr>';
+                    return;
+                }
+
+                supplierList.forEach(s => {
+                    let formattedAddress = (s.address && s.address.length > 35) ? s.address.substring(0, 35) + '...' : (s.address || 'N/A');
+                    
+                    // Count products to show on the button
+                    let productCount = s.productIDs ? s.productIDs.split(',').length : 0;
+
+                    // Escape strings so they don't break the HTML onclick handler
+                    let safeName = s.supplierName.replace(/'/g, "\\'");
+                    let safeProducts = s.productNames ? s.productNames.replace(/'/g, "\\'") : '';
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>
+                                <div class="product-info">
+                                    <strong>${s.supplierName}</strong><br>
+                                    <span class="sub-text">ID: ${s.supplierID}</span>
+                                </div>
+                            </td>
+                            <td class="sub-text">${s.contactNumber || 'N/A'}</td>
+                            <td class="sub-text">${s.email || 'N/A'}</td>
+                            <td class="sub-text" style="max-width: 200px;">${formattedAddress}</td>
+                            <td>
+                                <button class="btn-view" onclick="viewProducts('${safeName}', '${safeProducts}')">
+                                    ↗ View (${productCount})
+                                </button>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 5px;">
+                                    <button class="btn-edit" onclick="editSupplier(${s.supplierID})">Edit</button>
+                                    <button class="btn-delete" onclick="deleteSupplier(${s.supplierID})">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                document.getElementById('supplier-table-body').innerHTML = '<tr><td colspan="6">Error loading data.</td></tr>';
+            }
+        }
+
+        // 4. EDIT Supplier (Pre-fill form & check boxes)
+        function editSupplier(id) {
+            const supplier = supplierList.find(s => s.supplierID === id);
+            if (!supplier) return;
+
+            currentEditId = supplier.supplierID;
+            document.getElementById('form-title').innerHTML = "📝 Edit Supplier";
+            document.getElementById('btn-save').innerText = "Save Changes";
+
+            document.getElementById('supName').value = supplier.supplierName;
+            document.getElementById('supContact').value = supplier.contactNumber || '';
+            document.getElementById('supEmail').value = supplier.email || '';
+            document.getElementById('supAddress').value = supplier.address || '';
+
+            // Handle Checkboxes
+            document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false); // Reset all
+            
+            if (supplier.productIDs) {
+                // Split the comma-separated IDs from the database
+                const selectedIDs = supplier.productIDs.split(',');
+                document.querySelectorAll('.product-checkbox').forEach(cb => {
+                    if (selectedIDs.includes(cb.value)) {
+                        cb.checked = true;
+                    }
+                });
+            }
+
+            toggleView('create-supplier-view');
+        }
+
+        // 5. DELETE Supplier
+        function deleteSupplier(id) {
+            showConfirm("Are you sure you want to delete this supplier?", async function() {
+                try {
+                    const response = await fetch(`/api/suppliers/${id}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        showAlert("Supplier deleted!");
+                        loadSuppliers(); 
+                    } else {
+                        const result = await response.json();
+                        showAlert("Error: " + result.error);
+                    }
+                } catch (error) {
+                    showAlert("Failed to connect to the server.");
+                }
+            });
+        }
+
+        // 6. SAVE Supplier (Create or Update)
+        async function saveSupplier() {
+            // Gather all checked product IDs
+            const checkedBoxes = document.querySelectorAll('.product-checkbox:checked');
+            const selectedProductIDs = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+
+            const data = {
+                supplierName: document.getElementById('supName').value,
+                contactNumber: document.getElementById('supContact').value,
+                email: document.getElementById('supEmail').value,
+                address: document.getElementById('supAddress').value,
+                productIDs: selectedProductIDs // Pass array to backend
+            };
+
+            if (!data.supplierName) {
+                showAlert("Please fill in the Supplier Name!");
+                return;
+            }
+
+            const method = currentEditId ? 'PUT' : 'POST';
+            const url = currentEditId ? `/api/suppliers/${currentEditId}` : '/api/suppliers';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert(currentEditId ? "Supplier updated successfully!" : "Supplier created successfully!");
+                    toggleView('supplier-list-view');
+                } else {
+                    showAlert("Error: " + result.error);
+                }
+            } catch (error) {
+                showAlert("Failed to connect to the server.");
+            }
+        }
+
+        // Initialize on load
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchProductsForCheckboxes(); // Load product list for form
+            loadSuppliers(); // Load suppliers for table
+        });
+    </script>
 </body>
 </html>
-

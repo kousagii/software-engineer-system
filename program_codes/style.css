@@ -344,3 +344,58 @@ button:hover { background: #3a593f; }
     background: #d9534f; 
     color: white; 
 }
+
+/* --- SUPPLIER MANAGEMENT --- */
+.btn-view {
+    background: #2b2b2b;
+    color: white;
+    width: auto;
+    padding: 6px 12px;
+    margin: 0;
+    font-size: 13px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-view:hover {
+    background: #444;
+}
+
+.product-select-box {
+    background: #f3eee8;
+    border-radius: 6px;
+    padding: 15px;
+    min-height: 250px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+}
+
+.form-panel-wide {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    width: 100%;
+}
+
+.align-right {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.btn-create-supplier {
+    background: #cfcbc7;
+    color: #333;
+    width: auto;
+    padding: 10px 30px;
+    font-weight: bold;
+    border-radius: 6px;
+}
+
+.btn-create-supplier.active {
+    background: #2b4c34;
+    color: white;
+}

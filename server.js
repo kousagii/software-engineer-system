@@ -185,3 +185,93 @@ app.delete('/api/products/:id', (req, res) => {
         res.status(200).json({ message: "Product deleted successfully!" });
     });
 });
+
+
+// SUPPLIER MANAGEMENT 
+
+// GET route to fetch all suppliers with their associated products
+app.get('/api/suppliers', (req, res) => {
+    // We use GROUP_CONCAT to get all products attached to a supplier in a single row
+    const sql = `
+        SELECT s.*, 
+               GROUP_CONCAT(p.productName SEPARATOR ', ') AS productNames,
+               GROUP_CONCAT(p.productID SEPARATOR ',') AS productIDs
+        FROM supplier s
+        LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID
+        LEFT JOIN product p ON sp.productID = p.productID
+        GROUP BY s.supplierID
+        ORDER BY s.supplierID DESC
+    `;
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Failed to fetch suppliers" });
+        }
+        res.json(results);
+    });
+});
+
+// POST route to add a new supplier
+app.post('/api/suppliers', (req, res) => {
+    const { supplierName, contactNumber, email, address, productIDs } = req.body;
+    
+    const sql = `INSERT INTO supplier (supplierName, contactNumber, email, address) VALUES (?, ?, ?, ?)`;
+    
+    db.query(sql, [supplierName, contactNumber, email, address], (err, result) => {
+        if (err) return res.status(500).json({ error: "Database error" });
+        
+        const newSupplierId = result.insertId;
+        
+        // If products were checked, insert them into the junction table
+        if (productIDs && productIDs.length > 0) {
+            const spSql = `INSERT INTO supplier_products (supplierID, productID) VALUES ?`;
+            const values = productIDs.map(pid => [newSupplierId, pid]);
+            
+            db.query(spSql, [values], (spErr) => {
+                if (spErr) console.error(spErr);
+                res.status(201).json({ message: "Supplier created successfully!" });
+            });
+        } else {
+            res.status(201).json({ message: "Supplier created successfully!" });
+        }
+    });
+});
+
+// PUT route to UPDATE an existing supplier
+app.put('/api/suppliers/:id', (req, res) => {
+    const { id } = req.params;
+    const { supplierName, contactNumber, email, address, productIDs } = req.body;
+    
+    const sql = `UPDATE supplier SET supplierName = ?, contactNumber = ?, email = ?, address = ? WHERE supplierID = ?`;
+                 
+    db.query(sql, [supplierName, contactNumber, email, address, id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Failed to update supplier" });
+        
+        // Clear old products for this supplier
+        db.query(`DELETE FROM supplier_products WHERE supplierID = ?`, [id], (delErr) => {
+            if (delErr) console.error(delErr);
+            
+            // Insert the newly checked products
+            if (productIDs && productIDs.length > 0) {
+                const spSql = `INSERT INTO supplier_products (supplierID, productID) VALUES ?`;
+                const values = productIDs.map(pid => [id, pid]);
+                
+                db.query(spSql, [values], (spErr) => {
+                    res.status(200).json({ message: "Supplier updated successfully!" });
+                });
+            } else {
+                res.status(200).json({ message: "Supplier updated successfully!" });
+            }
+        });
+    });
+});
+
+// DELETE route to REMOVE a supplier
+app.delete('/api/suppliers/:id', (req, res) => {
+    const { id } = req.params;
+    const sql = `DELETE FROM supplier WHERE supplierID = ?`;
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Failed to delete supplier" });
+        res.status(200).json({ message: "Supplier deleted successfully!" });
+    });
+});
