@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(data => {
             // If not logged in, kick them back to login page
             if (!data.loggedIn) {
-                window.location.href = '../login.html'; // Adjust path as needed
+                window.location.href = '../log-in.html'; // Adjust path as needed
                 return;
             }
 
@@ -17,17 +17,17 @@ document.addEventListener("DOMContentLoaded", () => {
             // 2. Role-Based Page Protection
             if (currentPath.includes('admin-screen') && userRole !== 'Admin') {
                 alert("Access Denied: Admins Only");
-                window.location.href = '../login.html';
+                window.location.href = '../log-in.html';
                 return;
             }
             if (currentPath.includes('sales-screen') && userRole !== 'SalesStaff') {
                 alert("Access Denied: Sales Staff Only");
-                window.location.href = '../login.html';
+                window.location.href = '../log-in.html';
                 return;
             }
             if (currentPath.includes('inventory-screen') && userRole !== 'InventoryStaff') {
                 alert("Access Denied: Inventory Staff Only");
-                window.location.href = '../login.html';
+                window.location.href = '../log-in.html';
                 return;
             }
 
@@ -120,7 +120,7 @@ function setupLogoutButton() {
                 .then(response => response.json())
                 .then(data => {
                     // Redirect back to login screen after destroying the session
-                    window.location.href = '../login.html'; 
+                    window.location.href = '../log-in.html'; 
                 })
                 .catch(err => console.error("Logout failed", err));
         });

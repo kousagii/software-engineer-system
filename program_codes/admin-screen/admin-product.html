@@ -3,103 +3,369 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Udicon Trading | Sales & Inventory System</title>
-    <link rel="stylesheet" href="../style.css"/>
+    <title>Product Management | Udicon Trading</title>
+    <link rel="stylesheet" href="../style.css">
 </head>
 <body>
-    
-<div id="sidebar"></div>
+    <div id="sidebar"></div>
 
-<main>
- <div id="product" class="tab-content active">
-            <div class="split">
-                <div>
-                    <h3>📦 Create Product</h3>
-                    <form id="productForm" onsubmit="return saveProduct()">
-                        <label for="pname">Name</label>
-                        <input type="text" id="pname" placeholder="Enter product name" required>
-
-                        <div style="display: flex; gap: 10px;">
-                            <div style="flex:1;">
-                                <label for="pcategory">Category</label>
-                                <select id="pcategory" required>
-                                    <option value="">Select</option>
-                                    <option>Cement & Concrete</option>
-                                    <option>Wood & Steel</option>
-                                    <option>Roofing & Bricks</option>
-                                    <option>Tools & Paints</option>
-                                </select>
-                            </div>
-                            <div style="flex:1;">
-                                <label for="pqty">Stock Quantity</label>
-                                <input type="number" id="pqty" min="0" value="0">
-                            </div>
-                        </div>
-
-                        <label for="pprice">Price (₱)</label>
-                        <input type="number" id="pprice" placeholder="e.g. 150" min="0" required>
-
-                        <label for="pdesc">Description</label>
-                        <textarea id="pdesc" rows="3" placeholder="Enter description"></textarea>
-
-                        <label for="pimg">Upload Image</label>
-                        <input type="file" id="pimg" accept=".jpg,.png">
-
-                        <button type="button" onclick="generateBarcode()">Generate Barcode</button>
-                        <button type="submit">Create Product</button>
-                    </form>
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-box">
+            <p id="modal-message"></p>
+            <div id="modal-actions">
                 </div>
-
-            <div>
-                <h3>🧾 Product Details</h3>
-                <p><strong>Name:</strong> <span id="dname">—</span></p>
-                <p><strong>Category:</strong> <span id="dcategory">—</span></p>
-                <p><strong>Stock Quantity:</strong> <span id="dqty">—</span></p>
-                <p><strong>Price:</strong> ₱<span id="dprice">—</span></p>
-                <p><strong>Description:</strong> <span id="ddesc">—</span></p>
-                <hr>
-                <p><strong>Product ID:</strong> <span id="did">—</span></p>
-                <p><strong>Barcode:</strong></p>
-                <div id="barcodeDisplay" style="font-family:monospace; letter-spacing:3px;">[Barcode will appear here]</div>
-            </div>
         </div>
     </div>
-</main>
 
-<script src="../admin-screen/admin-navbar.js"></script>
+    <main class="dashboard-main">
+        
+        <div id="product-list-view" style="display: block; width: 100%;">
+            <div class="page-header">
+                <h2>Product Management</h2>
+                <button class="btn-create" onclick="openCreateView()">+ Create Product</button>
+            </div>
 
-<script>
-    function generateBarcode() {
-    const name = document.getElementById("pname").value.trim();
-    const category = document.getElementById("pcategory").value.trim();
-    const qty = document.getElementById("pqty").value.trim();
-    const price = document.getElementById("pprice").value.trim();
-    const desc = document.getElementById("pdesc").value.trim();
+            <div class="table-container">
+                <div class="toolbar">
+                    <div class="filter-group">
+                        <label>Filter</label>
+                        <input type="text" placeholder="Search here..." style="width: 250px;">
+                    </div>
+                    <div class="sort-group">
+                        <label>Show</label>
+                        <select style="width: 70px;"><option>16</option></select>
+                        <label style="margin-left: 20px;">Sort by</label>
+                        <select style="width: 120px;"><option>Default</option></select>
+                    </div>
+                </div>
 
-    if (!name || !category) {
-        alert("Please fill in product name and category first!");
-        return;
-    }
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Products</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>Stocks</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="product-table-body">
+                        <tr><td colspan="5" style="text-align: center;">Loading products...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-    // Generate product ID and barcode
-    const productID = Math.floor(Math.random() * 10000);
-    const barcode = "UDC-" + category.slice(0,3).toUpperCase() + "-" + Math.floor(Math.random() * 9000 + 1000);
+        <div id="create-product-view" style="display: none; width: 100%;">
+            <div class="page-header">
+                <button class="btn-back" onclick="toggleView('product-list-view')">← Back to List</button>
+            </div>
 
-    document.getElementById("dname").textContent = name;
-    document.getElementById("dcategory").textContent = category;
-    document.getElementById("dqty").textContent = qty || "0";
-    document.getElementById("dprice").textContent = price || "0";
-    document.getElementById("ddesc").textContent = desc || "No description";
-    document.getElementById("did").textContent = productID;
-    document.getElementById("barcodeDisplay").textContent = barcode;
-}
+            <div class="split">
+                <div class="form-panel">
+                    <h3 id="form-title">Create Product</h3>
+                    
+                    <label>Name</label>
+                    <input type="text" id="prodName" placeholder="e.g. Pliers" oninput="updatePreview()">
+                    
+                    <div class="split" style="gap: 20px; margin-top: 10px;">
+                        <div>
+                            <label>Category</label>
+                            <select id="prodCategory" onchange="updatePreview()">
+                                <option value="Tools">Tools</option>
+                                <option value="Materials">Materials</option>
+                                <option value="Hardware">Hardware</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Brand</label>
+                            <input type="text" id="prodBrand" placeholder="e.g. Stanley" oninput="updatePreview()">
+                        </div>
+                    </div>
 
-function saveProduct() {
-    alert("Product successfully created!");
-    return false;
-}
-</script>
+                    <div class="split" style="gap: 20px; margin-top: 10px;">
+                        <div>
+                            <label>Stock Quantity</label>
+                            <div class="qty-control">
+                                <button class="qty-btn" onclick="changeStock(-1)">-</button>
+                                <input type="number" id="prodStock" value="25" style="text-align: center; margin: 0; width: 60px;" oninput="updatePreview()">
+                                <button class="qty-btn" onclick="changeStock(1)">+</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Price (₱)</label>
+                            <input type="number" id="prodPrice" placeholder="180" oninput="updatePreview()">
+                        </div>
+                    </div>
 
+                    <label>Description</label>
+                    <textarea id="prodDescription" rows="4" placeholder="Description" oninput="updatePreview()"></textarea>
+
+                    <label>Upload image</label>
+                    <div class="split align-end">
+                        <div class="image-upload-box" onclick="showAlert('Image upload requires a backend storage setup!')">
+                            <span>Upload Icon</span>
+                        </div>
+                        <button type="button" id="btn-generate-barcode" onclick="generateBarcode()" style="background: #e0e0e0; color: #333; flex: 1;">Generate barcode</button>
+                    </div>
+                </div>
+
+                <div class="form-panel">
+                    <h3>Product Details</h3>
+                    <div class="preview-details">
+                        <p><strong>Name:</strong> <span id="prevName">Pliers</span></p>
+                        <p><strong>Brand:</strong> <span id="prevBrand">Stanley</span></p>
+                        <p><strong>Category:</strong> <span id="prevCat">Tools</span></p>
+                        <p><strong>Stock Quantity:</strong> <span id="prevStock">25</span></p>
+                        <p><strong>Price:</strong> ₱<span id="prevPrice">180</span></p>
+                        <p><strong>Description:</strong> <span id="prevDesc">Description</span></p>
+                        
+                        <br>
+                        <p><strong>Barcode:</strong></p>
+                        <div class="barcode-placeholder" style="letter-spacing: 2px;">|| |||| || ||| |||||||</div>
+                        <p id="prevBarcode" style="text-align: center; font-family: monospace; font-weight: bold; color: #d9534f;">Click 'Generate barcode'</p>
+
+                        <br>
+                        <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 10px;">
+                        <p><strong>Product ID:</strong> <span id="prevProductId" style="font-family: monospace; color: #8fc96a; font-weight: bold;">(Auto-generated on save)</span></p>
+                    </div>
+                    <button class="btn-create" id="btn-save" onclick="saveProduct()" style="width: 100%; margin-top: 20px;">Create Product</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="../authGuard.js"></script>
+    <script>
+        // Global variables to track state
+        let currentBarcode = "";
+        let currentEditId = null; 
+        let productList = []; 
+
+        // --- CUSTOM MODAL LOGIC ---
+        function closeModal() {
+            document.getElementById('custom-modal').style.display = 'none';
+        }
+
+        // Use this for standard messages (replaces alert)
+        function showAlert(message) {
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-actions').innerHTML = `
+                <button class="modal-btn btn-ok" onclick="closeModal()">OK</button>
+            `;
+            document.getElementById('custom-modal').style.display = 'flex';
+        }
+
+        // Use this for Yes/No actions (replaces confirm)
+        function showConfirm(message, onConfirmCallback) {
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-actions').innerHTML = `
+                <button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="modal-btn btn-danger" id="modal-confirm-btn">Yes, Delete</button>
+            `;
+            document.getElementById('custom-modal').style.display = 'flex';
+            
+            // Attach the execution block to the confirm button
+            document.getElementById('modal-confirm-btn').onclick = function() {
+                closeModal();
+                onConfirmCallback();
+            };
+        }
+        // ---------------------------
+
+        // 1. View Toggling & Form Reset
+        function toggleView(viewId) {
+            document.getElementById('product-list-view').style.display = 'none';
+            document.getElementById('create-product-view').style.display = 'none';
+            document.getElementById(viewId).style.display = 'block';
+            if(viewId === 'product-list-view') loadProducts();
+        }
+
+        function openCreateView() {
+            currentEditId = null; 
+            currentBarcode = "";
+            
+            document.getElementById('form-title').innerText = "Create Product";
+            document.getElementById('btn-save').innerText = "Create Product";
+            document.getElementById('prevProductId').innerText = "(Auto-generated on save)";
+            document.getElementById('btn-generate-barcode').disabled = false;
+            document.getElementById('btn-generate-barcode').style.opacity = "1";
+            document.getElementById('prevBarcode').textContent = "Click 'Generate barcode'";
+            document.getElementById('prevBarcode').style.color = "#d9534f";
+
+            document.getElementById('prodName').value = '';
+            document.getElementById('prodBrand').value = '';
+            document.getElementById('prodCategory').value = 'Tools';
+            document.getElementById('prodStock').value = '25';
+            document.getElementById('prodPrice').value = '';
+            document.getElementById('prodDescription').value = '';
+            
+            updatePreview();
+            toggleView('create-product-view');
+        }
+
+        // 2. Barcode Generator
+        function generateBarcode() {
+            if (currentEditId) return; 
+
+            currentBarcode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+            document.getElementById('prevBarcode').textContent = currentBarcode;
+            document.getElementById('prevBarcode').style.color = "#333";
+        }
+
+        // 3. Stock +/- Buttons
+        function changeStock(amount) {
+            let stockInput = document.getElementById('prodStock');
+            let currentVal = parseInt(stockInput.value) || 0;
+            if(currentVal + amount >= 0) {
+                stockInput.value = currentVal + amount;
+                updatePreview();
+            }
+        }
+
+        // 4. Update Preview Panel
+        function updatePreview() {
+            document.getElementById('prevName').textContent = document.getElementById('prodName').value || 'Pliers';
+            document.getElementById('prevBrand').textContent = document.getElementById('prodBrand').value || 'Stanley';
+            document.getElementById('prevCat').textContent = document.getElementById('prodCategory').value;
+            document.getElementById('prevStock').textContent = document.getElementById('prodStock').value || '0';
+            document.getElementById('prevPrice').textContent = document.getElementById('prodPrice').value || '0';
+            document.getElementById('prevDesc').textContent = document.getElementById('prodDescription').value || 'Description';
+        }
+
+        // 5. Load Products from Database
+        async function loadProducts() {
+            try {
+                const res = await fetch('/api/products');
+                productList = await res.json(); 
+                const tbody = document.getElementById('product-table-body');
+                tbody.innerHTML = '';
+
+                if(productList.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No products found.</td></tr>';
+                    return;
+                }
+
+                productList.forEach(p => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>
+                                <div class="product-info">
+                                    <strong>${p.productName}</strong><br>
+                                    <span class="sub-text">ID: ${p.productID}</span>
+                                </div>
+                            </td>
+                            <td class="sub-text">${p.productDescription || ''}</td>
+                            <td>₱ ${parseFloat(p.price).toFixed(2)}</td>
+                            <td>${p.stockQuantity}</td>
+                            <td>
+                                <button class="btn-edit" onclick="editProduct(${p.productID})">Edit</button>
+                                <button class="btn-delete" onclick="deleteProduct(${p.productID})">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                document.getElementById('product-table-body').innerHTML = '<tr><td colspan="5">Error loading data.</td></tr>';
+            }
+        }
+
+        // 6. EDIT Function
+        function editProduct(id) {
+            const product = productList.find(p => p.productID === id);
+            if (!product) return;
+
+            currentEditId = product.productID;
+            currentBarcode = product.barcode;
+
+            document.getElementById('form-title').innerText = "Edit Product";
+            document.getElementById('btn-save').innerText = "Save Changes";
+            document.getElementById('prevProductId').innerText = product.productID;
+
+            document.getElementById('btn-generate-barcode').disabled = true;
+            document.getElementById('btn-generate-barcode').style.opacity = "0.5";
+            document.getElementById('prevBarcode').textContent = currentBarcode;
+            document.getElementById('prevBarcode').style.color = "#333";
+
+            document.getElementById('prodName').value = product.productName;
+            document.getElementById('prodBrand').value = product.brand || '';
+            document.getElementById('prodCategory').value = product.category;
+            document.getElementById('prodStock').value = product.stockQuantity;
+            document.getElementById('prodPrice').value = product.price;
+            document.getElementById('prodDescription').value = product.productDescription || '';
+
+            updatePreview();
+            toggleView('create-product-view');
+        }
+
+        // 7. DELETE Function (Now uses custom modal)
+        function deleteProduct(id) {
+            showConfirm("Are you sure you want to delete this product?", async function() {
+                try {
+                    const response = await fetch(`/api/products/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        showAlert("Product deleted!");
+                        loadProducts(); 
+                    } else {
+                        const result = await response.json();
+                        showAlert("Error: " + result.error);
+                    }
+                } catch (error) {
+                    showAlert("Failed to connect to the server.");
+                }
+            });
+        }
+
+        // 8. Save Product
+        async function saveProduct() {
+            if (!currentBarcode) {
+                showAlert("Please click 'Generate barcode' before saving!");
+                return;
+            }
+
+            const data = {
+                productName: document.getElementById('prodName').value,
+                barcode: currentBarcode, 
+                category: document.getElementById('prodCategory').value,
+                stockQuantity: parseInt(document.getElementById('prodStock').value),
+                price: parseFloat(document.getElementById('prodPrice').value),
+                brand: document.getElementById('prodBrand').value, 
+                productDescription: document.getElementById('prodDescription').value
+            };
+
+            if (!data.productName || !data.price) {
+                showAlert("Please fill in the Name and Price!");
+                return;
+            }
+
+            const method = currentEditId ? 'PUT' : 'POST';
+            const url = currentEditId ? `/api/products/${currentEditId}` : '/api/products';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert(currentEditId ? "Product updated successfully!" : "Product saved successfully!");
+                    toggleView('product-list-view');
+                } else {
+                    showAlert("Error: " + result.error);
+                }
+            } catch (error) {
+                showAlert("Failed to connect to the server.");
+            }
+        }
+
+        // Load data on page start
+        document.addEventListener("DOMContentLoaded", loadProducts);
+    </script>
 </body>
 </html>
-
