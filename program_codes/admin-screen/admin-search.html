@@ -3,20 +3,415 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Udicon Trading | Sales & Inventory System</title>
-    <link rel="stylesheet" href="../style.css"/>
+    <title>Admin Search - UDICON Trading</title>
+    <link rel="stylesheet" href="../style.css">
 </head>
 <body>
-    
-<div id="sidebar"></div>
+    <div id="sidebar"></div>
 
-<main>
-</main>
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div id="modal-message"></div>
+            <div id="modal-actions"></div>
+        </div>
+    </div>
 
+    <main class="dashboard-main">
+        <div class="page-header search-header">
+            <h2>Global Search</h2>
+        </div>
 
-<script src="../admin-screen/admin-navbar.js"></script>
+        <div class="split search-split">
+            
+            <div class="form-panel search-filters-panel">
+                
+                <input type="text" id="searchInput" class="search-input" placeholder="Enter keyword here">
+                <button id="searchBtn" class="btn-search">Search</button>
 
+                <div class="tab-toggle-container">
+                    <button id="tabProducts" class="tab-toggle-btn active-tab">
+                        Products <span id="countProducts" class="tab-count">0</span>
+                    </button>
+                    <button id="tabSuppliers" class="tab-toggle-btn">
+                        Supplier <span id="countSuppliers" class="tab-count">0</span>
+                    </button>
+                </div>
 
+                <label class="filter-label">Sort by</label>
+                <select id="sortMode" class="sort-select">
+                    <option value="asc">Ascending (A-Z)</option>
+                    <option value="desc">Descending (Z-A)</option>
+                    <option value="price-asc" id="sortPriceAsc">Price (Low-High)</option>
+                    <option value="price-desc" id="sortPriceDesc">Price (High-Low)</option>
+                </select>
+
+                <div id="filterProductsBlock" class="filter-block">
+                    <h4 class="filter-heading">Filters</h4>
+                    
+                    <label class="sub-text filter-label">Category</label>
+                    <div class="filter-options">
+                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Cement"> Cement</label>
+                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Wood"> Wood</label>
+                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Steel"> Steel</label>
+                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Roofing"> Roofing</label>
+                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Bricks"> Bricks</label>
+                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Tools"> Tools</label>
+                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Paints"> Paints</label>
+                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Electrical"> Electrical</label>
+                    </div>
+
+                    <label class="sub-text filter-label-spaced">Price Range</label>
+                    <div class="price-range-group">
+                        <input type="number" id="priceMin" class="price-input" placeholder="Min">
+                        <span>-</span>
+                        <input type="number" id="priceMax" class="price-input" placeholder="Max">
+                    </div>
+
+                    <label class="sub-text filter-label-spaced">Stock Status</label>
+                    <div class="filter-options">
+                        <label class="checkbox-label"><input type="checkbox" class="stat-filter" value="In Stock"> In Stock</label>
+                        <label class="checkbox-label"><input type="checkbox" class="stat-filter" value="Low Stock"> Low Stock</label>
+                        <label class="checkbox-label"><input type="checkbox" class="stat-filter" value="Out of Stock"> Out of Stock</label>
+                    </div>
+                </div>
+
+                <div id="filterSuppliersBlock" class="filter-block hidden">
+                    <h4 class="filter-heading">Filters</h4>
+                    
+                    <label class="sub-text filter-label">Location</label>
+                    <select id="locFilter" class="filter-select">
+                        <option value="All">All</option>
+                        <option value="Metro Manila">Metro Manila</option>
+                        <option value="Rizal">Rizal</option>
+                        <option value="Pasig">Pasig City</option>
+                        <option value="Quezon">Quezon City</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="table-container search-table-container">
+                <table class="data-table" id="dataTable">
+                    <thead id="tableHead">
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="../authGuard.js"></script>
+
+    <script>
+        let allProducts = [];
+        let allSuppliers = [];
+        let currentMode = 'products'; 
+
+        const tabProductsBtn = document.getElementById('tabProducts');
+        const tabSuppliersBtn = document.getElementById('tabSuppliers');
+        const filterProductsBlock = document.getElementById('filterProductsBlock');
+        const filterSuppliersBlock = document.getElementById('filterSuppliersBlock');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const sortMode = document.getElementById('sortMode');
+        const sortPriceAsc = document.getElementById('sortPriceAsc');
+        const sortPriceDesc = document.getElementById('sortPriceDesc');
+        const customModal = document.getElementById('custom-modal');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchData();
+            setupEventListeners();
+        });
+
+        function closeModal() {
+            customModal.style.display = 'none';
+        }
+
+        function viewProducts(supplierName, productsStr) {
+            const listItems = productsStr ? productsStr.split(', ').map(p => `<li class="modal-list-item">${p}</li>`).join('') : '<li>No products assigned.</li>';
+            document.getElementById('modal-message').innerHTML = `
+                <p style="margin-bottom: 10px;"><strong>Products for ${supplierName}:</strong></p>
+                <ul class="modal-product-list">
+                    ${listItems}
+                </ul>
+            `;
+            document.getElementById('modal-actions').innerHTML = `
+                <button class="modal-btn btn-ok" onclick="closeModal()">Close</button>
+            `;
+            customModal.style.display = 'flex';
+        }
+
+        // 1. FETCH DATA FROM SERVER
+        async function fetchData() {
+            try {
+                const [prodRes, suppRes] = await Promise.all([
+                    fetch('/api/products'),
+                    fetch('/api/suppliers')
+                ]);
+                
+                if (prodRes.ok) allProducts = await prodRes.json();
+                if (suppRes.ok) allSuppliers = await suppRes.json();
+
+                document.getElementById('countProducts').innerText = allProducts.length;
+                document.getElementById('countSuppliers').innerText = allSuppliers.length;
+
+                processDataAndRender();
+            } catch (err) {
+                console.error("Error fetching data:", err);
+            }
+        }
+
+        // 2. EVENT LISTENERS
+        function setupEventListeners() {
+            tabProductsBtn.addEventListener('click', () => {
+                currentMode = 'products';
+                
+                tabProductsBtn.classList.add('active-tab');
+                tabSuppliersBtn.classList.remove('active-tab');
+
+                filterProductsBlock.classList.remove('hidden');
+                filterSuppliersBlock.classList.add('hidden');
+                sortPriceAsc.style.display = 'block';
+                sortPriceDesc.style.display = 'block';
+                
+                processDataAndRender();
+            });
+
+            tabSuppliersBtn.addEventListener('click', () => {
+                currentMode = 'suppliers';
+                
+                tabSuppliersBtn.classList.add('active-tab');
+                tabProductsBtn.classList.remove('active-tab');
+                
+
+                filterProductsBlock.classList.add('hidden');
+                filterSuppliersBlock.classList.remove('hidden');
+                sortPriceAsc.style.display = 'none';
+                sortPriceDesc.style.display = 'none';
+
+                if(sortMode.value.includes('price')) {
+                    sortMode.value = 'asc';
+                }
+                
+                processDataAndRender();
+            });
+
+            // Trigger Search & Filters
+            searchBtn.addEventListener('click', processDataAndRender);
+            searchInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') processDataAndRender(); });
+            sortMode.addEventListener('change', processDataAndRender);
+
+            document.querySelectorAll('input[type=checkbox], input[type=number], select').forEach(el => {
+                el.addEventListener('change', processDataAndRender);
+            });
+        }
+
+        // 3. CORE PROCESSING PIPELINE
+        function processDataAndRender() {
+            let data = currentMode === 'products' ? [...allProducts] : [...allSuppliers];
+            const keyword = searchInput.value.trim();
+
+            // A. Search
+            if (keyword) {
+                data = linearSearch(data, keyword);
+            }
+
+            // B. Filter
+            data = applyFilters(data, currentMode);
+
+            // C. Sort
+            const sortVal = sortMode.value;
+            let sortKey = currentMode === 'products' ? 'productName' : 'supplierName';
+            let order = sortVal; 
+
+            if (sortVal === 'price-asc' || sortVal === 'price-desc') {
+                if (currentMode === 'products') {
+                    sortKey = 'price';
+                    order = sortVal === 'price-asc' ? 'asc' : 'desc';
+                }
+            }
+
+            data = mergeSort(data, sortKey, order);
+
+            renderTable(data, currentMode);
+        }
+
+        // --- ALGORITHM 1: LINEAR SEARCH ---
+        function linearSearch(array, keyword) {
+            const query = keyword.toLowerCase();
+            const results = [];
+            
+            for (let i = 0; i < array.length; i++) {
+                const item = array[i];
+                let isMatch = false;
+                
+                const searchString = Object.values(item).join(' ').toLowerCase();
+                
+                if (searchString.includes(query)) {
+                    isMatch = true;
+                }
+
+                if (isMatch) {
+                    results.push(item);
+                }
+            }
+            return results;
+        }
+
+        // --- ALGORITHM 2: BOOLEAN AND RANGE FILTERING ---
+        function applyFilters(array, mode) {
+            return array.filter(item => {
+                if (mode === 'products') {
+                    const checkedCats = Array.from(document.querySelectorAll('.cat-filter:checked')).map(cb => cb.value);
+                    if (checkedCats.length > 0 && !checkedCats.includes(item.category)) return false;
+
+                    const minPrice = parseFloat(document.getElementById('priceMin').value);
+                    const maxPrice = parseFloat(document.getElementById('priceMax').value);
+                    if (!isNaN(minPrice) && item.price < minPrice) return false;
+                    if (!isNaN(maxPrice) && item.price > maxPrice) return false;
+
+                    const checkedStats = Array.from(document.querySelectorAll('.stat-filter:checked')).map(cb => cb.value);
+                    if (checkedStats.length > 0) {
+                        let currentStatus = "In Stock";
+                        if (item.stockQuantity == 0) currentStatus = "Out of Stock";
+                        else if (item.stockQuantity <= 10) currentStatus = "Low Stock"; 
+                        
+                        if (!checkedStats.includes(currentStatus)) return false;
+                    }
+
+                    return true;
+                } else { 
+                    const selectedLoc = document.getElementById('locFilter').value;
+                    if (selectedLoc !== 'All' && item.address) {
+                        if (!item.address.toLowerCase().includes(selectedLoc.toLowerCase())) return false;
+                    }
+                    return true;
+                }
+            });
+        }
+
+        // --- ALGORITHM 3: MERGE SORT ---
+        function mergeSort(arr, key, order) {
+            if (arr.length <= 1) return arr;
+
+            const mid = Math.floor(arr.length / 2);
+            const left = mergeSort(arr.slice(0, mid), key, order);
+            const right = mergeSort(arr.slice(mid), key, order);
+
+            return merge(left, right, key, order);
+        }
+
+        function merge(left, right, key, order) {
+            let result = [];
+            let leftIdx = 0;
+            let rightIdx = 0;
+
+            while (leftIdx < left.length && rightIdx < right.length) {
+                let valA = left[leftIdx][key];
+                let valB = right[rightIdx][key];
+
+                if (key === 'price') {
+                    valA = parseFloat(valA) || 0;
+                    valB = parseFloat(valB) || 0;
+                } else {
+                    if (typeof valA === 'string') valA = valA.toLowerCase();
+                    if (typeof valB === 'string') valB = valB.toLowerCase();
+                }
+
+                const isAscending = order === 'asc';
+                const condition = isAscending ? (valA < valB) : (valA > valB);
+
+                if (condition) {
+                    result.push(left[leftIdx]);
+                    leftIdx++;
+                } else {
+                    result.push(right[rightIdx]);
+                    rightIdx++;
+                }
+            }
+
+            return result.concat(left.slice(leftIdx)).concat(right.slice(rightIdx));
+        }
+
+        function renderTable(data, mode) {
+            const head = document.getElementById('tableHead');
+            const body = document.getElementById('tableBody');
+            
+            head.innerHTML = '';
+            body.innerHTML = '';
+
+            if (data.length === 0) {
+                body.innerHTML = `<tr><td colspan="5" class="center-text">No results found.</td></tr>`;
+                return;
+            }
+
+            if (mode === 'products') {
+                head.innerHTML = `
+                    <tr>
+                        <th class="search-th">Category</th>
+                        <th class="search-th">Product ID</th>
+                        <th class="search-th">Name</th>
+                        <th class="search-th">Price</th>
+                        <th class="search-th">Status</th>
+                    </tr>
+                `;
+
+                data.forEach(item => {
+                    let statusText = "In Stock";
+                    let statusClass = "instock"; 
+
+                    if (item.stockQuantity == 0) {
+                        statusText = "Out of Stock";
+                        statusClass = "outstock";
+                    } else if (item.stockQuantity <= 10) {
+                        statusText = "Low Stock";
+                        statusClass = "lowstock";
+                    }
+
+                    body.innerHTML += `
+                        <tr>
+                            <td class="sub-text">${item.category || 'N/A'}</td>
+                            <td class="sub-text">${item.productID}</td>
+                            <td><div class="product-info"><strong>${item.productName}</strong></div></td>
+                            <td class="sub-text">₱ ${parseFloat(item.price).toFixed(2)}</td>
+                            <td>
+                                <span class="status-pill status-${statusClass}">
+                                    ${statusText}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+            } else {
+                head.innerHTML = `
+                    <tr>
+                        <th class="search-th">Supplier ID</th>
+                        <th class="search-th">Name</th>
+                        <th class="search-th">Contact Number</th>
+                        <th class="search-th">Address</th>
+                        <th class="search-th">Product List</th>
+                    </tr>
+                `;
+
+                data.forEach(item => {
+                    let safeName = item.supplierName.replace(/'/g, "\\'");
+                    let safeProducts = item.productNames ? item.productNames.replace(/'/g, "\\'") : '';
+
+                    body.innerHTML += `
+                        <tr>
+                            <td class="sub-text">${item.supplierID}</td>
+                            <td><div class="product-info"><strong>${item.supplierName}</strong></div><div class="sub-text">${item.email || ''}</div></td>
+                            <td class="sub-text">${item.contactNumber}</td>
+                            <td class="sub-text address-cell">${item.address}</td>
+                            <td><button class="btn-view" onclick="viewProducts('${safeName}', '${safeProducts}')">↗ View</button></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+    </script>
 </body>
 </html>
-

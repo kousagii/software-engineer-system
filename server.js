@@ -275,3 +275,76 @@ app.delete('/api/suppliers/:id', (req, res) => {
         res.status(200).json({ message: "Supplier deleted successfully!" });
     });
 });
+
+
+// USER MANAGEMENT 
+
+// GET route to fetch all users (excluding passwords for security)
+app.get('/api/users', (req, res) => {
+    const sql = `SELECT userID, username, firstName, lastName, role, contactInfo FROM users ORDER BY userID DESC`;
+    
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Failed to fetch users" });
+        }
+        res.json(results);
+    });
+});
+
+// PUT route to UPDATE an existing user's information 
+app.put('/api/users/:id', async (req, res) => {
+    const { id } = req.params;
+    const { username, firstName, lastName, role, contactInfo, rawPassword } = req.body;
+    
+    try {
+        if (rawPassword && rawPassword.trim() !== '') {
+            // If the admin typed a new password, hash it and update everything
+            const hashedPassword = await bcrypt.hash(rawPassword, 10);
+            const sql = `UPDATE users 
+                         SET username = ?, firstName = ?, lastName = ?, role = ?, contactInfo = ?, userPassword = ? 
+                         WHERE userID = ?`;
+                         
+            db.query(sql, [username, firstName, lastName, role, contactInfo, hashedPassword, id], (err, result) => {
+                if (err) return handleUpdateError(err, res);
+                res.status(200).json({ message: "User and password updated successfully!" });
+            });
+        } else {
+            // If the password field was left blank, only update the other info
+            const sql = `UPDATE users 
+                         SET username = ?, firstName = ?, lastName = ?, role = ?, contactInfo = ? 
+                         WHERE userID = ?`;
+                         
+            db.query(sql, [username, firstName, lastName, role, contactInfo, id], (err, result) => {
+                if (err) return handleUpdateError(err, res);
+                res.status(200).json({ message: "User updated successfully!" });
+            });
+        }
+    } catch (error) {
+        res.status(500).json({ error: "Hashing error while updating password" });
+    }
+
+    // Helper function for database errors to keep the code clean
+    function handleUpdateError(err, res) {
+        console.error(err);
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ error: "That username is already taken!" });
+        }
+        return res.status(500).json({ error: "Failed to update user" });
+    }
+});
+
+// DELETE route to REMOVE a user
+app.delete('/api/users/:id', (req, res) => {
+    const { id } = req.params;
+    
+    const sql = `DELETE FROM users WHERE userID = ?`;
+    
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Failed to delete user" });
+        }
+        res.status(200).json({ message: "User deleted successfully!" });
+    });
+});

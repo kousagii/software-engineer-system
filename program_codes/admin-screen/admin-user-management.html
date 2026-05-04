@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - User Management</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../authGuard.js" defer></script>
+</head>
+<body>
+    <div id="sidebar"></div>
+
+    <main class="dashboard-main" style="width: 100%;">
+        <div class="page-header" style="width: 80%; margin: 0 auto;">
+            <h2>User Management</h2>
+            <button class="btn-create" onclick="openCreateModal()">+ Create New User</button>
+        </div>
+
+        <div class="table-container" style="width: 80%; margin: 0 auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Full Name</th>
+                        <th>Role</th>
+                        <th>Contact</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="user-table-body">
+                    </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="user-form-modal">
+        <div class="modal-box" style="min-width: 450px; text-align: left;">
+            <h3 id="modal-title" style="text-align: center; margin-top: 0;">Create User</h3>
+            
+            <input type="hidden" id="form-userid">
+
+            <label>Username</label>
+            <input type="text" id="form-username" placeholder="Username">
+
+            <div id="password-container">
+                <label>Password</label>
+                <input type="password" id="form-password" placeholder="Password">
+            </div>
+
+            <div class="split">
+                <div>
+                    <label>First Name</label>
+                    <input type="text" id="form-firstname" placeholder="First Name">
+                </div>
+                <div>
+                    <label>Last Name</label>
+                    <input type="text" id="form-lastname" placeholder="Last Name">
+                </div>
+            </div>
+
+            <label>Role</label>
+            <select id="form-role">
+                <option value="Admin">Admin</option>
+                <option value="SalesStaff">Sales Staff</option>
+                <option value="InventoryStaff">Inventory Staff</option>
+            </select>
+
+            <label>Contact Information</label>
+            <input type="text" id="form-contact" placeholder="09xxxxxxxxx">
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button class="modal-btn btn-cancel" onclick="closeUserModal()">Cancel</button>
+                <button class="modal-btn btn-ok" onclick="saveUser()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="alert-modal">
+        <div class="modal-box">
+            <p id="alert-message"></p>
+            <div id="alert-actions"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchUsers);
+
+        async function fetchUsers() {
+            try {
+                const response = await fetch('/api/users');
+                const users = await response.json();
+                
+                const tableBody = document.getElementById('user-table-body');
+                tableBody.innerHTML = '';
+
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    const userDataStr = JSON.stringify(user).replace(/"/g, '&quot;');
+
+                    row.innerHTML = `
+                        <td><strong>${user.username}</strong></td>
+                        <td>${user.firstName} ${user.lastName}</td>
+                        <td><span class="sub-text">${user.role}</span></td>
+                        <td>${user.contactInfo}</td>
+                        <td>
+                            <button class="btn-edit" onclick="openEditModal('${userDataStr}')">Edit</button>
+                            <button class="btn-delete" onclick="confirmDelete(${user.userID}, '${user.username}')">Delete</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Error fetching users:", error);
+            }
+        }
+
+        function openCreateModal() {
+            document.getElementById('modal-title').innerText = "Create New User";
+            document.getElementById('form-userid').value = "";
+            document.getElementById('form-username').value = "";
+            document.getElementById('form-password').value = "";
+            document.getElementById('form-password').placeholder = "Password";
+            document.getElementById('form-firstname').value = "";
+            document.getElementById('form-lastname').value = "";
+            document.getElementById('form-contact').value = "";
+            document.getElementById('form-role').value = "SalesStaff";
+            
+            document.getElementById('user-form-modal').style.display = "flex";
+        }
+
+        function openEditModal(userDataStr) {
+            const user = JSON.parse(userDataStr);
+            
+            document.getElementById('modal-title').innerText = "Edit User";
+            document.getElementById('form-userid').value = user.userID;
+            document.getElementById('form-username').value = user.username;
+            
+            // Clear password field. If they type something, it changes. If left blank, it stays the same.
+            document.getElementById('form-password').value = "";
+            document.getElementById('form-password').placeholder = "Leave blank to keep current password";
+            
+            document.getElementById('form-firstname').value = user.firstName;
+            document.getElementById('form-lastname').value = user.lastName;
+            document.getElementById('form-contact').value = user.contactInfo;
+            document.getElementById('form-role').value = user.role;
+            
+            document.getElementById('user-form-modal').style.display = "flex";
+        }
+
+        function closeUserModal() {
+            document.getElementById('user-form-modal').style.display = "none";
+        }
+
+        // --- SAVE (CREATE OR UPDATE) ---
+        async function saveUser() {
+            const userID = document.getElementById('form-userid').value;
+            const username = document.getElementById('form-username').value.trim();
+            const rawPassword = document.getElementById('form-password').value.trim();
+            const firstName = document.getElementById('form-firstname').value.trim();
+            const lastName = document.getElementById('form-lastname').value.trim();
+            const role = document.getElementById('form-role').value;
+            const contactInfo = document.getElementById('form-contact').value.trim();
+
+            if (!username || !firstName || !lastName || !contactInfo) {
+                showAlert("Please fill in all required fields.");
+                return;
+            }
+
+            // If creating a new user, password is strictly required
+            if (!userID && !rawPassword) {
+                showAlert("Password is required for new users.");
+                return;
+            }
+
+            const userData = { username, rawPassword, firstName, lastName, role, contactInfo };
+
+            const url = userID ? `/api/users/${userID}` : '/api/users';
+            const method = userID ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+                
+                const result = await response.json();
+
+                if (response.ok) {
+                    closeUserModal();
+                    fetchUsers(); 
+                    showAlert(userID ? "User updated successfully!" : "User created successfully!");
+                } else {
+                    showAlert(result.error || "An error occurred.");
+                }
+            } catch (error) {
+                showAlert("Failed to connect to the server.");
+            }
+        }
+
+        function confirmDelete(id, username) {
+            document.getElementById('alert-message').innerText = `Are you sure you want to delete user '${username}'?`;
+            document.getElementById('alert-actions').innerHTML = `
+                <button class="modal-btn btn-cancel" onclick="closeAlert()">Cancel</button>
+                <button class="modal-btn btn-danger" onclick="deleteUser(${id})">Delete</button>
+            `;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+
+        async function deleteUser(id) {
+            try {
+                const response = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    closeAlert();
+                    fetchUsers();
+                } else {
+                    const result = await response.json();
+                    showAlert(result.error || "Failed to delete user.");
+                }
+            } catch (error) {
+                showAlert("Failed to connect to the server.");
+            }
+        }
+
+        // --- UTILITY ALERTS ---
+        function closeAlert() {
+            document.getElementById('alert-modal').style.display = 'none';
+        }
+
+        function showAlert(message) {
+            document.getElementById('alert-message').innerText = message;
+            document.getElementById('alert-actions').innerHTML = `
+                <button class="modal-btn btn-ok" onclick="closeAlert()">OK</button>
+            `;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

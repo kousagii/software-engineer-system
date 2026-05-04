@@ -27,8 +27,8 @@
 
             <div class="table-container">
                 <div class="toolbar">
-                    <div class="filter-group">
-                        <label>Filter</label>
+                    <div class="search-group">
+                        <label>Search</label>
                         <input type="text" placeholder="Search here..." style="width: 250px;">
                     </div>
                     <div class="sort-group">
@@ -73,8 +73,12 @@
                             <label>Category</label>
                             <select id="prodCategory" onchange="updatePreview()">
                                 <option value="Tools">Tools</option>
-                                <option value="Materials">Materials</option>
-                                <option value="Hardware">Hardware</option>
+                                <option value="Cement">Cement</option>
+                                <option value="Wood">Wood</option>
+                                <option value="Roofing">Roofing</option>
+                                <option value="Bricks">Bricks</option>
+                                <option value="Paints">Paints</option>
+                                <option value="Electrical">Electrical</option>
                             </select>
                         </div>
                         <div>
@@ -138,12 +142,10 @@
 
     <script src="../authGuard.js"></script>
     <script>
-        // Global variables to track state
         let currentBarcode = "";
         let currentEditId = null; 
         let productList = []; 
 
-        // --- CUSTOM MODAL LOGIC ---
         function closeModal() {
             document.getElementById('custom-modal').style.display = 'none';
         }
@@ -164,7 +166,6 @@
             `;
             document.getElementById('custom-modal').style.display = 'flex';
             
-            // Attach the execution block to the confirm button
             document.getElementById('modal-confirm-btn').onclick = function() {
                 closeModal();
                 onConfirmCallback();
@@ -362,7 +363,6 @@
             }
         }
 
-        // Load data on page start
         document.addEventListener("DOMContentLoaded", loadProducts);
     </script>
 </body>

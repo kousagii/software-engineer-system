@@ -27,8 +27,8 @@
 
             <div class="table-container">
                 <div class="toolbar">
-                    <div class="filter-group">
-                        <label>Filter</label>
+                    <div class="search-group">
+                        <label>Search</label>
                         <input type="text" placeholder="Search here..." style="width: 250px;">
                     </div>
                     <div class="sort-group">
@@ -101,10 +101,9 @@
     
 <script>
         let supplierList = []; 
-        let productList = []; // Store products for the checkboxes
+        let productList = []; 
         let currentEditId = null;
 
-        // --- CUSTOM MODAL LOGIC ---
         function closeModal() {
             document.getElementById('custom-modal').style.display = 'none';
         }
@@ -131,7 +130,6 @@
             };
         }
 
-        // New function specifically to show the product list nicely
         function viewProducts(supplierName, productsStr) {
             const listItems = productsStr ? productsStr.split(', ').map(p => `<li style="padding: 5px 0; border-bottom: 1px solid #eee;">${p}</li>`).join('') : '<li>No products assigned.</li>';
             document.getElementById('modal-message').innerHTML = `
@@ -303,7 +301,6 @@
 
         // 6. SAVE Supplier (Create or Update)
         async function saveSupplier() {
-            // Gather all checked product IDs
             const checkedBoxes = document.querySelectorAll('.product-checkbox:checked');
             const selectedProductIDs = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
 
@@ -312,7 +309,7 @@
                 contactNumber: document.getElementById('supContact').value,
                 email: document.getElementById('supEmail').value,
                 address: document.getElementById('supAddress').value,
-                productIDs: selectedProductIDs // Pass array to backend
+                productIDs: selectedProductIDs 
             };
 
             if (!data.supplierName) {
@@ -343,10 +340,9 @@
             }
         }
 
-        // Initialize on load
         document.addEventListener("DOMContentLoaded", () => {
-            fetchProductsForCheckboxes(); // Load product list for form
-            loadSuppliers(); // Load suppliers for table
+            fetchProductsForCheckboxes(); 
+            loadSuppliers();
         });
     </script>
 </body>

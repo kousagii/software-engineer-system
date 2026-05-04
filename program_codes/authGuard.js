@@ -1,13 +1,11 @@
 // authGuard.js
-
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Ask the server who is logged in
     fetch('/api/auth-status')
         .then(response => response.json())
         .then(data => {
-            // If not logged in, kick them back to login page
             if (!data.loggedIn) {
-                window.location.href = '../log-in.html'; // Adjust path as needed
+                window.location.href = '../log-in.html';
                 return;
             }
 
@@ -42,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // Function to inject the correct sidebar HTML based on Role
 function renderSidebar(role) {
     const sidebarContainer = document.getElementById("sidebar");
-    if (!sidebarContainer) return; // Skip if there's no sidebar div on this page
+    if (!sidebarContainer) return; 
 
     let sidebarHTML = '';
 
@@ -61,7 +59,7 @@ function renderSidebar(role) {
             </div>
             <div class="bottom-menu">
                 <div class="menu">
-                     <a href="../admin-screen/admin-register.html">Register User</a>
+                     <a href="../admin-screen/admin-user-management.html">User Management</a>
                      <a href="../admin-screen/admin-backup.html">Back-up</a>
                      <a href="../admin-screen/admin-help.html">Help</a>
                 </div>
@@ -119,7 +117,6 @@ function setupLogoutButton() {
             fetch('/api/logout', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
-                    // Redirect back to login screen after destroying the session
                     window.location.href = '../log-in.html'; 
                 })
                 .catch(err => console.error("Logout failed", err));
