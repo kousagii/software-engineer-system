@@ -52,7 +52,7 @@
                     </div>
                 </div>
 
-                <table class="data-table">
+            <table class="data-table">
                     <thead>
                         <tr>
                             <th>Supplier</th><th>Contact Number</th><th>Email</th>
@@ -63,6 +63,14 @@
                         <tr><td colspan="6" style="text-align: center;">Loading...</td></tr>
                     </tbody>
                 </table>
+
+                <div id="pagination-controls" class="pagination-container hidden">
+                    <button id="btn-prev" onclick="changePage(-1)">Previous</button>
+                    <span id="page-info" style="font-size: 14px;">Page 1 of 1</span>
+                    <button id="btn-next" onclick="changePage(1)">Next</button>
+                </div>
+                </div>
+        </div>
             </div>
         </div>
 
@@ -107,9 +115,10 @@
 
     </main>
 
-    <script src="../authGuard.js"></script>
+ <script src="../authGuard.js"></script>
     <script>
         let supplierList = [], productList = [], currentEditId = null;
+        let currentPage = 1; 
 
         // --- Utility Helpers ---
         const $ = id => document.getElementById(id);
@@ -150,17 +159,60 @@
             let data = [...supplierList];
             const query = val('searchInput').toLowerCase();
             const sort = val('sortMode');
-            const limit = val('showLimit');
+            const limitVal = val('showLimit');
 
+            // 1. Filter
             if (query) {
                 data = data.filter(s => Object.values(s).some(v => String(v).toLowerCase().includes(query)));
             }
 
+            // 2. Sort
             if (sort !== 'default') {
                 data.sort((a, b) => sort === 'asc' ? a.supplierName.localeCompare(b.supplierName) : b.supplierName.localeCompare(a.supplierName));
             }
 
-            renderTable(limit === 'all' ? data : data.slice(0, parseInt(limit)));
+            // 3. Paginate
+            let paginatedData;
+            if (limitVal === 'all') {
+                paginatedData = data;
+                updatePaginationUI(data.length, data.length); // Hide pagination if 'all'
+            } else {
+                const limit = parseInt(limitVal);
+                const startIndex = (currentPage - 1) * limit;
+                const endIndex = startIndex + limit;
+                paginatedData = data.slice(startIndex, endIndex);
+                updatePaginationUI(data.length, limit);
+            }
+
+            renderTable(paginatedData);
+        }
+
+        function updatePaginationUI(totalItems, limit) {
+            const paginationEl = $('pagination-controls');
+            if (limit === 'all' || limit >= totalItems || totalItems === 0) {
+                paginationEl.classList.add('hidden');
+                paginationEl.classList.remove('flex');
+                return;
+            }
+
+            const totalPages = Math.ceil(totalItems / limit);
+                if (currentPage > totalPages && totalPages > 0) {
+                currentPage = totalPages;
+                processData();
+                return;
+            }
+
+            $('page-info').innerText = `Page ${currentPage} of ${totalPages}`;
+            $('btn-prev').disabled = currentPage === 1;
+            $('btn-next').disabled = currentPage === totalPages;
+            
+            paginationEl.classList.remove('hidden');
+            paginationEl.classList.add('flex');
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            processData();
         }
 
         function renderTable(data) {
@@ -225,6 +277,7 @@
             try {
                 const res = await fetch('/api/suppliers');
                 supplierList = await res.json();
+                currentPage = 1;
                 processData();
             } catch { $('supplier-table-body').innerHTML = '<tr><td colspan="6" style="text-align:center;">Error loading data.</td></tr>'; }
         }
@@ -270,7 +323,12 @@
         document.addEventListener("DOMContentLoaded", () => {
             fetchProductsForCheckboxes(); 
             loadSuppliers();
-            ['searchInput', 'sortMode', 'showLimit'].forEach(id => $(id).addEventListener(id === 'searchInput' ? 'keyup' : 'change', processData));
+            ['searchInput', 'sortMode', 'showLimit'].forEach(id => {
+                $(id).addEventListener(id === 'searchInput' ? 'keyup' : 'change', () => {
+                    currentPage = 1;
+                    processData();
+                });
+            });
         });
     </script>
 </body>

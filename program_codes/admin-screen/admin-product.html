@@ -10,9 +10,15 @@
         .hidden { display: none !important; }
         .flex { display: flex !important; }
         
-        /* Added a small style for the table row to match your screenshot */
+        /* Table layout styles */
         .product-name-col { display: flex; align-items: center; gap: 15px; }
         .product-name-col img { width: 50px; height: 50px; object-fit: contain; background: #fff; border-radius: 4px; }
+        
+        /* Pagination Styles */
+        .pagination-container { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 15px; }
+        .pagination-container button { padding: 6px 12px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; }
+        .pagination-container button:hover:not(:disabled) { background: #f0f0f0; }
+        .pagination-container button:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -72,6 +78,13 @@
                         <tr><td colspan="5" style="text-align: center;">Loading products...</td></tr>
                     </tbody>
                 </table>
+
+                <div id="pagination-controls" class="pagination-container hidden">
+                    <button id="btn-prev" onclick="changePage(-1)">Previous</button>
+                    <span id="page-info" style="font-size: 14px;">Page 1 of 1</span>
+                    <button id="btn-next" onclick="changePage(1)">Next</button>
+                </div>
+
             </div>
         </div>
 
@@ -165,6 +178,8 @@
     <script src="../authGuard.js"></script>
     <script>
         let productList = [], currentEditId = null, currentBarcode = "";
+        let currentPage = 1; 
+        
         const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
         
         // --- Utility Helpers ---
@@ -191,13 +206,25 @@
             $('custom-modal').classList.add('flex');
         }
 
-        // --- Core Algorithms ---
+        // --- Core Algorithms & Pagination ---
+        
+        function resetAndProcess() {
+            currentPage = 1;
+            processData();
+        }
+
+        function changePage(step) {
+            currentPage += step;
+            processData();
+        }
+
         function processData() {
             let data = [...productList];
             const query = val('searchInput').toLowerCase();
             const sort = val('sortMode');
             const limit = val('showLimit');
 
+            // 1. Filter
             if (query) {
                 data = data.filter(p => 
                     (p.productName || "").toLowerCase().includes(query) ||
@@ -206,6 +233,7 @@
                 );
             }
 
+            // 2. Sort
             if (sort !== 'default') {
                 data.sort((a, b) => {
                     if (sort === 'az') return (a.productName || "").localeCompare(b.productName || "");
@@ -215,7 +243,31 @@
                 });
             }
 
-            renderTable(limit === 'all' ? data : data.slice(0, parseInt(limit)));
+            const parsedLimit = limit === 'all' ? data.length : parseInt(limit);
+            const totalPages = Math.ceil(data.length / parsedLimit) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * parsedLimit;
+            const endIndex = startIndex + parsedLimit;
+            const paginatedData = data.slice(startIndex, endIndex);
+
+            renderTable(paginatedData);
+            updatePaginationUI(data.length, totalPages);
+        }
+
+        function updatePaginationUI(totalItems, totalPages) {
+            const limit = val('showLimit');
+            const container = $('pagination-controls');
+            if (limit === 'all' || totalItems <= parseInt(limit)) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            $('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+            $('btn-prev').disabled = currentPage === 1;
+            $('btn-next').disabled = currentPage === totalPages;
         }
 
         function renderTable(data) {
@@ -257,10 +309,7 @@
             val('prodPrice', p.price || '');
             val('prodDescription', p.productDescription || '');
             
-            // Clear file input
             $('prodImage').value = ''; 
-            
-            // CHANGED: Load the existing image if editing, or set to placeholder
             $('img-preview').src = p.imagePath ? p.imagePath : placeholderImg;
 
             $('form-title').innerText = id ? "Edit Product" : "Create Product";
@@ -279,13 +328,11 @@
             toggleView('create-product-view');
         }
 
-        // ADDED: Function to instantly preview the selected file
         function previewSelectedImage(event) {
             const file = event.target.files[0];
             if (file) {
                 $('img-preview').src = URL.createObjectURL(file);
             } else {
-                // Revert to placeholder or existing image if they cancel selection
                 const p = productList.find(x => x.productID === currentEditId);
                 $('img-preview').src = (p && p.imagePath) ? p.imagePath : placeholderImg;
             }
@@ -371,7 +418,9 @@
         // --- Initialization ---
         document.addEventListener("DOMContentLoaded", () => {
             loadProducts();
-            ['searchInput', 'sortMode', 'showLimit'].forEach(id => $(id).addEventListener(id === 'searchInput' ? 'keyup' : 'change', processData));
+            $('searchInput').addEventListener('keyup', resetAndProcess);
+            $('sortMode').addEventListener('change', resetAndProcess);
+            $('showLimit').addEventListener('change', resetAndProcess);
         });
     </script>
 </body>
