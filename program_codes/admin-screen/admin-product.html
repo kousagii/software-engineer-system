@@ -5,37 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product Management | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css">
+    <style>
+        /* Utility classes for cleaner toggling */
+        .hidden { display: none !important; }
+        .flex { display: flex !important; }
+        
+        /* Added a small style for the table row to match your screenshot */
+        .product-name-col { display: flex; align-items: center; gap: 15px; }
+        .product-name-col img { width: 50px; height: 50px; object-fit: contain; background: #fff; border-radius: 4px; }
+    </style>
 </head>
 <body>
     <div id="sidebar"></div>
 
-    <div id="custom-modal" class="modal-overlay">
+    <div id="custom-modal" class="modal-overlay hidden" style="justify-content: center; align-items: center;">
         <div class="modal-box">
             <p id="modal-message"></p>
-            <div id="modal-actions">
-                </div>
+            <div id="modal-actions"></div>
         </div>
     </div>
 
     <main class="dashboard-main">
         
-        <div id="product-list-view" style="display: block; width: 100%;">
+        <div id="product-list-view" style="width: 100%;">
             <div class="page-header">
                 <h2>Product Management</h2>
-                <button class="btn-create" onclick="openCreateView()">+ Create Product</button>
+                <button class="btn-create" onclick="openForm()">+ Create Product</button>
             </div>
 
             <div class="table-container">
                 <div class="toolbar">
                     <div class="search-group">
                         <label>Search</label>
-                        <input type="text" placeholder="Search here..." style="width: 250px;">
+                        <input type="text" id="searchInput" placeholder="Search here..." style="width: 250px;">
                     </div>
                     <div class="sort-group">
                         <label>Show</label>
-                        <select style="width: 70px;"><option>16</option></select>
+                        <select id="showLimit" style="width: 70px;">
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="15" selected>15</option>
+                            <option value="all">All</option>
+                        </select>
                         <label style="margin-left: 20px;">Sort by</label>
-                        <select style="width: 120px;"><option>Default</option></select>
+                        <select id="sortMode" style="width: 150px;">
+                            <option value="default">Default</option>
+                            <option value="az">Name: A-Z</option>
+                            <option value="za">Name: Z-A</option>
+                            <option value="priceLowHigh">Price: Low to High</option>
+                            <option value="priceHighLow">Price: High to Low</option>
+                        </select>
                     </div>
                 </div>
 
@@ -56,7 +75,7 @@
             </div>
         </div>
 
-        <div id="create-product-view" style="display: none; width: 100%;">
+        <div id="create-product-view" class="hidden" style="width: 100%;">
             <div class="page-header">
                 <button class="btn-back" onclick="toggleView('product-list-view')">← Back to List</button>
             </div>
@@ -106,10 +125,13 @@
                     <textarea id="prodDescription" rows="4" placeholder="Description" oninput="updatePreview()"></textarea>
 
                     <label>Upload image</label>
-                    <div class="split align-end">
-                        <div class="image-upload-box" onclick="showAlert('Image upload requires a backend storage setup!')">
-                            <span>Upload Icon</span>
-                        </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <img id="img-preview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E" alt="Image Preview" onerror="this.onerror=null; this.src=placeholderImg;" style="width: 80px; height: 80px; object-fit: contain; border: 1px dashed #ccc; padding: 5px; background: #fff; border-radius: 4px;">
+                    </div>
+
+                    <div class="split align-end" style="gap: 10px;">
+                        <input type="file" id="prodImage" accept="image/*" onchange="previewSelectedImage(event)" style="flex: 2; padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; cursor: pointer;">
                         <button type="button" id="btn-generate-barcode" onclick="generateBarcode()" style="background: #e0e0e0; color: #333; flex: 1;">Generate barcode</button>
                     </div>
                 </div>
@@ -142,228 +164,215 @@
 
     <script src="../authGuard.js"></script>
     <script>
-        let currentBarcode = "";
-        let currentEditId = null; 
-        let productList = []; 
+        let productList = [], currentEditId = null, currentBarcode = "";
+        const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
+        
+        // --- Utility Helpers ---
+        const $ = id => document.getElementById(id);
+        const val = (id, v) => v !== undefined ? $(id).value = v : $(id).value;
 
-        function closeModal() {
-            document.getElementById('custom-modal').style.display = 'none';
+        // --- Modal & Views ---
+        function toggleView(view) {
+            $('product-list-view').classList.toggle('hidden', view !== 'product-list-view');
+            $('create-product-view').classList.toggle('hidden', view !== 'create-product-view');
+            if (view === 'product-list-view') loadProducts();
         }
 
-        function showAlert(message) {
-            document.getElementById('modal-message').innerText = message;
-            document.getElementById('modal-actions').innerHTML = `
-                <button class="modal-btn btn-ok" onclick="closeModal()">OK</button>
-            `;
-            document.getElementById('custom-modal').style.display = 'flex';
-        }
+        const closeModal = () => $('custom-modal').classList.remove('flex');
 
-        function showConfirm(message, onConfirmCallback) {
-            document.getElementById('modal-message').innerText = message;
-            document.getElementById('modal-actions').innerHTML = `
-                <button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
-                <button class="modal-btn btn-danger" id="modal-confirm-btn">Yes, Delete</button>
-            `;
-            document.getElementById('custom-modal').style.display = 'flex';
+        function showAlert(msg, isConfirm = false, cb = null) {
+            $('modal-message').innerHTML = msg;
+            $('modal-actions').innerHTML = isConfirm 
+                ? `<button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
+                   <button class="modal-btn btn-danger" id="conf-btn">Confirm</button>`
+                : `<button class="modal-btn btn-ok" onclick="closeModal()">OK</button>`;
             
-            document.getElementById('modal-confirm-btn').onclick = function() {
-                closeModal();
-                onConfirmCallback();
+            if (cb) $('conf-btn').onclick = () => { closeModal(); cb(); };
+            $('custom-modal').classList.add('flex');
+        }
+
+        // --- Core Algorithms ---
+        function processData() {
+            let data = [...productList];
+            const query = val('searchInput').toLowerCase();
+            const sort = val('sortMode');
+            const limit = val('showLimit');
+
+            if (query) {
+                data = data.filter(p => 
+                    (p.productName || "").toLowerCase().includes(query) ||
+                    (p.productID || "").toString().includes(query) ||
+                    (p.productDescription || "").toLowerCase().includes(query)
+                );
+            }
+
+            if (sort !== 'default') {
+                data.sort((a, b) => {
+                    if (sort === 'az') return (a.productName || "").localeCompare(b.productName || "");
+                    if (sort === 'za') return (b.productName || "").localeCompare(a.productName || "");
+                    if (sort === 'priceLowHigh') return parseFloat(a.price || 0) - parseFloat(b.price || 0);
+                    if (sort === 'priceHighLow') return parseFloat(b.price || 0) - parseFloat(a.price || 0);
+                });
+            }
+
+            renderTable(limit === 'all' ? data : data.slice(0, parseInt(limit)));
+        }
+
+        function renderTable(data) {
+            $('product-table-body').innerHTML = data.map(p => `
+                <tr>
+                    <td>
+                        <div class="product-name-col">
+                            <img src="${p.imagePath || placeholderImg}" alt="${p.productName}" onerror="this.onerror=null; this.src=placeholderImg;">
+                            <div class="product-info">
+                                <strong>${p.productName}</strong><br>
+                                <span class="sub-text" style="color: #777; font-size: 12px;">ID: ${p.productID}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="sub-text">${p.productDescription || ''}</td>
+                    <td>₱ ${parseFloat(p.price).toFixed(2)}</td>
+                    <td>${p.stockQuantity}</td>
+                    <td>
+                        <button class="btn-edit" onclick="openForm(${p.productID})">Edit</button>
+                        <button class="btn-delete" onclick="deleteProduct(${p.productID})">Delete</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" style="text-align: center;">No products found.</td></tr>';
+        }
+
+        // --- Form Logic & Interactivity ---
+        function openForm(id = null) {
+            currentEditId = id;
+            const p = productList.find(x => x.productID === id) || { 
+                productName: '', brand: '', category: 'Tools', stockQuantity: 25, price: '', productDescription: '', barcode: '', imagePath: '' 
             };
-        }
-        // ---------------------------
 
-        // 1. View Toggling & Form Reset
-        function toggleView(viewId) {
-            document.getElementById('product-list-view').style.display = 'none';
-            document.getElementById('create-product-view').style.display = 'none';
-            document.getElementById(viewId).style.display = 'block';
-            if(viewId === 'product-list-view') loadProducts();
-        }
+            currentBarcode = p.barcode || "";
 
-        function openCreateView() {
-            currentEditId = null; 
-            currentBarcode = "";
+            val('prodName', p.productName);
+            val('prodBrand', p.brand || '');
+            val('prodCategory', p.category || 'Tools');
+            val('prodStock', p.stockQuantity || 25);
+            val('prodPrice', p.price || '');
+            val('prodDescription', p.productDescription || '');
             
-            document.getElementById('form-title').innerText = "Create Product";
-            document.getElementById('btn-save').innerText = "Create Product";
-            document.getElementById('prevProductId').innerText = "(Auto-generated on save)";
-            document.getElementById('btn-generate-barcode').disabled = false;
-            document.getElementById('btn-generate-barcode').style.opacity = "1";
-            document.getElementById('prevBarcode').textContent = "Click 'Generate barcode'";
-            document.getElementById('prevBarcode').style.color = "#d9534f";
-
-            document.getElementById('prodName').value = '';
-            document.getElementById('prodBrand').value = '';
-            document.getElementById('prodCategory').value = 'Tools';
-            document.getElementById('prodStock').value = '25';
-            document.getElementById('prodPrice').value = '';
-            document.getElementById('prodDescription').value = '';
+            // Clear file input
+            $('prodImage').value = ''; 
             
+            // CHANGED: Load the existing image if editing, or set to placeholder
+            $('img-preview').src = p.imagePath ? p.imagePath : placeholderImg;
+
+            $('form-title').innerText = id ? "Edit Product" : "Create Product";
+            $('btn-save').innerText = id ? "Save Changes" : "Create Product";
+            $('prevProductId').innerText = id ? id : "(Auto-generated on save)";
+
+            const btnBarcode = $('btn-generate-barcode');
+            btnBarcode.disabled = !!id;
+            btnBarcode.style.opacity = id ? "0.5" : "1";
+
+            const prevBarcode = $('prevBarcode');
+            prevBarcode.textContent = id ? currentBarcode : "Click 'Generate barcode'";
+            prevBarcode.style.color = id ? "#333" : "#d9534f";
+
             updatePreview();
             toggleView('create-product-view');
         }
 
-        // 2. Barcode Generator
-        function generateBarcode() {
-            if (currentEditId) return; 
-
-            currentBarcode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
-            document.getElementById('prevBarcode').textContent = currentBarcode;
-            document.getElementById('prevBarcode').style.color = "#333";
+        // ADDED: Function to instantly preview the selected file
+        function previewSelectedImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                $('img-preview').src = URL.createObjectURL(file);
+            } else {
+                // Revert to placeholder or existing image if they cancel selection
+                const p = productList.find(x => x.productID === currentEditId);
+                $('img-preview').src = (p && p.imagePath) ? p.imagePath : placeholderImg;
+            }
         }
 
-        // 3. Stock +/- Buttons
+        function generateBarcode() {
+            if (currentEditId) return; 
+            currentBarcode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+            $('prevBarcode').textContent = currentBarcode;
+            $('prevBarcode').style.color = "#333";
+        }
+
         function changeStock(amount) {
-            let stockInput = document.getElementById('prodStock');
-            let currentVal = parseInt(stockInput.value) || 0;
-            if(currentVal + amount >= 0) {
-                stockInput.value = currentVal + amount;
+            let currentVal = parseInt(val('prodStock')) || 0;
+            if (currentVal + amount >= 0) {
+                val('prodStock', currentVal + amount);
                 updatePreview();
             }
         }
 
-        // 4. Update Preview Panel
         function updatePreview() {
-            document.getElementById('prevName').textContent = document.getElementById('prodName').value || 'Pliers';
-            document.getElementById('prevBrand').textContent = document.getElementById('prodBrand').value || 'Stanley';
-            document.getElementById('prevCat').textContent = document.getElementById('prodCategory').value;
-            document.getElementById('prevStock').textContent = document.getElementById('prodStock').value || '0';
-            document.getElementById('prevPrice').textContent = document.getElementById('prodPrice').value || '0';
-            document.getElementById('prevDesc').textContent = document.getElementById('prodDescription').value || 'Description';
+            $('prevName').textContent = val('prodName') || 'Pliers';
+            $('prevBrand').textContent = val('prodBrand') || 'Stanley';
+            $('prevCat').textContent = val('prodCategory');
+            $('prevStock').textContent = val('prodStock') || '0';
+            $('prevPrice').textContent = val('prodPrice') || '0';
+            $('prevDesc').textContent = val('prodDescription') || 'Description';
         }
 
-        // 5. Load Products from Database
+        // --- API Calls ---
         async function loadProducts() {
             try {
                 const res = await fetch('/api/products');
                 productList = await res.json(); 
-                const tbody = document.getElementById('product-table-body');
-                tbody.innerHTML = '';
-
-                if(productList.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No products found.</td></tr>';
-                    return;
-                }
-
-                productList.forEach(p => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>
-                                <div class="product-info">
-                                    <strong>${p.productName}</strong><br>
-                                    <span class="sub-text">ID: ${p.productID}</span>
-                                </div>
-                            </td>
-                            <td class="sub-text">${p.productDescription || ''}</td>
-                            <td>₱ ${parseFloat(p.price).toFixed(2)}</td>
-                            <td>${p.stockQuantity}</td>
-                            <td>
-                                <button class="btn-edit" onclick="editProduct(${p.productID})">Edit</button>
-                                <button class="btn-delete" onclick="deleteProduct(${p.productID})">Delete</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } catch (err) {
-                document.getElementById('product-table-body').innerHTML = '<tr><td colspan="5">Error loading data.</td></tr>';
-            }
+                processData(); 
+            } catch { $('product-table-body').innerHTML = '<tr><td colspan="5" style="text-align: center;">Error loading data.</td></tr>'; }
         }
 
-        // 6. EDIT Function
-        function editProduct(id) {
-            const product = productList.find(p => p.productID === id);
-            if (!product) return;
-
-            currentEditId = product.productID;
-            currentBarcode = product.barcode;
-
-            document.getElementById('form-title').innerText = "Edit Product";
-            document.getElementById('btn-save').innerText = "Save Changes";
-            document.getElementById('prevProductId').innerText = product.productID;
-
-            document.getElementById('btn-generate-barcode').disabled = true;
-            document.getElementById('btn-generate-barcode').style.opacity = "0.5";
-            document.getElementById('prevBarcode').textContent = currentBarcode;
-            document.getElementById('prevBarcode').style.color = "#333";
-
-            document.getElementById('prodName').value = product.productName;
-            document.getElementById('prodBrand').value = product.brand || '';
-            document.getElementById('prodCategory').value = product.category;
-            document.getElementById('prodStock').value = product.stockQuantity;
-            document.getElementById('prodPrice').value = product.price;
-            document.getElementById('prodDescription').value = product.productDescription || '';
-
-            updatePreview();
-            toggleView('create-product-view');
-        }
-
-        // 7. DELETE Function 
         function deleteProduct(id) {
-            showConfirm("Are you sure you want to delete this product?", async function() {
+            showAlert("Are you sure you want to delete this product?", true, async () => {
                 try {
-                    const response = await fetch(`/api/products/${id}`, {
-                        method: 'DELETE'
-                    });
-                    
-                    if (response.ok) {
-                        showAlert("Product deleted!");
-                        loadProducts(); 
-                    } else {
-                        const result = await response.json();
-                        showAlert("Error: " + result.error);
-                    }
-                } catch (error) {
-                    showAlert("Failed to connect to the server.");
-                }
+                    const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                    if (res.ok) { showAlert("Product deleted!"); loadProducts(); } 
+                    else { const result = await res.json(); showAlert("Error: " + result.error); }
+                } catch { showAlert("Failed to connect to the server."); }
             });
         }
 
-        // 8. Save Product
         async function saveProduct() {
-            if (!currentBarcode) {
-                showAlert("Please click 'Generate barcode' before saving!");
-                return;
+            if (!currentBarcode) return showAlert("Please click 'Generate barcode' before saving!");
+            if (!val('prodName') || !val('prodPrice')) return showAlert("Please fill in the Name and Price!");
+
+            const formData = new FormData();
+            formData.append('productName', val('prodName'));
+            formData.append('barcode', currentBarcode);
+            formData.append('category', val('prodCategory'));
+            formData.append('stockQuantity', parseInt(val('prodStock')));
+            formData.append('price', parseFloat(val('prodPrice')));
+            formData.append('brand', val('prodBrand'));
+            formData.append('productDescription', val('prodDescription'));
+
+            const imageFile = $('prodImage').files[0];
+            if (imageFile) {
+                formData.append('productImage', imageFile);
             }
-
-            const data = {
-                productName: document.getElementById('prodName').value,
-                barcode: currentBarcode, 
-                category: document.getElementById('prodCategory').value,
-                stockQuantity: parseInt(document.getElementById('prodStock').value),
-                price: parseFloat(document.getElementById('prodPrice').value),
-                brand: document.getElementById('prodBrand').value, 
-                productDescription: document.getElementById('prodDescription').value
-            };
-
-            if (!data.productName || !data.price) {
-                showAlert("Please fill in the Name and Price!");
-                return;
-            }
-
-            const method = currentEditId ? 'PUT' : 'POST';
-            const url = currentEditId ? `/api/products/${currentEditId}` : '/api/products';
 
             try {
-                const response = await fetch(url, {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                const res = await fetch(currentEditId ? `/api/products/${currentEditId}` : '/api/products', {
+                    method: currentEditId ? 'PUT' : 'POST',
+                    body: formData
                 });
-                const result = await response.json();
-
-                if (response.ok) {
-                    showAlert(currentEditId ? "Product updated successfully!" : "Product saved successfully!");
+                
+                if (res.ok) {
+                    showAlert(`Product ${currentEditId ? 'updated' : 'saved'} successfully!`);
                     toggleView('product-list-view');
                 } else {
+                    const result = await res.json();
                     showAlert("Error: " + result.error);
                 }
-            } catch (error) {
-                showAlert("Failed to connect to the server.");
-            }
+            } catch { showAlert("Failed to connect to the server."); }
         }
 
-        document.addEventListener("DOMContentLoaded", loadProducts);
+        // --- Initialization ---
+        document.addEventListener("DOMContentLoaded", () => {
+            loadProducts();
+            ['searchInput', 'sortMode', 'showLimit'].forEach(id => $(id).addEventListener(id === 'searchInput' ? 'keyup' : 'change', processData));
+        });
     </script>
 </body>
 </html>

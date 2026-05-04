@@ -5,6 +5,27 @@ const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
+
+const uploadDir = path.join(__dirname, 'program_codes', 'uploads');
+if (!fs.existsSync(uploadDir)){
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure Multer storage
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir); 
+    },
+    filename: (req, file, cb) => {
+        // Create a unique filename: timestamp + original extension
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'prod-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ storage: storage });
 
 const app = express();
 app.use(express.json());
@@ -31,6 +52,7 @@ db.connect((err) => {
     }
     console.log('✅ Connected to MySQL Database!');
 });
+
 
 // Route to add a new user (Admin only)
 app.post('/api/users', async (req, res) => {
@@ -133,14 +155,16 @@ app.get('/api/products', (req, res) => {
         res.json(results);
     });
 });
-// POST route to add a new product
-app.post('/api/products', (req, res) => {
+
+// POST route to add a new product 
+app.post('/api/products', upload.single('productImage'), (req, res) => {
     const { productName, barcode, category, stockQuantity, price, brand, productDescription } = req.body;
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : null; 
     
-    const sql = `INSERT INTO product (productName, barcode, category, stockQuantity, price, brand, productDescription) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO product (productName, barcode, category, stockQuantity, price, brand, productDescription, imagePath) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
     
-    db.query(sql, [productName, barcode, category, stockQuantity, price, brand, productDescription], (err, result) => {
+    db.query(sql, [productName, barcode, category, stockQuantity, price, brand, productDescription, imagePath], (err, result) => {
         if (err) {
             console.error(err);
             if (err.code === 'ER_DUP_ENTRY') {
@@ -152,17 +176,29 @@ app.post('/api/products', (req, res) => {
     });
 });
 
-// PUT route to UPDATE an existing product
-app.put('/api/products/:id', (req, res) => {
+// PUT route to UPDATE an existing product 
+app.put('/api/products/:id', upload.single('productImage'), (req, res) => {
     const { id } = req.params;
-    // Note: We don't update the barcode, as requested.
     const { productName, category, stockQuantity, price, brand, productDescription } = req.body;
     
-    const sql = `UPDATE product 
-                 SET productName = ?, category = ?, stockQuantity = ?, price = ?, brand = ?, productDescription = ? 
-                 WHERE productID = ?`;
+    const newImagePath = req.file ? `/uploads/${req.file.filename}` : null;
+
+    let sql, params;
+
+    if (newImagePath) {
+        // Update everything INCLUDING the new image
+        sql = `UPDATE product 
+               SET productName = ?, category = ?, stockQuantity = ?, price = ?, brand = ?, productDescription = ?, imagePath = ? 
+               WHERE productID = ?`;
+        params = [productName, category, stockQuantity, price, brand, productDescription, newImagePath, id];
+    } else {
+        sql = `UPDATE product 
+               SET productName = ?, category = ?, stockQuantity = ?, price = ?, brand = ?, productDescription = ? 
+               WHERE productID = ?`;
+        params = [productName, category, stockQuantity, price, brand, productDescription, id];
+    }
                  
-    db.query(sql, [productName, category, stockQuantity, price, brand, productDescription, id], (err, result) => {
+    db.query(sql, params, (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: "Failed to update product" });
