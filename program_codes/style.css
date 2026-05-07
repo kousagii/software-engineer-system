@@ -234,6 +234,7 @@ button:hover {
     color: var(--white);
     font-weight: bold;
     padding: 10px 20px;
+    flex-wrap: nowrap;
 }
 
 .btn-back {
@@ -455,6 +456,8 @@ button:hover {
     width: auto;
     flex-wrap: nowrap;
 }
+
+
 
 .btn-export:hover {
     background: var(--green-hover);

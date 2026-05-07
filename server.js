@@ -7,6 +7,13 @@ const session = require('express-session');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
+const { exec } = require('child_process');
+const cron = require('node-cron');
+
+const backupDir = path.join(__dirname, 'backups');
+if (!fs.existsSync(backupDir)){
+    fs.mkdirSync(backupDir, { recursive: true });
+}
 
 const uploadDir = path.join(__dirname, 'program_codes', 'uploads');
 if (!fs.existsSync(uploadDir)){
@@ -19,7 +26,6 @@ const storage = multer.diskStorage({
         cb(null, uploadDir); 
     },
     filename: (req, file, cb) => {
-        // Create a unique filename: timestamp + original extension
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, 'prod-' + uniqueSuffix + path.extname(file.originalname));
     }
@@ -121,7 +127,6 @@ app.post('/api/logout', (req, res) => {
 
 app.get('/api/setup-test-admin', async (req, res) => {
     try {
-        // We will set the password to "admin123"
         const hashedPassword = await bcrypt.hash('admin123', 10);
         
         const sql = `INSERT INTO users (username, firstName, lastName, userPassword, role, contactInfo) 
@@ -186,7 +191,6 @@ app.put('/api/products/:id', upload.single('productImage'), (req, res) => {
     let sql, params;
 
     if (newImagePath) {
-        // Update everything INCLUDING the new image
         sql = `UPDATE product 
                SET productName = ?, category = ?, stockQuantity = ?, price = ?, brand = ?, productDescription = ?, imagePath = ? 
                WHERE productID = ?`;
@@ -258,8 +262,7 @@ app.post('/api/suppliers', (req, res) => {
         if (err) return res.status(500).json({ error: "Database error" });
         
         const newSupplierId = result.insertId;
-        
-        // If products were checked, insert them into the junction table
+    
         if (productIDs && productIDs.length > 0) {
             const spSql = `INSERT INTO supplier_products (supplierID, productID) VALUES ?`;
             const values = productIDs.map(pid => [newSupplierId, pid]);
@@ -284,11 +287,9 @@ app.put('/api/suppliers/:id', (req, res) => {
     db.query(sql, [supplierName, contactNumber, email, address, id], (err, result) => {
         if (err) return res.status(500).json({ error: "Failed to update supplier" });
         
-        // Clear old products for this supplier
         db.query(`DELETE FROM supplier_products WHERE supplierID = ?`, [id], (delErr) => {
             if (delErr) console.error(delErr);
-            
-            // Insert the newly checked products
+
             if (productIDs && productIDs.length > 0) {
                 const spSql = `INSERT INTO supplier_products (supplierID, productID) VALUES ?`;
                 const values = productIDs.map(pid => [id, pid]);
@@ -318,7 +319,6 @@ app.delete('/api/suppliers/:id', (req, res) => {
 
 // GET all orders with their items
 app.get('/api/orders', (req, res) => {
-    // first fetch orders with supplier name
     const sql = `
         SELECT po.*, s.supplierName
         FROM purchase_order po
@@ -348,7 +348,6 @@ app.get('/api/orders', (req, res) => {
                 return res.status(500).json({ error: "Failed to fetch order items" });
             }
 
-            // attach items to their orders
             const itemsByOrder = {};
             (items || []).forEach(it => {
                 if (!itemsByOrder[it.orderID]) itemsByOrder[it.orderID] = [];
@@ -372,9 +371,9 @@ app.get('/api/orders', (req, res) => {
     });
 });
 
-// POST create a new order (with items)
+// POST create a new order 
 app.post('/api/orders', (req, res) => {
-    const userID = req.session && req.session.user ? req.session.user.id : 1; // fallback
+    const userID = req.session && req.session.user ? req.session.user.id : 1; 
     const { supplierID, contact, shipmentInfo, status, items } = req.body;
 
     if (!supplierID) return res.status(400).json({ error: "supplierID is required" });
@@ -392,13 +391,11 @@ app.post('/api/orders', (req, res) => {
 
         if (!items || items.length === 0) return res.status(201).json({ message: "Order created", orderID });
 
-        // fetch product prices for unitCost
         const productIds = items.map(i => i.productID).filter(Boolean);
         if (productIds.length === 0) return res.status(201).json({ message: "Order created", orderID });
 
         const placeholders = productIds.map(() => '?').join(',');
 
-        // Validate that all items belong to the chosen supplier
         const checkSql = `SELECT productID FROM supplier_products WHERE supplierID = ? AND productID IN (${placeholders})`;
         db.query(checkSql, [supplierID, ...productIds], (checkErr, allowedRows) => {
             if (checkErr) { console.error(checkErr); return res.status(500).json({ error: "Failed to validate supplier products" }); }
@@ -673,3 +670,172 @@ app.delete('/api/users/:id', (req, res) => {
         res.status(200).json({ message: "User deleted successfully!" });
     });
 });
+
+// BACK UP FUNCTIONS & SCHEDULES
+
+let fullBackupJob;
+let incBackupJob;
+
+function performDatabaseBackup(backupType, userID) {
+    return new Promise((resolve, reject) => {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const fileName = `backup_${timestamp}.sql`;
+        const filePath = path.join(backupDir, fileName);
+
+        const dbUser = process.env.DB_USER;
+        const dbPass = process.env.DB_PASSWORD;
+        const dbName = process.env.DB_NAME;
+        const dbHost = process.env.DB_HOST || 'localhost';
+
+        const dumpCommand = `mysqldump -u ${dbUser} --password="${dbPass}" -h ${dbHost} ${dbName} --ignore-table=${dbName}.backup > "${filePath}"`;
+
+        exec(dumpCommand, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`❌ Backup failed: ${error.message}`);
+                return reject(error);
+            }
+            
+            const sql = `INSERT INTO backup (userID, backupDate, fileName, backupType) VALUES (?, NOW(), ?, ?)`;
+            db.query(sql, [userID, fileName, backupType], (dbErr) => {
+                if (dbErr) {
+                    console.error('❌ Failed to log backup in DB:', dbErr);
+                    return reject(dbErr);
+                }
+                console.log(`✅ ${backupType} Backup completed successfully: ${fileName}`);
+                resolve(fileName);
+            });
+        });
+    });
+}
+
+// Dynamically Initialize Schedules
+function initializeSchedules(fullCronStr = '0 0 * * *', incCronStr = '30 * * * *') {
+    if (fullBackupJob) fullBackupJob.stop();
+    if (incBackupJob) incBackupJob.stop();
+
+    fullBackupJob = cron.schedule(fullCronStr, () => {
+        console.log(`⏳ Running scheduled FULL database backup... (${fullCronStr})`);
+        performDatabaseBackup('Scheduled', 1).catch(err => console.error(err));
+    });
+
+    incBackupJob = cron.schedule(incCronStr, () => {
+        console.log(`⏳ Running scheduled INCREMENTAL database backup... (${incCronStr})`);
+        performIncrementalBackup(1).catch(err => console.error(err));
+    });
+
+    console.log(`✅ Backup schedules updated: Full [${fullCronStr}], Incremental [${incCronStr}]`);
+}
+
+initializeSchedules();
+
+// Trigger Manual Backup
+app.post('/api/backups/manual', async (req, res) => {
+    const userID = req.session.user ? req.session.user.id : 1; // Fallback to 1 if testing without auth
+    
+    try {
+        const fileName = await performDatabaseBackup('Manual', userID);
+        res.status(201).json({ message: "Manual backup created successfully!", fileName });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to generate backup." });
+    }
+});
+
+// Get List of Backups
+app.get('/api/backups', (req, res) => {
+    const sql = `SELECT * FROM backup ORDER BY backupDate DESC`;
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json({ error: "Failed to fetch backups" });
+        res.json(results);
+    });
+});
+
+// Delete a Backup (Database Record + Actual File)
+app.delete('/api/backups/:id', (req, res) => {
+    const { id } = req.params;
+    
+    db.query(`SELECT fileName FROM backup WHERE backupID = ?`, [id], (err, results) => {
+        if (err || results.length === 0) return res.status(404).json({ error: "Backup not found" });
+        
+        const fileName = results[0].fileName;
+        const filePath = path.join(backupDir, fileName);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+        db.query(`DELETE FROM backup WHERE backupID = ?`, [id], (delErr) => {
+            if (delErr) return res.status(500).json({ error: "Failed to delete backup record" });
+            res.json({ message: "Backup deleted successfully" });
+        });
+    });
+});
+
+// Update Backup Schedule Settings
+app.post('/api/backups/schedule', (req, res) => {
+    const { fullSchedule, incSchedule } = req.body;
+
+    if (!fullSchedule || !incSchedule) {
+        return res.status(400).json({ error: 'Missing schedule parameters' });
+    }
+
+    if (!cron.validate(fullSchedule) || !cron.validate(incSchedule)) {
+        return res.status(400).json({ error: "Invalid cron expression format" });
+    }
+
+    try {
+        initializeSchedules(fullSchedule, incSchedule);
+        
+        res.json({ message: 'Schedules updated successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to update cron schedules' });
+    }
+});
+
+// --- INCREMENTAL BACKUP FUNCTION ---
+function performIncrementalBackup(userID) {
+    return new Promise((resolve, reject) => {
+        db.query('SHOW MASTER STATUS', (err, results) => {
+            if (err) {
+                console.error('❌ Failed to get master status. Does this DB user have SUPER or REPLICATION CLIENT privileges?', err);
+                return reject(err);
+            }
+
+            if (!results || results.length === 0) {
+                return reject(new Error('Binary logging is not enabled on the MySQL server.'));
+            }
+
+            const activeLogFile = results[0].File;
+        
+            db.query('FLUSH LOGS', (flushErr) => {
+                if (flushErr) {
+                    console.error('❌ Failed to flush logs:', flushErr);
+                    return reject(flushErr);
+                }
+
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const fileName = `incremental_${timestamp}.sql`;
+                const filePath = path.join(backupDir, fileName);
+
+                const dbUser = process.env.DB_USER;
+                const dbPass = process.env.DB_PASSWORD;
+                const dbHost = process.env.DB_HOST || 'localhost';
+
+                const binlogCmd = `mysqlbinlog --read-from-remote-server --host=${dbHost} --user=${dbUser} --password="${dbPass}" ${activeLogFile} > "${filePath}"`;
+
+                exec(binlogCmd, (execErr) => {
+                    if (execErr) {
+                        console.error(`❌ Incremental backup failed: ${execErr.message}`);
+                        return reject(execErr);
+                    }
+
+                    const sql = `INSERT INTO backup (userID, backupDate, fileName, backupType) VALUES (?, NOW(), ?, 'Incremental')`;
+                    db.query(sql, [userID, fileName], (dbErr) => {
+                        if (dbErr) return reject(dbErr);
+                        
+                        console.log(`✅ Incremental Backup completed successfully: ${fileName}`);
+                        resolve(fileName);
+                    });
+                });
+            });
+        });
+    });
+}
