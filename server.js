@@ -227,22 +227,17 @@ app.delete('/api/products/:id', (req, res) => {
 
 // GET route to fetch all suppliers with their associated products
 app.get('/api/suppliers', (req, res) => {
-    // We use GROUP_CONCAT to get all products attached to a supplier in a single row
-    const sql = `
-        SELECT s.*, 
-               GROUP_CONCAT(p.productName SEPARATOR ', ') AS productNames,
-               GROUP_CONCAT(p.productID SEPARATOR ',') AS productIDs
-        FROM supplier s
-        LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID
-        LEFT JOIN product p ON sp.productID = p.productID
-        GROUP BY s.supplierID
-        ORDER BY s.supplierID DESC
+    const query = `
+        SELECT 
+            s.*, 
+            GROUP_CONCAT(sp.productID) AS productIDs 
+        FROM supplier s 
+        LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID 
+        GROUP BY s.supplierID;
     `;
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: "Failed to fetch suppliers" });
-        }
+    
+    db.query(query, (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
         res.json(results);
     });
 });
@@ -313,6 +308,291 @@ app.delete('/api/suppliers/:id', (req, res) => {
 });
 
 
+// PURCHASE ORDER / ORDERS MANAGEMENT
+
+// GET all orders with their items
+app.get('/api/orders', (req, res) => {
+    // first fetch orders with supplier name
+    const sql = `
+        SELECT po.*, s.supplierName
+        FROM purchase_order po
+        LEFT JOIN supplier s ON po.supplierID = s.supplierID
+        ORDER BY po.orderID DESC
+    `;
+
+    db.query(sql, (err, orders) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Failed to fetch orders" });
+        }
+
+        if (!orders || orders.length === 0) return res.json([]);
+
+        const ids = orders.map(o => o.orderID);
+        const itemsSql = `
+            SELECT pi.orderID, pi.productID, pi.quantity, pi.unitCost, p.productName
+            FROM purchase_item pi
+            LEFT JOIN product p ON pi.productID = p.productID
+            WHERE pi.orderID IN (?);
+        `;
+
+        db.query(itemsSql, [ids], (itErr, items) => {
+            if (itErr) {
+                console.error(itErr);
+                return res.status(500).json({ error: "Failed to fetch order items" });
+            }
+
+            // attach items to their orders
+            const itemsByOrder = {};
+            (items || []).forEach(it => {
+                if (!itemsByOrder[it.orderID]) itemsByOrder[it.orderID] = [];
+                itemsByOrder[it.orderID].push({ productID: it.productID, productName: it.productName, qty: it.quantity, unitCost: it.unitCost });
+            });
+
+            const result = orders.map(o => ({
+                orderID: o.orderID,
+                userID: o.userID,
+                supplierID: o.supplierID,
+                supplierName: o.supplierName,
+                orderDate: o.orderDateTime || o.orderDate || null,
+                status: o.status,
+                contact: o.contact || null,
+                shipmentInfo: o.shipmentInfo || null,
+                items: itemsByOrder[o.orderID] || []
+            }));
+
+            res.json(result);
+        });
+    });
+});
+
+// POST create a new order (with items)
+app.post('/api/orders', (req, res) => {
+    const userID = req.session && req.session.user ? req.session.user.id : 1; // fallback
+    const { supplierID, contact, shipmentInfo, status, items } = req.body;
+
+    if (!supplierID) return res.status(400).json({ error: "supplierID is required" });
+
+    const orderDateTime = new Date();
+    const insertSql = `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo) VALUES (?, ?, ?, ?, ?, ?)`;
+
+    db.query(insertSql, [userID, supplierID, orderDateTime, status || 'Pending', contact || null, shipmentInfo || null], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Failed to create order" });
+        }
+
+        const orderID = result.insertId;
+
+        if (!items || items.length === 0) return res.status(201).json({ message: "Order created", orderID });
+
+        // fetch product prices for unitCost
+        const productIds = items.map(i => i.productID).filter(Boolean);
+        if (productIds.length === 0) return res.status(201).json({ message: "Order created", orderID });
+
+        const placeholders = productIds.map(() => '?').join(',');
+
+        // Validate that all items belong to the chosen supplier
+        const checkSql = `SELECT productID FROM supplier_products WHERE supplierID = ? AND productID IN (${placeholders})`;
+        db.query(checkSql, [supplierID, ...productIds], (checkErr, allowedRows) => {
+            if (checkErr) { console.error(checkErr); return res.status(500).json({ error: "Failed to validate supplier products" }); }
+            const allowedIds = (allowedRows || []).map(r => String(r.productID));
+            const invalid = productIds.map(String).filter(id => !allowedIds.includes(id));
+            if (invalid.length > 0) {
+                return res.status(400).json({ error: `Products ${invalid.join(', ')} are not supplied by supplier ${supplierID}` });
+            }
+
+            const priceSql = `SELECT productID, price FROM product WHERE productID IN (${placeholders})`;
+            db.query(priceSql, productIds, (pErr, prices) => {
+            if (pErr) {
+                console.error(pErr);
+                return res.status(500).json({ error: "Failed to fetch product prices" });
+            }
+
+            const priceMap = {};
+            (prices || []).forEach(p => priceMap[p.productID] = p.price || 0);
+
+            const values = items.map(it => [orderID, it.productID, it.qty || it.quantity || 0, priceMap[it.productID] || 0]);
+            const insertItemsSql = `INSERT INTO purchase_item (orderID, productID, quantity, unitCost) VALUES ?`;
+
+            db.query(insertItemsSql, [values], (insErr) => {
+                if (insErr) {
+                    console.error(insErr);
+                    return res.status(500).json({ error: "Failed to insert order items" });
+                }
+                res.status(201).json({ message: "Order created", orderID });
+            });
+            });
+        });
+    });
+});
+
+// PUT update an existing order (replace items)
+app.put('/api/orders/:id', async (req, res) => {
+    const { id } = req.params;
+    const { supplierID, contact, shipmentInfo, status, items } = req.body;
+
+    try {
+
+        const [existingOrders] = await db.promise().query(
+            `SELECT status FROM purchase_order WHERE orderID = ?`,
+            [id]
+        );
+
+        if (existingOrders.length === 0) {
+            return res.status(404).json({
+                error: "Order not found"
+            });
+        }
+
+        const oldStatus = existingOrders[0].status;
+
+        if (oldStatus === 'Completed') {
+            return res.status(400).json({
+                error: "Completed orders cannot be modified."
+            });
+        }
+
+        if (!supplierID) {
+            return res.status(400).json({
+                error: "Supplier is required."
+            });
+        }
+
+        await db.promise().query('START TRANSACTION');
+
+        const updateOrderSql = `
+            UPDATE purchase_order
+            SET supplierID = ?,
+                status = ?,
+                contact = ?,
+                shipmentInfo = ?
+            WHERE orderID = ?
+        `;
+
+        await db.promise().query(updateOrderSql, [
+            supplierID,
+            status || 'Pending',
+            contact || null,
+            shipmentInfo || null,
+            id
+        ]);
+
+        await db.promise().query(
+            `DELETE FROM purchase_item WHERE orderID = ?`,
+            [id]
+        );
+
+        if (items && items.length > 0) {
+
+            const productIds = items.map(i => i.productID);
+
+            const placeholders = productIds.map(() => '?').join(',');
+
+            const validateSql = `
+                SELECT productID
+                FROM supplier_products
+                WHERE supplierID = ?
+                AND productID IN (${placeholders})
+            `;
+
+            const [allowedRows] = await db.promise().query(
+                validateSql,
+                [supplierID, ...productIds]
+            );
+
+            const allowedIds = allowedRows.map(r => String(r.productID));
+
+            const invalidProducts = productIds.filter(
+                pid => !allowedIds.includes(String(pid))
+            );
+
+            if (invalidProducts.length > 0) {
+
+                await db.promise().query('ROLLBACK');
+
+                return res.status(400).json({
+                    error: `Products ${invalidProducts.join(', ')} are not supplied by this supplier.`
+                });
+            }
+
+            const [prices] = await db.promise().query(
+                `SELECT productID, price
+                 FROM product
+                 WHERE productID IN (${placeholders})`,
+                productIds
+            );
+
+            const priceMap = {};
+
+            prices.forEach(p => {
+                priceMap[p.productID] = p.price || 0;
+            });
+
+            const values = items.map(it => [
+                id,
+                it.productID,
+                it.qty || it.quantity || 0,
+                priceMap[it.productID] || 0
+            ]);
+
+            const insertItemsSql = `
+                INSERT INTO purchase_item
+                (orderID, productID, quantity, unitCost)
+                VALUES ?
+            `;
+
+            await db.promise().query(insertItemsSql, [values]);
+
+            if (oldStatus !== 'Completed' && status === 'Completed') {
+
+                for (const item of items) {
+
+                    const updateStockSql = `
+                        UPDATE product
+                        SET stockQuantity = stockQuantity + ?
+                        WHERE productID = ?
+                    `;
+
+                    await db.promise().query(updateStockSql, [
+                        item.qty || item.quantity || 0,
+                        item.productID
+                    ]);
+                }
+            }
+        }
+        await db.promise().query('COMMIT');
+        res.json({
+            message: "Order updated successfully."
+        });
+    } catch (error) {
+        console.error('PUT ORDER ERROR:', error);
+        await db.promise().query('ROLLBACK');
+        res.status(500).json({
+            error: "Failed to update order."
+        });
+    }
+});
+
+// DELETE an order
+app.delete('/api/orders/:id', (req, res) => {
+    const { id } = req.params;
+    db.query(`DELETE FROM purchase_item WHERE orderID = ?`, [id], (err) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Failed to delete order items" });
+        }
+        db.query(`DELETE FROM purchase_order WHERE orderID = ?`, [id], (err2) => {
+            if (err2) {
+                console.error(err2);
+                return res.status(500).json({ error: "Failed to delete order" });
+            }
+            res.json({ message: "Order deleted" });
+        });
+    });
+});
+
+
 // USER MANAGEMENT 
 
 // GET route to fetch all users (excluding passwords for security)
@@ -328,46 +608,59 @@ app.get('/api/users', (req, res) => {
     });
 });
 
-// PUT route to UPDATE an existing user's information 
-app.put('/api/users/:id', async (req, res) => {
+// Put route to UPDATE an existing order (with items) and handle stock updates when status changes to Completed
+app.put('/api/orders/:id', async (req, res) => {
     const { id } = req.params;
-    const { username, firstName, lastName, role, contactInfo, rawPassword } = req.body;
-    
-    try {
-        if (rawPassword && rawPassword.trim() !== '') {
-            // If the admin typed a new password, hash it and update everything
-            const hashedPassword = await bcrypt.hash(rawPassword, 10);
-            const sql = `UPDATE users 
-                         SET username = ?, firstName = ?, lastName = ?, role = ?, contactInfo = ?, userPassword = ? 
-                         WHERE userID = ?`;
-                         
-            db.query(sql, [username, firstName, lastName, role, contactInfo, hashedPassword, id], (err, result) => {
-                if (err) return handleUpdateError(err, res);
-                res.status(200).json({ message: "User and password updated successfully!" });
-            });
-        } else {
-            // If the password field was left blank, only update the other info
-            const sql = `UPDATE users 
-                         SET username = ?, firstName = ?, lastName = ?, role = ?, contactInfo = ? 
-                         WHERE userID = ?`;
-                         
-            db.query(sql, [username, firstName, lastName, role, contactInfo, id], (err, result) => {
-                if (err) return handleUpdateError(err, res);
-                res.status(200).json({ message: "User updated successfully!" });
-            });
-        }
-    } catch (error) {
-        res.status(500).json({ error: "Hashing error while updating password" });
-    }
+    const { supplierID, contact, shipmentInfo, status, items } = req.body;
 
-    // Helper function for database errors to keep the code clean
-    function handleUpdateError(err, res) {
-        console.error(err);
-        if (err.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ error: "That username is already taken!" });
+    db.query('SELECT status FROM purchase_order WHERE orderID = ?', [id], (err, currentOrder) => {
+        if (err) return res.status(500).json({ error: "Database error during status check" });
+        if (currentOrder.length === 0) return res.status(404).json({ error: "Order not found" });
+
+        const oldStatus = currentOrder[0].status;
+        if (oldStatus === 'Completed') {
+            return res.status(400).json({ error: "Completed orders cannot be modified." });
         }
-        return res.status(500).json({ error: "Failed to update user" });
-    }
+
+        db.beginTransaction(async (transactionErr) => {
+            if (transactionErr) return res.status(500).json({ error: "Transaction failed" });
+
+            try {
+                const updateOrderSql = `UPDATE purchase_order SET supplierID = ?, status = ?, contact = ?, shipmentInfo = ? WHERE orderID = ?`;
+                await db.promise().query(updateOrderSql, [supplierID, status || 'Pending', contact || null, shipmentInfo || null, id]);
+
+                await db.promise().query(`DELETE FROM purchase_item WHERE orderID = ?`, [id]);
+                
+                if (items && items.length > 0) {
+                    const productIds = items.map(it => it.productID);
+                    const [prices] = await db.promise().query(`SELECT productID, price FROM product WHERE productID IN (?)`, [productIds]);
+                    const priceMap = {};
+                    prices.forEach(p => priceMap[p.productID] = p.price || 0);
+
+                    const values = items.map(it => [id, it.productID, it.qty || 0, priceMap[it.productID] || 0]);
+                    await db.promise().query(`INSERT INTO purchase_item (orderID, productID, quantity, unitCost) VALUES ?`, [values]);
+
+                    if (status === 'Completed') {
+                        for (const item of items) {
+                            const updateStockSql = `UPDATE product SET stockQuantity = stockQuantity + ? WHERE productID = ?`;
+                            await db.promise().query(updateStockSql, [item.qty, item.productID]);
+                        }
+                    }
+                }
+
+                db.commit((commitErr) => {
+                    if (commitErr) throw commitErr;
+                    res.json({ message: "Order updated successfully and stock adjusted!" });
+                });
+
+            } catch (error) {
+                db.rollback(() => {
+                    console.error("PUT Order Error:", error);
+                    res.status(500).json({ error: "Failed to update order or stock" });
+                });
+            }
+        });
+    });
 });
 
 // DELETE route to REMOVE a user
