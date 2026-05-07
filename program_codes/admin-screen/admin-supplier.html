@@ -5,11 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supplier Management | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css">
-    <style>
-        /* Utility classes for cleaner toggling */
-        .hidden { display: none !important; }
-        .flex { display: flex !important; }
-    </style>
 </head>
 <body>
     <div id="sidebar"></div>
@@ -29,48 +24,49 @@
                 <button class="btn-create" onclick="openForm()">+ Create Supplier</button>
             </div>
 
-            <div class="table-container">
-                <div class="toolbar">
+                <div class="form-panel toolbar">
                     <div class="search-group">
                         <label>Search</label>
                         <input type="text" id="searchInput" placeholder="Search here..." style="width: 250px;">
                     </div>
-                    <div class="sort-group">
-                        <label>Show</label>
-                        <select id="showLimit" style="width: 70px;">
-                            <option value="5">5</option>
-                            <option value="10">10</option>
-                            <option value="15" selected>15</option>
-                            <option value="all">All</option>
-                        </select>
-                        <label style="margin-left: 20px;">Sort by</label>
-                        <select id="sortMode" style="width: 120px;">
-                            <option value="default">Default</option>
-                            <option value="asc">Name (A-Z)</option>
-                            <option value="desc">Name (Z-A)</option>
-                        </select>
+                    <div class="toolbar-right">
+                        <div class="sort-group">
+                            <label>Show</label>
+                            <select id="showLimit" style="width: 70px;">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="20">20</option>
+                                <option value="all">All</option>
+                            </select>
+                            <label style="margin-left: 20px;">Sort by</label>
+                            <select id="sortMode" style="width: 120px;">
+                                <option value="default">Default</option>
+                                <option value="asc">Name (A-Z)</option>
+                                <option value="desc">Name (Z-A)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-            <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Supplier</th><th>Contact Number</th><th>Email</th>
-                            <th>Address</th><th>Product List</th><th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="supplier-table-body">
-                        <tr><td colspan="6" style="text-align: center;">Loading...</td></tr>
-                    </tbody>
-                </table>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Supplier</th><th>Contact Number</th><th>Email</th>
+                                <th>Address</th><th>Product List</th><th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supplier-table-body">
+                            <tr><td colspan="6" style="text-align: center;">Loading...</td></tr>
+                        </tbody>
+                    </table>
 
-                <div id="pagination-controls" class="pagination-container hidden">
-                    <button id="btn-prev" onclick="changePage(-1)">Previous</button>
-                    <span id="page-info" style="font-size: 14px;">Page 1 of 1</span>
-                    <button id="btn-next" onclick="changePage(1)">Next</button>
+                    <div id="pagination-controls" class="pagination-container hidden">
+                        <button id="btn-prev" onclick="changePage(-1)">Previous</button>
+                        <span id="page-info" style="font-size: 14px;">Page 1 of 1</span>
+                        <button id="btn-next" onclick="changePage(1)">Next</button>
+                    </div>
                 </div>
-                </div>
-        </div>
             </div>
         </div>
 
