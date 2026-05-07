@@ -416,11 +416,12 @@
     const productsHtml = (o.items || []).map(it => `<div class="order-product-item">${it.productName} <span style="color:#666;">x${it.qty}</span></div>`).join('');
     const statusClass = 'status-' + (o.status || 'Pending').toLowerCase();
     
-    const isComp = o.status === 'Completed';
-    const actionButtons = isComp 
-        ? `<button class="btn-edit" style="background:#2c3e50" onclick="openForm(${o.orderID})">View</button>`
-        : `<button class="btn-edit" onclick="openForm(${o.orderID})">Edit</button>
-           <button class="btn-delete" onclick="confirmDelete(${o.orderID})">Delete</button>`;
+ const isComp = o.status === 'Completed';
+  const actionButtons = isComp
+    ? `<button class="btn-edit" style="background:#2c3e50" onclick="openForm(${o.orderID})">View</button>
+       <button class="btn-delete" onclick="confirmDelete(${o.orderID})">Delete</button>`
+    : `<button class="btn-edit" onclick="openForm(${o.orderID})">Edit</button>
+       <button class="btn-delete" onclick="confirmDelete(${o.orderID})">Delete</button>`;
 
     return `
       <tr>

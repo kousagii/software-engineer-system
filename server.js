@@ -229,13 +229,19 @@ app.delete('/api/products/:id', (req, res) => {
 app.get('/api/suppliers', (req, res) => {
     const query = `
         SELECT 
-            s.*, 
-            GROUP_CONCAT(sp.productID) AS productIDs 
-        FROM supplier s 
-        LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID 
+            s.supplierID,
+            s.supplierName,
+            s.contactNumber,
+            s.email,
+            s.address,
+            GROUP_CONCAT(sp.productID) AS productIDs,
+            GROUP_CONCAT(p.productName) AS productNames
+        FROM supplier s
+        LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID
+        LEFT JOIN product p ON sp.productID = p.productID
         GROUP BY s.supplierID;
     `;
-    
+
     db.query(query, (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(results);
@@ -608,59 +614,49 @@ app.get('/api/users', (req, res) => {
     });
 });
 
-// Put route to UPDATE an existing order (with items) and handle stock updates when status changes to Completed
-app.put('/api/orders/:id', async (req, res) => {
+// Put route to UPDATE a user
+app.put('/api/users/:id', async (req, res) => {
     const { id } = req.params;
-    const { supplierID, contact, shipmentInfo, status, items } = req.body;
+    const { username, firstName, lastName, rawPassword, role, contactInfo } = req.body;
 
-    db.query('SELECT status FROM purchase_order WHERE orderID = ?', [id], (err, currentOrder) => {
-        if (err) return res.status(500).json({ error: "Database error during status check" });
-        if (currentOrder.length === 0) return res.status(404).json({ error: "Order not found" });
+    try {
+        let sql;
+        let params;
 
-        const oldStatus = currentOrder[0].status;
-        if (oldStatus === 'Completed') {
-            return res.status(400).json({ error: "Completed orders cannot be modified." });
+        if (rawPassword && rawPassword.trim() !== "") {
+            const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+            sql = `
+                UPDATE users 
+                SET username = ?, firstName = ?, lastName = ?, userPassword = ?, role = ?, contactInfo = ? 
+                WHERE userID = ?
+            `;
+
+            params = [username, firstName, lastName, hashedPassword, role, contactInfo, id];
+        } else {
+            sql = `
+                UPDATE users 
+                SET username = ?, firstName = ?, lastName = ?, role = ?, contactInfo = ? 
+                WHERE userID = ?
+            `;
+
+            params = [username, firstName, lastName, role, contactInfo, id];
         }
 
-        db.beginTransaction(async (transactionErr) => {
-            if (transactionErr) return res.status(500).json({ error: "Transaction failed" });
-
-            try {
-                const updateOrderSql = `UPDATE purchase_order SET supplierID = ?, status = ?, contact = ?, shipmentInfo = ? WHERE orderID = ?`;
-                await db.promise().query(updateOrderSql, [supplierID, status || 'Pending', contact || null, shipmentInfo || null, id]);
-
-                await db.promise().query(`DELETE FROM purchase_item WHERE orderID = ?`, [id]);
-                
-                if (items && items.length > 0) {
-                    const productIds = items.map(it => it.productID);
-                    const [prices] = await db.promise().query(`SELECT productID, price FROM product WHERE productID IN (?)`, [productIds]);
-                    const priceMap = {};
-                    prices.forEach(p => priceMap[p.productID] = p.price || 0);
-
-                    const values = items.map(it => [id, it.productID, it.qty || 0, priceMap[it.productID] || 0]);
-                    await db.promise().query(`INSERT INTO purchase_item (orderID, productID, quantity, unitCost) VALUES ?`, [values]);
-
-                    if (status === 'Completed') {
-                        for (const item of items) {
-                            const updateStockSql = `UPDATE product SET stockQuantity = stockQuantity + ? WHERE productID = ?`;
-                            await db.promise().query(updateStockSql, [item.qty, item.productID]);
-                        }
-                    }
+        db.query(sql, params, (err, result) => {
+            if (err) {
+                if (err.code === 'ER_DUP_ENTRY') {
+                    return res.status(400).json({ error: "Username already exists." });
                 }
-
-                db.commit((commitErr) => {
-                    if (commitErr) throw commitErr;
-                    res.json({ message: "Order updated successfully and stock adjusted!" });
-                });
-
-            } catch (error) {
-                db.rollback(() => {
-                    console.error("PUT Order Error:", error);
-                    res.status(500).json({ error: "Failed to update order or stock" });
-                });
+                return res.status(500).json({ error: "Failed to update user" });
             }
+
+            res.status(200).json({ message: "User updated successfully!" });
         });
-    });
+
+    } catch (error) {
+        res.status(500).json({ error: "Server error" });
+    }
 });
 
 // DELETE route to REMOVE a user
