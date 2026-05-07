@@ -156,39 +156,92 @@
     }
 
     // --- Form Controls (Create & Edit) ---
-    function openForm(id = null) {
-        currentEditId = id;
-        clearItems();
-        
-        if (!id) {
-            // Create Mode
-            $('form-title').innerText = 'Create Purchase Order';
-            val('supplierContact', '');
-            val('shipmentInfo', '');
-            val('orderStatus', 'Pending');
-            populateSupplierSelect();
-            addItemRow(); 
-        } else {
-            // Edit Mode
-            const o = orders.find(x => x.orderID == id);
-            if (!o) return showAlert('Order not found');
-            
-            $('form-title').innerText = 'Edit Purchase Order #' + id;
-            populateSupplierSelect(o.supplierID);
-            val('supplierContact', o.contact || '');
-            val('shipmentInfo', o.shipmentInfo || '');
-            val('orderStatus', o.status || 'Pending');
-            
-            if (o.items && o.items.length > 0) {
-                o.items.forEach(it => addItemRow(it.productID, it.qty));
-            } else {
-                addItemRow();
-            }
-        }
-        
-        toggleView('create-order-view');
-    }
+  function openForm(id = null) {
+    currentEditId = id;
+    clearItems();
+    
+    const order = id ? orders.find(x => x.orderID == id) : null;
+    const isCompleted = order && order.status === 'Completed';
+    
+    toggleInputs(!isCompleted);
 
+    if (!id) {
+        $('form-title').innerText = 'Create Purchase Order';
+        val('supplierContact', '');
+        val('shipmentInfo', '');
+        val('orderStatus', 'Pending');
+        populateSupplierSelect();
+        addItemRow(); 
+    } else {
+        if (!order) return showAlert('Order not found');
+        
+        $('form-title').innerText = (isCompleted ? 'View' : 'Edit') + ' Purchase Order #' + id;
+        populateSupplierSelect(order.supplierID);
+        val('supplierContact', order.contact || '');
+        val('shipmentInfo', order.shipmentInfo || '');
+        val('orderStatus', order.status || 'Pending');
+        
+        if (order.items && order.items.length > 0) {
+            // Pass the isCompleted status to every item row
+            order.items.forEach(it => addItemRow(it.productID, it.qty, isCompleted));
+        } else {
+            addItemRow(null, 1, isCompleted);
+        }
+    }
+    
+    toggleView('create-order-view');
+}
+
+  // Helper to disable/enable all form fields
+  function toggleInputs(enabled) {
+      $('supplierSelect').disabled = !enabled;
+      $('supplierContact').disabled = !enabled;
+      $('shipmentInfo').disabled = !enabled;
+      $('orderStatus').disabled = !enabled;
+      $('btn-save-order').style.display = enabled ? 'block' : 'none';
+      const addBtn = document.querySelector('.btn-create[onclick="addItemRow()"]');
+      if (addBtn) {
+          addBtn.style.display = enabled ? 'block' : 'none';
+      }
+  }
+  
+  // Update addItemRow to handle disabled state
+  function addItemRow(selectedProductId = null, qty = 1, disabled = false) {
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.style.display = 'flex';
+      row.style.gap = '10px';
+      row.style.marginBottom = '10px';
+
+      const sel = document.createElement('select');
+      sel.style.flex = '1';
+      sel.disabled = disabled; // Lock product selection
+      
+      const allowedProducts = getAllowedProductsForCurrentSupplier();
+      sel.innerHTML = '<option value="">-- Select product --</option>' + 
+          allowedProducts.map(p => `<option value="${p.productID}" ${p.productID == selectedProductId ? 'selected' : ''}>${p.productName} (₱${p.price})</option>`).join('');
+      
+      const qin = document.createElement('input');
+      qin.type = 'number'; 
+      qin.min = 1; 
+      qin.value = qty; 
+      qin.style.width = '80px';
+      qin.disabled = disabled; 
+      
+      row.appendChild(sel);
+      row.appendChild(qin);
+      
+      if (!disabled) {
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button'; 
+          removeBtn.className = 'btn-delete'; 
+          removeBtn.textContent = 'X';
+          removeBtn.onclick = () => row.remove();
+          row.appendChild(removeBtn);
+      }
+      
+      $('itemsContainer').appendChild(row);
+  }
     // --- Supplier & Product Logic ---
     function populateSupplierSelect(selectedId = null) {
         const sel = $('supplierSelect');
@@ -218,34 +271,6 @@
     }
 
     function clearItems() { $('itemsContainer').innerHTML = ''; }
-
-    function addItemRow(selectedProductId = null, qty = 1) {
-        const row = document.createElement('div');
-        row.className = 'item-row';
-        row.style.display = 'flex';
-        row.style.gap = '10px';
-        row.style.marginBottom = '10px';
-
-        const sel = document.createElement('select');
-        sel.style.flex = '1';
-        
-        const allowedProducts = getAllowedProductsForCurrentSupplier();
-        sel.innerHTML = '<option value="">-- Select product --</option>' + 
-            allowedProducts.map(p => `<option value="${p.productID}" ${p.productID == selectedProductId ? 'selected' : ''}>${p.productName} (₱${p.price})</option>`).join('');
-        
-        const qin = document.createElement('input');
-        qin.type = 'number'; qin.min = 1; qin.value = qty; qin.style.width = '80px';
-        
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button'; removeBtn.className = 'btn-delete'; removeBtn.textContent = 'X';
-        removeBtn.onclick = () => row.remove();
-        
-        row.appendChild(sel);
-        row.appendChild(qin);
-        row.appendChild(removeBtn);
-        
-        $('itemsContainer').appendChild(row);
-    }
 
     function getAllowedProductsForCurrentSupplier() {
         const sid = val('supplierSelect');
@@ -386,27 +411,32 @@
     }
 
     function renderTable(data) {
-      $('orders-table-body').innerHTML = data.map(o => {
-        const totalQty = (o.items || []).reduce((s, it) => s + (parseInt(it.qty) || 0), 0);
-        const productsHtml = (o.items || []).map(it => `<div class="order-product-item">${it.productName} <span style="color:#666;">x${it.qty}</span></div>`).join('');
-        const statusClass = 'status-' + (o.status || 'Pending').toLowerCase();
-        
-        return `
-          <tr>
-            <td>#${o.orderID}</td>
-            <td>${new Date(o.orderDate || o.createdAt || '').toLocaleString()}</td>
-            <td>${o.supplierName || ''}</td>
-            <td><div class="order-products-col">${productsHtml}</div></td>
-            <td>${totalQty}</td>
-            <td><span class="status-badge ${statusClass}">${o.status || 'Pending'}</span></td>
-            <td>
-              <button class="btn-edit" onclick="openForm(${o.orderID})">Edit</button>
-              <button class="btn-delete" onclick="confirmDelete(${o.orderID})">Delete</button>
-            </td>
-          </tr>
-        `;
-      }).join('') || '<tr><td colspan="7" style="text-align:center;">No orders found.</td></tr>';
-    }
+  $('orders-table-body').innerHTML = data.map(o => {
+    const totalQty = (o.items || []).reduce((s, it) => s + (parseInt(it.qty) || 0), 0);
+    const productsHtml = (o.items || []).map(it => `<div class="order-product-item">${it.productName} <span style="color:#666;">x${it.qty}</span></div>`).join('');
+    const statusClass = 'status-' + (o.status || 'Pending').toLowerCase();
+    
+    const isComp = o.status === 'Completed';
+    const actionButtons = isComp 
+        ? `<button class="btn-edit" style="background:#2c3e50" onclick="openForm(${o.orderID})">View</button>`
+        : `<button class="btn-edit" onclick="openForm(${o.orderID})">Edit</button>
+           <button class="btn-delete" onclick="confirmDelete(${o.orderID})">Delete</button>`;
+
+    return `
+      <tr>
+        <td>#${o.orderID}</td>
+        <td>${new Date(o.orderDate || o.createdAt || '').toLocaleString()}</td>
+        <td>${o.supplierName || ''}</td>
+        <td><div class="order-products-col">${productsHtml}</div></td>
+        <td>${totalQty}</td>
+        <td><span class="status-badge ${statusClass}">${o.status || 'Pending'}</span></td>
+        <td>
+          ${actionButtons} 
+        </td>
+      </tr>
+    `;
+  }).join('') || '<tr><td colspan="7" style="text-align:center;">No orders found.</td></tr>';
+}
 
     // --- Initialization ---
     document.addEventListener('DOMContentLoaded', async () => {
