@@ -384,3 +384,108 @@ app.delete('/api/users/:id', (req, res) => {
         res.status(200).json({ message: "User deleted successfully!" });
     });
 });
+
+// --- SALES SYSTEM API ---
+
+// Get product by barcode for scanner
+app.get('/api/getProduct', (req, res) => {
+
+    const barcode = req.query.barcode ? req.query.barcode.trim() : "";
+    const sql = `SELECT productID, productName, price, stockQuantity 
+                 FROM product 
+                 WHERE TRIM(barcode) = ?`;
+
+    db.query(sql, [barcode], (err, results) => {
+        if (err) {
+            console.error("SQL Error:", err);
+            return res.status(500).json({ error: "Database error" });
+        }
+        
+        if (results.length === 0) {
+            
+            console.log(`Failed lookup for: "${barcode}" (Length: ${barcode.length})`);
+            return res.status(404).json({ error: "Product not found" });
+        }
+        
+        res.json(results[0]);
+    });
+});
+
+// Optimized Complete Transaction (Handles Sale + Stock in one logic flow)
+app.post('/api/saveTransaction', (req, res) => {
+
+    const sessionUserID = req.session.user ? req.session.user.id : null;
+    const { userID, totalAmount, payment, items } = req.body;
+    
+    const finalUserID = userID || sessionUserID;
+
+    if (!finalUserID) {
+        return res.status(400).json({ error: "No valid User ID found. Please re-login." });
+    }
+
+    db.beginTransaction(err => {
+        if (err) return res.status(500).json({ error: "Transaction initiation failed" });
+
+        // Ensure columns match your table: userID, transDateTime, totalAmount, paymentMethod
+        const sqlTxn = `INSERT INTO sales_transaction (userID, transDateTime, totalAmount, paymentMethod) VALUES (?, NOW(), ?, ?)`;
+        
+        db.query(sqlTxn, [finalUserID, totalAmount, payment], (err, result) => {
+            if (err) {
+                console.error("❌ TRANSACTION HEADER ERROR:", err.message); // This shows the REAL error in terminal
+                return db.rollback(() => {
+                    res.status(500).json({ error: "Failed to create transaction record: " + err.message });
+                });
+            }
+
+            const transactionID = result.insertId;
+            const itemValues = items.map(item => [transactionID, item.productID, item.qty, (item.price * item.qty).toFixed(2)]);
+            const sqlItems = `INSERT INTO sales_item (transactionID, productID, quantity, subtotal) VALUES ?`;
+
+            db.query(sqlItems, [itemValues], (itemErr) => {
+                if (itemErr) {
+                    console.error("❌ SALES ITEM ERROR:", itemErr.message);
+                    return db.rollback(() => res.status(500).json({ error: "Failed to save items" }));
+                }
+
+                // Update Stock
+                const updatePromises = items.map(item => {
+                    return new Promise((resolve, reject) => {
+                        db.query(`UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`, [item.qty, item.productID], (sErr, sRes) => {
+                            if (sErr) reject(sErr); else resolve(sRes);
+                        });
+                    });
+                });
+
+                Promise.all(updatePromises)
+                    .then(() => {
+                        db.commit(cErr => {
+                            if (cErr) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
+                            res.status(201).json({ message: "Sale successful!", transactionID });
+                        });
+                    })
+                    .catch(pErr => {
+                        console.error("❌ STOCK UPDATE ERROR:", pErr.message);
+                        db.rollback(() => res.status(500).json({ error: "Stock update failed" }));
+                    });
+            });
+        });
+    });
+});
+
+// Keep reduceStock as a standalone helper if needed for other features
+app.post('/api/reduceStock', (req, res) => {
+    const { items } = req.body;
+    const updatePromises = items.map(item => {
+        return new Promise((resolve, reject) => {
+            const sql = `UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`;
+            db.query(sql, [item.qty, item.productID], (err, result) => {
+                if (err) reject(err);
+                else resolve(result);
+            });
+        });
+    });
+
+    Promise.all(updatePromises)
+        .then(() => res.json({ message: "Inventory updated" }))
+        .catch(err => res.status(500).json({ error: "Stock update failed" }));
+});
