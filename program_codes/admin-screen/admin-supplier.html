@@ -5,19 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supplier Management | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css">
-    <style>
-        /* Utility classes for cleaner toggling */
-        .hidden { display: none !important; }
-        .flex { display: flex !important; }
-    </style>
 </head>
 <body>
     <div id="sidebar"></div>
 
     <div id="custom-modal" class="modal-overlay hidden" style="justify-content: center; align-items: center;">
         <div class="modal-box">
-            <p id="modal-message"></p>
-            <div id="modal-actions"></div>
+            <div id="modal-message"></div>
+            <div id="modal-actions" style="margin-top: 20px;"></div>
         </div>
     </div>
 
@@ -29,18 +24,18 @@
                 <button class="btn-create" onclick="openForm()">+ Create Supplier</button>
             </div>
 
-            <div class="table-container">
-                <div class="toolbar">
-                    <div class="search-group">
-                        <label>Search</label>
-                        <input type="text" id="searchInput" placeholder="Search here..." style="width: 250px;">
-                    </div>
+            <div class="form-panel toolbar">
+                <div class="search-group">
+                    <label>Search</label>
+                    <input type="text" id="searchInput" placeholder="Search here..." style="width: 250px;">
+                </div>
+                <div class="toolbar-right">
                     <div class="sort-group">
                         <label>Show</label>
                         <select id="showLimit" style="width: 70px;">
                             <option value="5">5</option>
-                            <option value="10">10</option>
-                            <option value="15" selected>15</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
                             <option value="all">All</option>
                         </select>
                         <label style="margin-left: 20px;">Sort by</label>
@@ -51,8 +46,10 @@
                         </select>
                     </div>
                 </div>
+            </div>
 
-            <table class="data-table">
+            <div class="table-container">
+                <table class="data-table">
                     <thead>
                         <tr>
                             <th>Supplier</th><th>Contact Number</th><th>Email</th>
@@ -69,8 +66,6 @@
                     <span id="page-info" style="font-size: 14px;">Page 1 of 1</span>
                     <button id="btn-next" onclick="changePage(1)">Next</button>
                 </div>
-                </div>
-        </div>
             </div>
         </div>
 
@@ -115,7 +110,7 @@
 
     </main>
 
- <script src="../authGuard.js"></script>
+    <script src="../authGuard.js"></script>
     <script>
         let supplierList = [], productList = [], currentEditId = null;
         let currentPage = 1; 
@@ -140,18 +135,24 @@
                    <button class="modal-btn btn-danger" id="conf-btn">Confirm</button>`
                 : `<button class="modal-btn btn-ok" onclick="closeModal()">OK</button>`;
             
-            if (cb) $('conf-btn').onclick = () => { closeModal(); cb(); };
+            if (cb) {
+                $('conf-btn').onclick = () => { closeModal(); cb(); };
+            }
             $('custom-modal').classList.add('flex');
         }
 
+        // --- Updated View Products to display as a styled list ---
         function viewProducts(name, productsStr) {
-            const listItems = productsStr ? productsStr.split(', ').map(p => `<li style="padding: 5px 0; border-bottom: 1px solid #eee;">${p}</li>`).join('') : '<li>No products assigned.</li>';
+            const listItems = productsStr 
+                ? productsStr.split(',').map(p => `<li class="modal-list-item">${p.trim()}</li>`).join('') 
+                : '<li class="modal-list-item">No products assigned.</li>';
+                
             showAlert(`
-                <strong>Products for ${name}:</strong>
-                <ul style="text-align: left; margin-top: 15px; max-height: 200px; overflow-y: auto; list-style-type: square; padding-left: 20px;">
+                <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 18px;">Products for ${name}:</h3>
+                <ul class="modal-product-list">
                     ${listItems}
                 </ul>
-            `);
+            `);        
         }
 
         // --- Core Algorithms ---
@@ -196,7 +197,7 @@
             }
 
             const totalPages = Math.ceil(totalItems / limit);
-                if (currentPage > totalPages && totalPages > 0) {
+            if (currentPage > totalPages && totalPages > 0) {
                 currentPage = totalPages;
                 processData();
                 return;
@@ -218,7 +219,7 @@
         function renderTable(data) {
             $('supplier-table-body').innerHTML = data.map(s => {
                 const addr = (s.address && s.address.length > 35) ? s.address.substring(0, 35) + '...' : (s.address || 'N/A');
-                const count = s.productIDs ? s.productIDs.split(',').length : 0;
+                const count = s.productIDs ? s.productIDs.toString().split(',').length : 0;
                 const safeName = s.supplierName.replace(/'/g, "\\'");
                 const safeProds = (s.productNames || '').replace(/'/g, "\\'");
 
@@ -236,7 +237,7 @@
                             </div>
                         </td>
                     </tr>
-                `;
+                `;            
             }).join('') || '<tr><td colspan="6" style="text-align:center;">No results found.</td></tr>';
         }
 
@@ -269,7 +270,7 @@
                         <input type="checkbox" class="product-checkbox" value="${p.productID}" style="width: auto; margin-right: 10px; transform: scale(1.2);">
                         ${p.productName}
                     </label>
-                `).join('') : '<p style="color: #888; text-align: center;">No products available.</p>';
+                `).join('') : '<p style="color: #888; text-align: center;">No products available.</p>';            
             } catch { console.error("Failed to load products for checkboxes."); }
         }
 

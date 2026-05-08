@@ -5,21 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product Management | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css">
-    <style>
-        /* Utility classes for cleaner toggling */
-        .hidden { display: none !important; }
-        .flex { display: flex !important; }
-        
-        /* Table layout styles */
-        .product-name-col { display: flex; align-items: center; gap: 15px; }
-        .product-name-col img { width: 50px; height: 50px; object-fit: contain; background: #fff; border-radius: 4px; }
-        
-        /* Pagination Styles */
-        .pagination-container { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 15px; }
-        .pagination-container button { padding: 6px 12px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; }
-        .pagination-container button:hover:not(:disabled) { background: #f0f0f0; }
-        .pagination-container button:disabled { opacity: 0.5; cursor: not-allowed; }
-    </style>
 </head>
 <body>
     <div id="sidebar"></div>
@@ -39,53 +24,67 @@
                 <button class="btn-create" onclick="openForm()">+ Create Product</button>
             </div>
 
-            <div class="table-container">
-                <div class="toolbar">
+                <div class="form-panel toolbar">
                     <div class="search-group">
                         <label>Search</label>
                         <input type="text" id="searchInput" placeholder="Search here..." style="width: 250px;">
                     </div>
-                    <div class="sort-group">
-                        <label>Show</label>
-                        <select id="showLimit" style="width: 70px;">
-                            <option value="5">5</option>
-                            <option value="10">10</option>
-                            <option value="15" selected>15</option>
-                            <option value="all">All</option>
-                        </select>
-                        <label style="margin-left: 20px;">Sort by</label>
-                        <select id="sortMode" style="width: 150px;">
-                            <option value="default">Default</option>
-                            <option value="az">Name: A-Z</option>
-                            <option value="za">Name: Z-A</option>
-                            <option value="priceLowHigh">Price: Low to High</option>
-                            <option value="priceHighLow">Price: High to Low</option>
-                        </select>
+                    <div class="toolbar-right">
+                        <div class="toolbar-group">
+                            <label>Category</label>
+                            <select id="categoryFilter">
+                                <option value="All">All</option>
+                                <option value="Tools">Tools</option>
+                                <option value="Cement">Cement</option>
+                                <option value="Wood">Wood</option>
+                                <option value="Roofing">Roofing</option>
+                                <option value="Bricks">Bricks</option>
+                                <option value="Paints">Paints</option>
+                                <option value="Electrical">Electrical</option>
+                            </select>
+                        </div>
+                        <div class="sort-group">
+                            <label>Show</label>
+                            <select id="showLimit" style="width: 70px;">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="20">20</option>
+                                <option value="all">All</option>
+                            </select>
+                            <label style="margin-left: 20px;">Sort by</label>
+                            <select id="sortMode" style="width: 150px;">
+                                <option value="default">Default</option>
+                                <option value="az">Name: A-Z</option>
+                                <option value="za">Name: Z-A</option>
+                                <option value="priceLowHigh">Price: Low to High</option>
+                                <option value="priceHighLow">Price: High to Low</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Products</th>
-                            <th>Description</th>
-                            <th>Price</th>
-                            <th>Stocks</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="product-table-body">
-                        <tr><td colspan="5" style="text-align: center;">Loading products...</td></tr>
-                    </tbody>
-                </table>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Products</th>
+                                <th>Description</th>
+                                <th>Price</th>
+                                <th>Stocks</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="product-table-body">
+                            <tr><td colspan="5" style="text-align: center;">Loading products...</td></tr>
+                        </tbody>
+                    </table>
 
-                <div id="pagination-controls" class="pagination-container hidden">
-                    <button id="btn-prev" onclick="changePage(-1)">Previous</button>
-                    <span id="page-info" style="font-size: 14px;">Page 1 of 1</span>
-                    <button id="btn-next" onclick="changePage(1)">Next</button>
+                    <div id="pagination-controls" class="pagination-container hidden">
+                        <button id="btn-prev" onclick="changePage(-1)">Previous</button>
+                        <span id="page-info" style="font-size: 14px;">Page 1 of 1</span>
+                        <button id="btn-next" onclick="changePage(1)">Next</button>
+                    </div>
                 </div>
-
-            </div>
         </div>
 
         <div id="create-product-view" class="hidden" style="width: 100%;">
@@ -231,6 +230,11 @@
                     (p.productID || "").toString().includes(query) ||
                     (p.productDescription || "").toLowerCase().includes(query)
                 );
+            }
+
+            const category = val('categoryFilter');
+            if (category !== 'All') {
+                data = data.filter(p => p.category === category);
             }
 
             // 2. Sort
@@ -419,6 +423,7 @@
         document.addEventListener("DOMContentLoaded", () => {
             loadProducts();
             $('searchInput').addEventListener('keyup', resetAndProcess);
+            $('categoryFilter').addEventListener('change', resetAndProcess);
             $('sortMode').addEventListener('change', resetAndProcess);
             $('showLimit').addEventListener('change', resetAndProcess);
         });

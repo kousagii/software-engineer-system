@@ -1,22 +1,470 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Udicon Trading | Sales & Inventory System</title>
-    <link rel="stylesheet" href="../style.css"/>
+    <title>Reports | Udicon Trading</title>
+    <link rel="stylesheet" href="../style.css">
 </head>
+
 <body>
+    <div id="sidebar"></div>
 
-  <div id="sidebar"></div>
+    <div id="custom-modal" class="modal-overlay hidden" style="justify-content: center; align-items: center;">
+        <div class="modal-box">
+            <p id="modal-message"></p>
+            <div id="modal-actions"></div>
+        </div>
+    </div>
 
-  <main>
-  </main>
+    <main class="dashboard-main">
+        <div id="report-list-view" style="width: 100%;">
 
+            <div class="page-header">
+                <h2>Reports</h2>
+                <div class="toolbar-right">
+                    <button class="btn-export" onclick="exportToExcel()">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5 4H15L19 8V20C19 21.1 18.1 22 17 22H5C3.9 22 3 21.1 3 20V6C3 4.9 3.9 4 5 4Z"
+                                stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                            <path d="M15 4V8H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            <path d="M7 12H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            <path d="M7 16H13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>
+                        Export as Excel
+                    </button>
+                    <button class="btn-export" onclick="exportAsImage()">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 5H20V19H4V5Z" stroke="currentColor" stroke-width="1.8"
+                                stroke-linejoin="round" />
+                            <path d="M4 8H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            <path d="M8 15.5L11 12L14 15.5L18 11" stroke="currentColor" stroke-width="1.8"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M8 10H8.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        Export as Image
+                    </button>
+                </div>
+            </div>
 
-<script src="admin-navbar.js"></script>
+            <div class="form-panel toolbar" style="margin-bottom: 20px;">
+                <div class="toolbar-left">
+                    <div class="toolbar-group" id="filterGroup" style="display: flex; gap: 15px;">
+                        <div>
+                            <label>Report Type</label>
+                            <select id="reportType" onchange="changeReportType()">
+                                <option value="sales">Sales Performance</option>
+                                <option value="userlogs">User Logs</option>
+                                <option value="stocks">Stocks Alert</option>
+                            </select>
+                        </div>
+                        <div id="userRoleFilterDiv">
+                            <label>User Role</label>
+                            <select id="userRole" onchange="renderReport()">
+                                <option value="">All Roles</option>
+                                <option value="admin">Admin</option>
+                                <option value="sales">Sales</option>
+                                <option value="inventory">Inventory</option>
+                            </select>
+                        </div>
+                        <div id="stockStatusFilterDiv" style="display: none;">
+                            <label>Stock Status</label>
+                            <select id="stockStatus" onchange="renderReport()">
+                                <option value="">All</option>
+                                <option value="low">Low Stock</option>
+                                <option value="out">Out of Stock</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>From Date</label>
+                            <input type="date" id="dateFrom">
+                        </div>
+                        <div>
+                            <label>To Date</label>
+                            <input type="date" id="dateTo">
+                        </div>
+                    </div>
+                </div>
 
+                <div class="toolbar-right">
+                    <button class="btn-search" onclick="generateReport()">Generate Report</button>
+                </div>
+            </div>
 
+            <!-- Summary Cards using CSS .split and .form-panel -->
+            <div id="report-summary" class="split hidden" style="margin-bottom: 20px; gap: 20px;">
+                <div class="form-panel center-text" style="padding: 20px;">
+                    <div class="sub-text">Sales</div>
+                    <h3 id="summaryTotal" style="margin: 5px 0 0 0;">₱ 0.00</h3>
+                </div>
+                <div class="form-panel center-text" style="padding: 20px;">
+                    <div class="sub-text">Expenses</div>
+                    <h3 id="summaryExpenses" style="margin: 5px 0 0 0;">₱ 0.00</h3>
+                </div>
+                <div class="form-panel center-text" style="padding: 20px;">
+                    <div class="sub-text">Revenue</div>
+                    <h3 id="summaryRevenue" style="margin: 5px 0 0 0;">₱ 0.00</h3>
+                </div>
+                <div class="form-panel center-text" style="padding: 20px;">
+                    <div class="sub-text">Total Orders</div>
+                    <h3 id="summaryOrders" style="margin: 5px 0 0 0;">0</h3>
+                </div>
+                <div class="form-panel center-text" style="padding: 20px;">
+                    <div class="sub-text">Products Sold</div>
+                    <h3 id="summaryProductsSold" style="margin: 5px 0 0 0;">0</h3>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead id="report-table-head">
+                        <tr>
+                            <th>Day</th>
+                            <th>Total Orders</th>
+                            <th>Products Sold</th>
+                            <th>Sales</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-table-body">
+                        <tr>
+                            <td colspan="4" class="center-text">Loading report...</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div id="pagination-controls" class="pagination-container hidden">
+                    <button id="btn-prev" class="btn-cancel" onclick="changePage(-1)">Previous</button>
+                    <span id="page-info">Page 1 of 1</span>
+                    <button id="btn-next" class="btn-cancel" onclick="changePage(1)">Next</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="../authGuard.js"></script>
+    <script>
+        let reportData = [];
+        let currentPage = 1;
+        let currentReportType = 'sales';
+
+        // --- Utility Helpers ---
+        const $ = id => document.getElementById(id);
+        const val = (id, v) => v !== undefined ? $(id).value = v : $(id).value;
+
+        // --- Modal Helpers ---
+        const closeModal = () => $('custom-modal').classList.remove('flex');
+
+        function showAlert(msg, isConfirm = false, cb = null) {
+            $('modal-message').innerHTML = msg;
+            $('modal-actions').innerHTML = isConfirm
+                ? `<button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button><button class="modal-btn btn-ok" id="conf-btn">Confirm</button>`
+                : `<button class="modal-btn btn-ok" onclick="closeModal()">OK</button>`;
+
+            if (cb) $('conf-btn').onclick = () => { closeModal(); cb(); };
+            $('custom-modal').classList.add('flex');
+        }
+
+        // --- Report Type Management ---
+        function changeReportType() {
+            currentReportType = val('reportType');
+            currentPage = 1;
+            updateReportUI();
+            generateReport();
+        }
+
+        function updateReportUI() {
+            const userRoleDiv = $('userRoleFilterDiv');
+            const stockStatusDiv = $('stockStatusFilterDiv');
+            const summaryPanel = $('report-summary');
+
+            // Hide/show filters based on report type
+            if (currentReportType === 'sales') {
+                userRoleDiv.style.display = 'none';
+                stockStatusDiv.style.display = 'none';
+                summaryPanel.classList.remove('hidden');
+                summaryPanel.classList.add('flex');
+                $('report-table-head').innerHTML = `
+                    <tr>
+                        <th>Day</th>
+                        <th>Total Orders</th>
+                        <th>Products Sold</th>
+                        <th>Sales</th>
+                    </tr>
+                `;
+            } else if (currentReportType === 'userlogs') {
+                userRoleDiv.style.display = 'flex';
+                userRoleDiv.style.flexDirection = 'column';
+                userRoleDiv.style.gap = '0';
+                stockStatusDiv.style.display = 'none';
+                summaryPanel.classList.add('hidden');
+                summaryPanel.classList.remove('flex');
+                $('report-table-head').innerHTML = `
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>User</th>
+                        <th>Action Performed</th>
+                    </tr>
+                `;
+            } else if (currentReportType === 'stocks') {
+                userRoleDiv.style.display = 'none';
+                stockStatusDiv.style.display = 'flex';
+                stockStatusDiv.style.flexDirection = 'column';
+                stockStatusDiv.style.gap = '0';
+                summaryPanel.classList.add('hidden');
+                summaryPanel.classList.remove('flex');
+                $('report-table-head').innerHTML = `
+                    <tr>
+                        <th>Category</th>
+                        <th>Product Name</th>
+                        <th>Stock Level</th>
+                        <th>Status</th>
+                    </tr>
+                `;
+            }
+        }
+
+        // --- Report Data Processing ---
+        function generateReport() {
+            const dateFrom = val('dateFrom');
+            const dateTo = val('dateTo');
+
+            if (!dateFrom || !dateTo) {
+                showAlert('Please select both date range');
+                return;
+            }
+
+            loadReportData();
+        }
+
+        async function loadReportData() {
+            try {
+                // Placeholder - replace with actual API call
+                const response = await fetch(`/api/reports/${currentReportType}?from=${val('dateFrom')}&to=${val('dateTo')}`);
+
+                if (!response.ok) {
+                    // Generate mock data for demonstration
+                    generateMockData();
+                } else {
+                    reportData = await response.json();
+                    processData();
+                }
+            } catch (error) {
+                generateMockData();
+            }
+        }
+
+        function generateMockData() {
+            reportData = [];
+
+            if (currentReportType === 'sales') {
+                reportData = [
+                    { day: '7/17/25', orders: 52, productsSold: 120, sales: '₱ 9300' },
+                    { day: '7/18/25', orders: 60, productsSold: 150, sales: '₱ 11800' },
+                    { day: '7/19/25', orders: 55, productsSold: 110, sales: '₱ 8870' },
+                    { day: '7/20/25', orders: 72, productsSold: 160, sales: '₱ 9600' },
+                    { day: '7/21/25', orders: 59, productsSold: 99, sales: '₱ 10300' },
+                    { day: '7/22/25', orders: 48, productsSold: 82, sales: '₱ 6550' },
+                    { day: '7/23/25', orders: 30, productsSold: 65, sales: '₱ 7300' },
+                    { day: '7/24/25', orders: 44, productsSold: 111, sales: '₱ 9800' },
+                ];
+            } else if (currentReportType === 'userlogs') {
+                reportData = [
+                    { date: '7/17/2025', time: '10:20 AM', userName: 'Name', userType: 'Inventory Staff', action: 'Successful Log-in' },
+                    { date: '7/17/2025', time: '10:35 AM', userName: 'Name', userType: 'Sales Staff', action: 'Successful Log-in' },
+                    { date: '7/17/2025', time: '10:45 AM', userName: 'Name', userType: 'Inventory Staff', action: 'Created Purchase Order - PO-5567 - Supplier: SUP-1009 - Total: ₱8,750.00' },
+                    { date: '7/17/2025', time: '10:53 AM', userName: 'Name', userType: 'Admin', action: 'Successful Log-in' },
+                    { date: '7/17/2025', time: '10:58 AM', userName: 'Name', userType: 'Sales Staff', action: 'Recorded Sale - TransactionID: 4501 - Amount: ₱350.00' },
+                    { date: '7/17/2025', time: '11:05 AM', userName: 'Name', userType: 'Sales Staff', action: 'Recorded Sale - TransactionID: 4502 - Amount: ₱68.00' },
+                    { date: '7/17/2025', time: '11:15 AM', userName: 'Name', userType: 'Admin', action: 'Created New Product Record - ProductID: 6343614' },
+                ];
+            } else if (currentReportType === 'stocks') {
+                reportData = [
+                    { category: 'Low Stock Products', product: 'Screwdriver set (5pcs)', stocks: 6, status: 'Low Stock' },
+                    { category: 'Low Stock Products', product: 'Light Bulb (LED 10w)', stocks: 8, status: 'Low Stock' },
+                    { category: 'Low Stock Products', product: 'Paint (15L White Latex)', stocks: 9, status: 'Low Stock' },
+                    { category: 'Out of Stocks Products', product: 'Tape Measure (5M)', stocks: 0, status: 'Out of Stock' },
+                ];
+            }
+
+            processData();
+        }
+
+        function processData() {
+            currentPage = 1;
+            renderReport();
+            if (currentReportType === 'sales') {
+                updateSummary();
+            }
+        }
+
+        function renderReport() {
+            const tbody = $('report-table-body');
+            const limit = 10;
+            let filteredData = [...reportData];
+
+            if (currentReportType === 'userlogs') {
+                const roleFilter = val('userRole');
+                if (roleFilter) {
+                    filteredData = filteredData.filter(log => {
+                        if (roleFilter === 'admin') return log.userType.toLowerCase().includes('admin');
+                        if (roleFilter === 'inventory') return log.userType.toLowerCase().includes('inventory');
+                        if (roleFilter === 'sales') return log.userType.toLowerCase().includes('sales');
+                        return true;
+                    });
+                }
+            } else if (currentReportType === 'stocks') {
+                const stockFilter = val('stockStatus');
+                if (stockFilter) {
+                    filteredData = filteredData.filter(item => item.status === (stockFilter === 'low' ? 'Low Stock' : 'Out of Stock'));
+                }
+            }
+
+            const totalPages = Math.ceil(filteredData.length / limit) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * limit;
+            const endIndex = startIndex + limit;
+            const paginatedData = filteredData.slice(startIndex, endIndex);
+
+            if (currentReportType === 'sales') {
+                tbody.innerHTML = paginatedData.map(r => `
+                    <tr>
+                        <td>${r.day}</td>
+                        <td>${r.orders}</td>
+                        <td>${r.productsSold}</td>
+                        <td>${r.sales}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="4" class="center-text">No data available.</td></tr>';
+            } else if (currentReportType === 'userlogs') {
+                tbody.innerHTML = paginatedData.map(r => `
+                    <tr>
+                        <td>
+                            <div class="datetime-cell">
+                                <span class="date-label">${r.date}</span>
+                                <span class="time-label">${r.time}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="user-cell">
+                                <span class="user-name">${r.userName}</span>
+                                <span class="user-type">${r.userType}</span>
+                            </div>
+                        </td>
+                        <td>${r.action}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="3" class="center-text">No data available.</td></tr>';
+            } else if (currentReportType === 'stocks') {
+                tbody.innerHTML = paginatedData.map(r => `
+                    <tr>
+                        <td>${r.category}</td>
+                        <td>${r.product}</td>
+                        <td>${r.stocks}</td>
+                        <td><span class="status-pill ${r.status === 'Low Stock' ? 'status-lowstock' : 'status-outstock'}">${r.status}</span></td>
+                    </tr>
+                `).join('') || '<tr><td colspan="4" class="center-text">No data available.</td></tr>';
+            }
+
+            updatePaginationUI(filteredData.length, totalPages);
+        }
+
+        function updateSummary() {
+            if (currentReportType !== 'sales') return;
+
+            const totalSales = reportData.reduce((sum, r) => {
+                const amount = parseFloat(r.sales.replace(/[^0-9.]/g, ''));
+                return sum + amount;
+            }, 0);
+
+            const totalOrders = reportData.reduce((sum, r) => sum + r.orders, 0);
+            const totalProductsSold = reportData.reduce((sum, r) => sum + r.productsSold, 0);
+
+            $('summaryTotal').textContent = `₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            $('summaryExpenses').textContent = `₱ ${(totalSales * 0.4).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            $('summaryRevenue').textContent = `₱ ${(totalSales * 0.6).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            $('summaryOrders').textContent = totalOrders;
+            $('summaryProductsSold').textContent = totalProductsSold;
+        }
+
+        function updatePaginationUI(totalItems, totalPages) {
+            const container = $('pagination-controls');
+            if (totalItems <= 10) {
+                container.classList.add('hidden');
+                container.classList.remove('flex');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            container.classList.add('flex');
+            $('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+            $('btn-prev').disabled = currentPage === 1;
+            $('btn-next').disabled = currentPage === totalPages;
+        }
+
+        function changePage(step) {
+            currentPage += step;
+            renderReport();
+        }
+
+        // --- Export Functions ---
+        function exportToExcel() {
+            let content = '';
+            const headers = Array.from($('report-table-head').querySelectorAll('th')).map(th => th.textContent);
+            const rows = Array.from($('report-table-body').querySelectorAll('tr'));
+
+            content = headers.join('\t') + '\n';
+            rows.forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td')).map(td => td.textContent.trim());
+                content += cells.join('\t') + '\n';
+            });
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `report-${currentReportType}-${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        function exportAsImage() {
+            const table = $('report-table-body').parentElement;
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Simple text-based image export dummy
+            const img = new Image();
+            const svg = new XMLSerializer().serializeToString(table);
+            const blob = new Blob([svg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+
+            img.onload = () => {
+                canvas.width = 1200;
+                canvas.height = 600;
+                ctx.drawImage(img, 0, 0);
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = `report-${currentReportType}-${new Date().toISOString().split('T')[0]}.png`;
+                link.click();
+                URL.revokeObjectURL(url);
+            };
+
+            img.src = url;
+        }
+
+        // --- Initialization ---
+        document.addEventListener("DOMContentLoaded", () => {
+            // Set default dates
+            const today = new Date();
+            const from = new Date(today.setDate(today.getDate() - 7));
+
+            $('dateFrom').valueAsDate = from;
+            $('dateTo').valueAsDate = new Date();
+
+            updateReportUI();
+            generateReport();
+        });
+    </script>
 </body>
-</html>
 
+</html>
