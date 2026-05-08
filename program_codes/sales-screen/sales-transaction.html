@@ -3,20 +3,320 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Udicon Trading | Sales & Inventory System</title>
+    <title>Sales Transaction | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css"/>
+    <style>
+        /* Panel & Layout */
+        .summary-panel { width: 350px; background: var(--white); padding: 25px; border-radius: var(--rad-lg); box-shadow: var(--shadow-main); border: 1px solid var(--border-light); height: fit-content; position: sticky; top: 20px; }
+        .summary-item { display: flex; justify-content: space-between; margin: 12px 0; font-size: 15px; }
+        .total-display { background: var(--bg-main); padding: 20px; border-radius: var(--rad-md); border: 2px solid var(--bg-dark); margin: 20px 0; text-align: center; }
+        .cart-container { max-height: 60vh; overflow-y: auto; border-radius: var(--rad-md); }
+        
+        /* Table Aesthetics */
+        .data-table thead th { background-color: var(--bg-dark); color: var(--white); position: sticky; top: 0; z-index: 10; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+        .qty-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #e0e0e0; font-weight: bold; border: none; cursor: pointer; border-radius: 4px; }
+        .qty-btn:hover { background: #d0d0d0; }
+        
+        #barcodeInput { border: 2px solid var(--border-color); transition: border-color 0.3s; }
+        #barcodeInput:focus { border-color: var(--bg-dark); outline: none; }
+
+        /* Modal specific */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: white; padding: 30px; border-radius: 8px; width: 400px; text-align: center; }
+    </style>
 </head>
 <body>
 
-  <div id="sidebar"></div>
+<div id="sidebar"></div>
 
-  <main>
-  </main>
+<main class="dashboard-main">
+    <header class="page-header">
+        <h2>🛒 Sales Transaction</h2>
+        <p class="sub-text">Scan items or select from the Product List to finalize payments</p>
+    </header>
 
+    <div class="split">
+        <!-- Cart & Input Section -->
+        <div class="form-panel-wide">
+            <div style="display:flex; gap:12px; margin-bottom:20px;">
+                <div style="flex: 2;">
+                    <label>Scan Barcode</label>
+                    <input type="text" id="barcodeInput" placeholder="Enter barcode or scan..." style="padding: 12px; width: 100%;">
+                </div>
+                <div style="width: 100px;">
+                    <label>Quantity</label>
+                    <input type="number" id="qtyInput" value="1" min="1" style="padding: 12px; width: 100%;">
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                    <button class="btn-create" onclick="addProduct()" style="height: 45px; padding: 0 25px;">Add Item</button>
+                </div>
+            </div>
 
-<script src="sales-navbar.js"></script>
+            <div class="cart-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Product Details</th>
+                            <th>Price</th>
+                            <th>Qty</th>
+                            <th>Subtotal</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cartTable">
+                        <tr><td colspan="5" style="text-align:center; padding:60px; color:#9ca3af;">Cart is empty. Use Product List or scan an item.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
+        <!-- Summary & Checkout Section -->
+        <div class="summary-panel">
+            <h3 style="border-bottom: 2px solid var(--bg-main); padding-bottom: 10px;">🧾 Cart Summary</h3>
+            <div class="summary-item"><span>Total Items:</span><strong id="itemCount">0</strong></div>
+            <div class="summary-item"><span>Gross:</span><strong>₱ <span id="subtotalAmount">0.00</span></strong></div>
+            
+            <div style="margin-top: 15px;">
+                <label>Discount (%)</label>
+                <input type="number" id="discount" value="0" min="0" max="100" oninput="updateTotal()" style="padding: 10px; width: 100%;">
+            </div>
+            
+            <div class="summary-item" style="color: #e63946; margin-top:10px;">
+                <span>Discount:</span><span>- ₱ <span id="discountDisplay">0.00</span></span>
+            </div>
+            
+            <div class="total-display">
+                <p style="font-size: 13px; text-transform: uppercase; margin-bottom: 5px; color: #555;">Net Amount Due</p>
+                <h2 style="margin:0; color: var(--bg-dark); font-size: 28px;">₱ <span id="totalAmount">0.00</span></h2>
+            </div>
+            <button class="btn-create" style="width:100%; padding: 18px; font-weight: bold;" onclick="openPayment()">PAY NOW</button>
+        </div>
+    </div>
+</main>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="paymentModal">
+    <div class="modal-box" style="border-top: 8px solid var(--bg-dark);">
+        <h3>Finalize Payment</h3>
+        <div class="total-display" style="background: #f8f9fa; border-style: dashed;">
+            <p style="margin:0;">Total Payable</p>
+            <strong style="font-size: 24px;">₱ <span id="modalTotal">0.00</span></strong>
+        </div>
+        <div style="text-align: left; margin: 15px 0;">
+            <label>Amount Received</label>
+            <input type="number" id="cashInput" style="font-size: 22px; padding: 15px; border: 2px solid var(--bg-dark); text-align: center; width: 100%;">
+        </div>
+        <div id="changeBox" style="background: #e7f3e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin:0; font-size: 13px;">Change</p>
+            <strong style="font-size: 26px;">₱ <span id="changeAmount">0.00</span></strong>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-create" style="flex:2;" onclick="confirmPayment()">Confirm Sale</button>
+            <button class="btn-cancel" style="flex:1;" onclick="closeModal()">Back</button>
+        </div>
+    </div>
+</div>
+
+<script src="../authGuard.js"></script>
+<script>
+let cart = [];
+const el = (id) => document.getElementById(id);
+
+// Add item on Enter key
+el("barcodeInput").addEventListener("keydown", e => { 
+    if (e.key === "Enter") {
+        e.preventDefault();
+        addProduct(); 
+    }
+});
+
+/**
+ * CORE: Fetch and Add Product
+ */
+async function addProduct(manualBarcode = null, manualQty = null) {
+    const barcode = manualBarcode || el("barcodeInput").value.trim();
+    const qtyToAdd = manualQty || parseInt(el("qtyInput").value) || 1;
+    
+    if (!barcode) return;
+
+    try {
+        const res = await fetch(`/api/products?barcode=${encodeURIComponent(barcode)}`);
+        const data = await res.json();
+        const product = Array.isArray(data) ? data.find(p => p.barcode === barcode) : data;
+
+        if (!product || product.error || !product.barcode) {
+            if (!manualBarcode) alert("Product not found.");
+            return;
+        }
+
+        let existingItem = cart.find(p => p.barcode === product.barcode);
+        let currentQtyInCart = existingItem ? existingItem.qty : 0;
+        let newTotalQty = currentQtyInCart + qtyToAdd;
+
+        // Stock Validation
+        if (product.stockQuantity < newTotalQty) {
+            alert(`Stock Limit Reached!\nItem: ${product.productName}\nAvailable: ${product.stockQuantity}\nRequested: ${newTotalQty}`);
+            return;
+        }
+
+        if (existingItem) {
+            existingItem.qty = newTotalQty;
+        } else {
+            cart.push({
+                barcode: product.barcode,
+                productName: product.productName,
+                price: parseFloat(product.price),
+                qty: qtyToAdd,
+                stockQuantity: product.stockQuantity 
+            });
+        }
+
+        if (!manualBarcode) {
+            el("barcodeInput").value = "";
+            el("qtyInput").value = 1;
+            el("barcodeInput").focus();
+        }
+        renderCart();
+    } catch (err) {
+        console.error("Error adding product:", err);
+    }
+}
+
+/**
+ * UI: Render Cart Table
+ */
+function renderCart() {
+    const body = el("cartTable");
+    if (cart.length === 0) {
+        body.innerHTML = `<tr><td colspan="5" style="padding:60px; text-align:center;">Cart is empty.</td></tr>`;
+    } else {
+        body.innerHTML = cart.map((item, i) => `
+            <tr>
+                <td style="text-align:left;"><strong>${item.productName}</strong><br><small>Barcode: ${item.barcode}</small></td>
+                <td>₱${item.price.toFixed(2)}</td>
+                <td>
+                    <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
+                        <button class="qty-btn" onclick="updateQty(${i}, -1)">-</button>
+                        <span style="font-weight:600; width: 25px;">${item.qty}</span>
+                        <button class="qty-btn" onclick="updateQty(${i}, 1)">+</button>
+                    </div>
+                </td>
+                <td style="font-weight:600;">₱${(item.price * item.qty).toFixed(2)}</td>
+                <td><button class="btn-cancel" style="padding: 5px 10px;" onclick="removeItem(${i})">Remove</button></td>
+            </tr>`).join("");
+    }
+    updateTotal();
+}
+
+function updateQty(index, delta) {
+    const item = cart[index];
+    const newQty = item.qty + delta;
+    if (newQty <= 0) return removeItem(index);
+    if (newQty > item.stockQuantity) return alert("Insufficient stock.");
+    item.qty = newQty;
+    renderCart();
+}
+
+function removeItem(index) {
+    cart.splice(index, 1);
+    renderCart();
+}
+
+/**
+ * UI: Calculate Totals
+ */
+function updateTotal() {
+    const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+    const discPercent = parseFloat(el("discount").value) || 0;
+    const discountAmt = subtotal * (discPercent / 100);
+    const total = subtotal - discountAmt;
+
+    el("itemCount").innerText = cart.reduce((s, i) => s + i.qty, 0);
+    el("subtotalAmount").innerText = subtotal.toLocaleString(undefined, {minimumFractionDigits:2});
+    el("discountDisplay").innerText = discountAmt.toLocaleString(undefined, {minimumFractionDigits:2});
+    el("totalAmount").innerText = total.toLocaleString(undefined, {minimumFractionDigits:2});
+}
+
+/**
+ * PAYMENT LOGIC
+ */
+function openPayment() {
+    if (!cart.length) return alert("Add items to cart first.");
+    el("modalTotal").innerText = el("totalAmount").innerText;
+    el("cashInput").value = "";
+    el("changeAmount").innerText = "0.00";
+    el("paymentModal").style.display = "flex";
+    setTimeout(() => el("cashInput").focus(), 150);
+}
+
+function closeModal() { el("paymentModal").style.display = "none"; }
+
+el("cashInput").oninput = function() {
+    const total = parseFloat(el("modalTotal").innerText.replace(/,/g, ''));
+    const cash = parseFloat(this.value) || 0;
+    const change = cash - total;
+    el("changeAmount").innerText = Math.max(0, change).toLocaleString(undefined, {minimumFractionDigits:2});
+    el("changeBox").style.background = change >= 0 ? "#e7f3e8" : "#fff5f5";
+};
+
+async function confirmPayment() {
+    const total = parseFloat(el("modalTotal").innerText.replace(/,/g, ''));
+    const cash = parseFloat(el("cashInput").value) || 0;
+    if (cash < total) return alert("Insufficient payment.");
+
+    const transactionData = {
+        totalAmount: total,
+        discount: parseFloat(el("discount").value) || 0,
+        cashReceived: cash,
+        items: cart
+    };
+
+    try {
+        const res = await fetch("/api/saveTransaction", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(transactionData)
+        });
+
+        if (res.ok) {
+            alert("Sale Confirmed!");
+            cart = [];
+            renderCart();
+            closeModal();
+            // Optional: call printReceipt(transactionData) here
+        } else {
+            alert("Error saving transaction.");
+        }
+    } catch (err) {
+        alert("Server error.");
+    }
+}
+
+/**
+ * BRIDGE: Load from Product List
+ */
+async function loadPendingItems() {
+    const pendingItems = JSON.parse(localStorage.getItem("pendingCart") || "[]");
+    const singleBc = localStorage.getItem("selectedBarcode");
+    
+    if (singleBc) {
+        pendingItems.push({ barcode: singleBc, qty: 1 });
+        localStorage.removeItem("selectedBarcode");
+    }
+
+    if (pendingItems.length > 0) {
+        for (const item of pendingItems) {
+            await addProduct(item.barcode, item.qty);
+        }
+        localStorage.removeItem("pendingCart");
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    loadPendingItems();
+    el("barcodeInput").focus();
+});
+</script>
 
 </body>
 </html>
-

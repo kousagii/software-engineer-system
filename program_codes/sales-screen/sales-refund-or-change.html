@@ -3,20 +3,235 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Udicon Trading | Sales & Inventory System</title>
-    <link rel="stylesheet" href="../style.css"/>
+    <title>Refund / Exchange | Udicon Trading</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+  
+        * { box-sizing: border-box; }
+
+        /* Panel & Layout */
+        .split { display: flex; gap: 25px; width: 100%; align-items: flex-start; }
+        .left-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+        .right-col { width: 360px; flex-shrink: 0; position: sticky; top: 20px; }
+        .form-panel-wide { background: var(--white); padding: 20px; border-radius: var(--rad-md); box-shadow: var(--shadow-light); }
+
+        /* Mode Switcher (Pill style) */
+        .mode-pill-container { display: inline-flex; background: #e9e2d9; padding: 4px; border-radius: var(--rad-md); }
+        .mode-label { padding: 8px 18px; cursor: pointer; border-radius: var(--rad-sm); font-size: 13px; font-weight: 700; transition: 0.2s; text-transform: uppercase; }
+        .hidden-radio { display: none; }
+        input[type="radio"]:checked + .mode-label { background: var(--white); color: var(--green-light); box-shadow: var(--shadow-light); }
+
+        /* Data Display */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .data-table th { text-align: left; padding: 12px 8px; border-bottom: 2px solid var(--bg-main); color: var(--green-light); font-size: 12px; text-transform: uppercase; }
+        .data-table td { padding: 12px 8px; border-bottom: 1px solid var(--bg-main); }
+        .receipt-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed var(--border-light); }
+        .receipt-total { margin-top: 15px; padding-top: 15px; border-top: 2px solid var(--green-light); display: flex; justify-content: space-between; align-items: center; }
+        
+        .hidden { display: none !important; }
+
+        @media (max-width: 1150px) { .split { flex-direction: column; } .right-col { width: 100%; position: static; } }
+    </style>
 </head>
 <body>
 
-  <div id="sidebar"></div>
+    <div id="sidebar"></div>
 
-  <main>
-  </main>
+    <main class="dashboard-main">
+        <header class="page-header">
+            <h2>Refund / Exchange Item</h2>
+            <p class="sub-text">Manage customer returns and inventory adjustments</p>
+        </header>
 
+        <div class="split">
+            <div class="left-col">
+                <!-- STEP 1 & 2: Transaction Mode and Receipt Search -->
+                <section class="form-panel-wide" style="border-left: 5px solid var(--green-light);">
+                    <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+                        <div>
+                            <label style="font-weight: 800; color: var(--green-light); text-transform: uppercase; font-size: 11px;">1. Transaction Mode</label><br>
+                            <div class="mode-pill-container">
+                                <label><input type="radio" name="mode" value="refund" class="hidden-radio" checked onclick="setMode('refund')"><span class="mode-label">Refund Only</span></label>
+                                <label><input type="radio" name="mode" value="exchange" class="hidden-radio" onclick="setMode('exchange')"><span class="mode-label">Exchange</span></label>
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="font-weight: 800; color: var(--green-light); text-transform: uppercase; font-size: 11px;">2. Search Receipt</label>
+                            <div style="display:flex; gap:10px; margin-top: 5px;">
+                                <input id="txnInput" type="text" placeholder="Enter Transaction ID...">
+                                <button class="btn-create" style="width: auto; height: 42px;" onclick="loadTransaction()">Lookup</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-<script src="sales-navbar.js"></script>
+                <!-- SECTION: Original Items Being Returned -->
+                <section class="form-panel-wide">
+                    <h3 style="margin-top:0; color: var(--green-light);">Items Being Returned</h3>
+                    <table class="data-table" id="originalTable">
+                        <thead>
+                            <tr><th>Product</th><th>Price</th><th>Qty</th><th>Total</th><th style="text-align:right;">Action</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="5" style="text-align:center; padding:40px; color:#999;">No transaction loaded.</td></tr>
+                        </tbody>
+                    </table>
+                </section>
 
+                <!-- SECTION: New Items (Only shown in Exchange Mode) -->
+                <section id="exchangeSection" class="form-panel-wide hidden">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3 style="margin:0; color: var(--green-light);">New Exchange Items</h3>
+                        <button class="btn-edit" style="width:auto;" onclick="addExchangeItem()">+ Add Item</button>
+                    </div>
+                    <table class="data-table" id="exchangeTable">
+                        <thead>
+                            <tr><th>Product</th><th>Price</th><th>Qty</th><th>Total</th><th style="text-align:right;">Action</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="5" style="text-align:center; padding:40px; color:#999;">No exchange items added.</td></tr>
+                        </tbody>
+                    </table>
+                </section>
+            </div>
 
+            <!-- RIGHT COLUMN: Final Calculation and Reason -->
+            <aside class="right-col">
+                <div class="form-panel-wide">
+                    <h3 id="summaryTitle" style="margin:0; border-bottom: 1px solid var(--border-light); padding-bottom: 10px;">Refund Summary</h3>
+                    
+                    <div class="receipt-row">
+                        <span class="sub-text">Return Value:</span>
+                        <strong id="refundTotal">₱0.00</strong>
+                    </div>
+
+                    <div id="exchangeLine" class="receipt-row hidden">
+                        <span class="sub-text">Exchange Value:</span>
+                        <strong id="exchangeTotal">₱0.00</strong>
+                    </div>
+
+                    <div class="receipt-total">
+                        <span id="balanceLabel" style="font-weight:bold;">Net Refund:</span>
+                        <span style="font-size: 1.5em; font-weight:800; color:var(--green-light);">₱<span id="balanceTotal">0.00</span></span>
+                    </div>
+
+                    <div style="margin-top: 25px;">
+                        <label style="font-weight: 700;">Reason for Adjustment</label>
+                        <textarea id="reason" rows="3" placeholder="Defective item, wrong size, etc..."></textarea>
+                    </div>
+
+                    <button class="btn-create" style="padding:15px; font-size:16px; margin-top:20px; width:100%;" onclick="processFinalTransaction()">
+                        Process Transaction
+                    </button>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <script src="../authGuard.js"></script>
+    <script>
+
+        // STATE MANAGEMENT (tracks logic for both the items being returned and new items taken in exchange)
+        let currentMode = "refund";
+        let returnList = [];
+        let exchangeList = [];
+
+        const ui = (id) => document.getElementById(id);
+
+        function setMode(m) {
+            currentMode = m;
+            const isExchange = currentMode === "exchange";
+            
+            ui("exchangeSection").classList.toggle('hidden', !isExchange);
+            ui("exchangeLine").classList.toggle('hidden', !isExchange);
+            ui("summaryTitle").innerText = isExchange ? "Exchange Summary" : "Refund Summary";
+            
+            updateCalculations();
+        }
+
+        // DATA FETCHING (Retrieves transaction history from the server (Placeholder used for demo))
+        async function loadTransaction() {
+            const txnID = ui("txnInput").value;
+            if(!txnID) return alert("Enter a valid Transaction ID.");
+
+            // Logic: In production, fetch from /api/getTransaction?id=...
+            // Simulated response:
+            returnList = [{ name: "Industrial Steel Plate", price: 1200, qty: 1 }];
+            
+            renderTable("originalTable", returnList, "removeReturnItem");
+            updateCalculations();
+        }
+
+        // UI RENDERING (Reusable function to build table rows from item arrays)
+        function renderTable(tableId, data, actionName) {
+            const body = document.querySelector(`#${tableId} tbody`);
+            
+            if(data.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#999;">List is empty.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = data.map((item, index) => `
+                <tr>
+                    <td style="font-weight:600;">${item.name}</td>
+                    <td>₱${item.price.toFixed(2)}</td>
+                    <td>${item.qty}</td>
+                    <td>₱${(item.price * item.qty).toFixed(2)}</td>
+                    <td style="text-align:right;">
+                        <button class="btn-delete" style="width:auto; padding: 5px 12px;" onclick="${actionName}(${index})">Remove</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function removeReturnItem(i) { 
+            returnList.splice(i, 1); 
+            renderTable("originalTable", returnList, "removeReturnItem"); 
+            updateCalculations(); 
+        }
+
+        function addExchangeItem() {
+            exchangeList.push({ name: "Galvanized Screw Set", price: 450, qty: 1 });
+            renderTable("exchangeTable", exchangeList, "removeExchangeItem");
+            updateCalculations();
+        }
+
+        function removeExchangeItem(i) { 
+            exchangeList.splice(i, 1); 
+            renderTable("exchangeTable", exchangeList, "removeExchangeItem"); 
+            updateCalculations(); 
+        }
+
+        //FINANCIAL CALCULATIONS Logic: Net Balance = (Value of returned items) - (Value of new exchange items)
+        function updateCalculations() {
+            const totalReturns = returnList.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const totalExchanges = (currentMode === "exchange") ? exchangeList.reduce((sum, item) => sum + (item.price * item.qty), 0) : 0;
+            
+            const netBalance = totalReturns - totalExchanges;
+
+            ui("refundTotal").innerText = `₱${totalReturns.toFixed(2)}`;
+            ui("exchangeTotal").innerText = `₱${totalExchanges.toFixed(2)}`;
+            
+            // Visual feedback: If negative, store owes the customer. If positive, customer pays difference.
+            if(netBalance >= 0) {
+                ui("balanceLabel").innerText = "Net Refund:";
+                ui("balanceTotal").parentElement.style.color = "var(--green-light)";
+            } else {
+                ui("balanceLabel").innerText = "Collect Payment:";
+                ui("balanceTotal").parentElement.style.color = "var(--red-main)";
+            }
+            
+            ui("balanceTotal").innerText = Math.abs(netBalance).toFixed(2);
+        }
+
+        //TRANSACTION FINALIZATION (Validates inputs before sending to the backend)
+        function processFinalTransaction() {
+            if(returnList.length === 0) return alert("Please load a transaction and items to return.");
+            if(!ui("reason").value.trim()) return alert("Please provide a reason for the refund/exchange.");
+
+            alert("Transaction Successfully Processed and Inventory Updated!");
+            location.reload();
+        }
+    </script>
 </body>
 </html>
-
