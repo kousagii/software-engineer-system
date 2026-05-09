@@ -3,20 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Udicon Trading | Sales & Inventory System</title>
-    <link rel="stylesheet" href="../style.css"/>
+    <title>System Name Help Desk</title>
+    <link rel="stylesheet" href="../style.css">
 </head>
 <body>
 
-  <div id="sidebar"></div>
+    <div id="sidebar"></div>
 
-  <main>
-  </main>
+    <main class="dashboard-main">
+        <div class="page-header">
+            <h2>System Name Help Desk</h2>
+            <div class="toolbar-right">
+                <button class="btn-create" id="contact-support">Contact Support</button>
+            </div>
+        </div>
 
+        <div class="search-split">
+            <div class="search-filters-panel form-panel">
+                <h3 class="filter-heading">Topics</h3>
+                
+                <label class="filter-label filter-label-spaced">Data Management</label>
+                <div class="filter-options">
+                    <span class="sub-text">Product & Barcode Setup</span><br>
+                    <span class="sub-text">Topic Item 2</span><br>
+                    <span class="sub-text">Topic Item 3</span>
+                </div>
 
-<script src="admin-navbar.js"></script>
+                <label class="filter-label filter-label-spaced">Sub-Category</label>
+                <div class="filter-options">
+                    <span class="sub-text">Topic Item 4</span><br>
+                    <span class="sub-text">Topic Item 5</span><br>
+                    <span class="sub-text">Topic Item 6</span><br>
+                    <span class="sub-text">Topic Item 7</span>
+                </div>
 
+                <h3 class="filter-heading">FAQ Index</h3>
+                <div class="filter-options">
+                    <span class="sub-text">Automatic Backups</span><br>
+                    <span class="sub-text">FAQ Title 2</span><br>
+                    <span class="sub-text">FAQ Title 3</span><br>
+                    <span class="sub-text">FAQ Title 4</span><br>
+                    <span class="sub-text">FAQ Title 5</span>
+                </div>
+            </div>
 
+            <div class="search-table-container tab-content active form-panel-wide">
+                <div class="toolbar">
+                    <div class="search-group toolbar-left search-bar-extended">
+                        <input type="text" placeholder="Search guides..." class="search-input">
+                        <button class="btn-search">Search</button>
+                    </div>
+                </div>
+
+                <h3>Guides</h3>
+                <span class="sub-text">Step-by-step instructions for using the system and managing data and configurations.</span>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Guide Topic</th>
+                                <th>Description</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="user-name">Product & Barcode Setup</span></td>
+                                <td>Adding items, categorizing, setting stock, and generating barcodes.</td>
+                                <td><button class="btn-view" data-guide="products-barcodes">Read</button></td>
+                            </tr>
+                            <tr>
+                                <td><span class="user-name">Guide Topic 2</span></td>
+                                <td>Brief description of what Guide 2 covers</td>
+                                <td><button class="btn-view" data-guide="guide-2">Read</button></td>
+                            </tr>
+                            <tr>
+                                <td><span class="user-name">Guide Topic 3</span></td>
+                                <td>Brief description of what Guide 3 covers</td>
+                                <td><button class="btn-view" data-guide="guide-3">Read</button></td>
+                            </tr>
+                            <tr>
+                                <td><span class="user-name">Guide Topic 4</span></td>
+                                <td>Brief description of what Guide 4 covers</td>
+                                <td><button class="btn-view" data-guide="guide-4">Read</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="form-panel">
+                    <h3>Frequently Asked Questions</h3>
+                    
+                    <label>How do I change the automatic backup schedule?</label>
+                    <span class="sub-text">Navigate to the <strong>Backups</strong> module and click the "Backup Settings" button. You can select the frequency for Full Backups and Incremental Backups, then click Save.</span>
+                    
+                    <label class="filter-label-spaced">FAQ Question 2</label>
+                    <span class="sub-text">Detailed answer or explanation for FAQ 2.</span>
+
+                    <label class="filter-label-spaced">FAQ Question 3</label>
+                    <span class="sub-text">Detailed answer or explanation for FAQ 3.</span>
+
+                    <label class="filter-label-spaced">FAQ Question 4</label>
+                    <span class="sub-text">Detailed answer or explanation for FAQ 4.</span>
+
+                    <label class="filter-label-spaced">FAQ Question 5</label>
+                    <span class="sub-text">Detailed answer or explanation for FAQ 5.</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="guide-modal">
+        <div class="modal-box">
+            <h3 id="modal-title"></h3>
+            <div id="modal-content"></div>
+            <button class="modal-btn btn-cancel" onclick="closeModal()">Close Button</button>
+        </div>
+    </div>
+
+    <script src="../authGuard.js"></script>
+    <script>
+        // Modal Content Data (Matches the data-guide attributes in the table buttons)
+        const guides = {
+            'products-barcodes': {
+                title: 'Creating Products & Barcode',
+                content: `
+                    <p><strong>Step 1:</strong> Go to the Product Management page.</p>
+                    <p><strong>Step 2:</strong> Click "Add New Product".</p>
+                    <p><strong>Step 3:</strong> Enter product details: Name, Category, Price, Stock Quantity.</p>
+                    <p><strong>Step 4:</strong> Upload an image if available.</p>
+                    <p><strong>Step 5:</strong> The system will automatically generate a barcode.</p>
+                    <p><strong>Step 6:</strong> Save the product.</p>
+                    <p><em>Note: Barcodes are unique and cannot be edited once created.</em></p>
+                `
+            },
+            'guide-2': {
+                title: 'Guide 2 Modal Title',
+                content: `
+                    <p><strong>Step 1:</strong> Instruction placeholder for step 1</p>
+                    <p><strong>Step 2:</strong> Instruction placeholder for step 2</p>
+                    <p><strong>Step 3:</strong> Instruction placeholder for step 3</p>
+                `
+            },
+            'guide-3': {
+                title: 'Guide 3 Modal Title',
+                content: `
+                    <p><strong>Step 1:</strong> Instruction placeholder for step 1</p>
+                    <p><strong>Step 2:</strong> Instruction placeholder for step 2</p>
+                    <p><strong>Step 3:</strong> Instruction placeholder for step 3</p>
+                `
+            },
+            'guide-4': {
+                title: 'Guide 4 Modal Title',
+                content: `
+                    <p><strong>Step 1:</strong> Instruction placeholder for step 1</p>
+                    <p><strong>Step 2:</strong> Instruction placeholder for step 2</p>
+                    <p><strong>Step 3:</strong> Instruction placeholder for step 3</p>
+                `
+            },
+            'contact-support': {
+                title: 'Contact Support Title',
+                content: `
+                    <p><strong>Support Name</strong></p>
+                    <p><strong>Contact Method 1:</strong> Details</p>
+                    <p><strong>Contact Method 2:</strong> Details</p>
+                    <p>Additional contact notes or emergency info placeholder</p>
+                `
+            }
+        };
+
+        // Modal Logic
+        function openModal(title, content) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-content').innerHTML = content;
+            document.getElementById('guide-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('guide-modal').style.display = 'none';
+        }
+
+        // Search & Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.querySelector('.search-input');
+            const searchBtn = document.querySelector('.btn-search');
+            const tableRows = document.querySelectorAll('.data-table tbody tr');
+
+            function performSearch() {
+                const filter = searchInput.value.toLowerCase();
+
+                tableRows.forEach(row => {
+                    const rowText = row.textContent.toLowerCase();
+                    if (rowText.includes(filter)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none'; 
+                    }
+                });
+            }
+
+            searchInput.addEventListener('input', performSearch);
+            searchBtn.addEventListener('click', performSearch);
+
+            // Attach modal opening to all Read Guide buttons
+            document.querySelectorAll('.btn-view[data-guide]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const guideKey = btn.getAttribute('data-guide');
+                    const guide = guides[guideKey];
+                    if (guide) {
+                        openModal(guide.title, guide.content);
+                    }
+                });
+            });
+
+            // Attach modal to Contact Support button
+            document.getElementById('contact-support').addEventListener('click', () => {
+                const contact = guides['contact-support'];
+                openModal(contact.title, contact.content);
+            });
+        });
+    </script>
 </body>
 </html>
-

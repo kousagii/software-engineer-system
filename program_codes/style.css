@@ -22,7 +22,7 @@
 
 /* GLOBAL */
 body {
-    font-family: 'Poppins', sans-serif;
+    font-family: sans-serif;
     margin: 0;
     background: var(--bg-main);
     display: flex;
@@ -297,7 +297,7 @@ button:hover {
 
 .btn-search {
     margin-top: 0;
-    margin-bottom: 20px;
+    margin-bottom: 5px;
 }
 
 .btn-ok {
@@ -396,6 +396,13 @@ button:hover {
 .search-th {
     font-size: 12px;
     text-transform: uppercase;
+}
+
+
+.search-bar-extended {
+    display: flex;
+    gap: 10px;
+    width: 60%;           
 }
 
 .address-cell {
@@ -554,6 +561,10 @@ button:hover {
     margin-bottom: 20px;
     font-size: 16px;
     color: var(--text-dark);
+}
+
+#modal-content, #modal-title {
+    text-align: left;
 }
 
 .modal-btn {
