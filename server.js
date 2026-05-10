@@ -675,9 +675,10 @@ app.delete('/api/users/:id', (req, res) => {
 
 // Get product by barcode for scanner
 app.get('/api/getProduct', (req, res) => {
-
     const barcode = req.query.barcode ? req.query.barcode.trim() : "";
-    const sql = `SELECT productID, productName, price, stockQuantity 
+    
+    // FIX: Added 'barcode' to the SELECT statement
+    const sql = `SELECT productID, barcode, productName, price, stockQuantity 
                  FROM product 
                  WHERE TRIM(barcode) = ?`;
 
@@ -688,7 +689,6 @@ app.get('/api/getProduct', (req, res) => {
         }
         
         if (results.length === 0) {
-            
             console.log(`Failed lookup for: "${barcode}" (Length: ${barcode.length})`);
             return res.status(404).json({ error: "Product not found" });
         }
@@ -699,9 +699,20 @@ app.get('/api/getProduct', (req, res) => {
 
 // Optimized Complete Transaction (Handles Sale + Stock in one logic flow)
 app.post('/api/saveTransaction', (req, res) => {
-
-    const sessionUserID = req.session.user ? req.session.user.id : null;
-    const { userID, totalAmount, payment, items } = req.body;
+    const sessionUserID = req.session?.user?.id || null;
+    
+    const { 
+        userID, 
+        totalAmount, 
+        paymentMethod, 
+        items, 
+        transactionId, 
+        referenceNumber,
+        discountAmount,
+        paymentStatus,
+        cashReceived,
+        digitalAmount
+    } = req.body;
     
     const finalUserID = userID || sessionUserID;
 
@@ -709,34 +720,58 @@ app.post('/api/saveTransaction', (req, res) => {
         return res.status(400).json({ error: "No valid User ID found. Please re-login." });
     }
 
+    if (!items || items.length === 0) {
+        return res.status(400).json({ error: "Cannot process an empty cart." });
+    }
+
     db.beginTransaction(err => {
         if (err) return res.status(500).json({ error: "Transaction initiation failed" });
 
-        // Ensure columns match your table: userID, transDateTime, totalAmount, paymentMethod
-        const sqlTxn = `INSERT INTO sales_transaction (userID, transDateTime, totalAmount, paymentMethod) VALUES (?, NOW(), ?, ?)`;
+        const sqlTxn = `
+            INSERT INTO sales_transaction 
+            (transactionCode, userID, transDateTime, totalAmount, paymentMethod, referenceNumber, discountAmount, paymentStatus, cashReceived, digitalAmount) 
+            VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?)
+        `;
         
-        db.query(sqlTxn, [finalUserID, totalAmount, payment], (err, result) => {
+        const txnParams = [
+            transactionId, 
+            finalUserID, 
+            totalAmount, 
+            paymentMethod || 'Cash',
+            referenceNumber || null,
+            discountAmount || 0.00,
+            paymentStatus || 'Paid',
+            cashReceived || 0.00,
+            digitalAmount || 0.00
+        ];
+
+        db.query(sqlTxn, txnParams, (err, result) => {
             if (err) {
-                console.error("❌ TRANSACTION HEADER ERROR:", err.message); // This shows the REAL error in terminal
-                return db.rollback(() => {
-                    res.status(500).json({ error: "Failed to create transaction record: " + err.message });
-                });
+                console.error("❌ DB ERROR (Header):", err.message);
+                return db.rollback(() => res.status(500).json({ error: "Failed to save header: " + err.message }));
             }
 
-            const transactionID = result.insertId;
-            const itemValues = items.map(item => [transactionID, item.productID, item.qty, (item.price * item.qty).toFixed(2)]);
+            const dbAutoId = result.insertId; 
+
+            const itemValues = items.map(item => [
+                dbAutoId, 
+                item.productID, 
+                item.qty, 
+                parseFloat((item.price * item.qty).toFixed(2))
+            ]);
+
             const sqlItems = `INSERT INTO sales_item (transactionID, productID, quantity, subtotal) VALUES ?`;
 
             db.query(sqlItems, [itemValues], (itemErr) => {
                 if (itemErr) {
-                    console.error("❌ SALES ITEM ERROR:", itemErr.message);
-                    return db.rollback(() => res.status(500).json({ error: "Failed to save items" }));
+                    console.error("❌ DB ERROR (Items):", itemErr.message);
+                    return db.rollback(() => res.status(500).json({ error: "Failed to save items: " + itemErr.message }));
                 }
 
-                // Update Stock
                 const updatePromises = items.map(item => {
                     return new Promise((resolve, reject) => {
-                        db.query(`UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`, [item.qty, item.productID], (sErr, sRes) => {
+                        db.query(`UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`, 
+                        [item.qty, item.productID], (sErr, sRes) => {
                             if (sErr) reject(sErr); else resolve(sRes);
                         });
                     });
@@ -746,11 +781,11 @@ app.post('/api/saveTransaction', (req, res) => {
                     .then(() => {
                         db.commit(cErr => {
                             if (cErr) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
-                            res.status(201).json({ message: "Sale successful!", transactionID });
+                            res.status(201).json({ message: "Transaction completed successfully.", transactionCode: transactionId });
                         });
                     })
                     .catch(pErr => {
-                        console.error("❌ STOCK UPDATE ERROR:", pErr.message);
+                        console.error("❌ STOCK ERROR:", pErr.message);
                         db.rollback(() => res.status(500).json({ error: "Stock update failed" }));
                     });
             });
@@ -775,6 +810,7 @@ app.post('/api/reduceStock', (req, res) => {
         .then(() => res.json({ message: "Inventory updated" }))
         .catch(err => res.status(500).json({ error: "Stock update failed" }));
 });
+
 // BACK UP FUNCTIONS & SCHEDULES
 
 let fullBackupJob;
