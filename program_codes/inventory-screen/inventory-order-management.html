@@ -4,11 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
     <title>Order Management | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css" />
+=======
+    <title>Product List - UDICON Trading</title>
+    <link rel="stylesheet" href="../style.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+>>>>>>> 83e1001998c66e863e02a87130b9eb5c1f567787
 </head>
 
 <body>
+<<<<<<< HEAD
     <div id="sidebar"></div>
 
     <div id="custom-modal" class="modal-overlay hidden">
@@ -16,8 +23,91 @@
             <p id="modal-message"></p>
             <div id="modal-actions"></div>
         </div>
+=======
+
+<div id="sidebar"></div>
+
+<div id="toast"></div>
+
+<main class="dashboard-main">
+    <div class="page-header">
+        <h2>Product List</h2>
+        <div class="header-actions">
+            <button class="btn-view" onclick="openCartPreview()">
+                🛒 View Cart <span class="cart-badge" id="cartBadge">0</span>
+            </button>
+            <button class="btn-proceed" onclick="goToCheckout()">
+                Proceed to Checkout ➔
+            </button>
+        </div>
     </div>
 
+    <div class="form-panel toolbar">
+        <div class="search-group">
+            <label class="m-0">Search</label>
+            <input type="text" id="searchInput" class="m-0" placeholder="Name / Barcode">
+        </div>
+
+        <div class="toolbar-right">
+            <div class="toolbar-group">
+                <label class="m-0">Category</label>
+                <select id="categoryFilter" class="m-0">
+                    <option value="All">All</option>
+                    <option value="Tools">Tools</option>
+                    <option value="Cement">Cement</option>
+                    <option value="Wood">Wood</option>
+                    <option value="Roofing">Roofing</option>
+                    <option value="Bricks">Bricks</option>
+                    <option value="Paints">Paints</option>
+                    <option value="Electrical">Electrical</option>
+                </select>
+            </div>
+            
+            <div class="sort-group toolbar-group">
+                <label class="m-0">Show</label>
+                <select id="showLimit" class="m-0 input-qty">
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                    <option value="all">All</option>
+                </select>
+
+                <label class="m-0" style="margin-left: 10px !important;">Sort</label>
+                <select id="sortMode" class="m-0">
+                    <option value="default">Default</option>
+                    <option value="az">Name: A-Z</option>
+                    <option value="za">Name: Z-A</option>
+                    <option value="priceLowHigh">Price: Low to High</option>
+                    <option value="priceHighLow">Price: High to Low</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th class="center-text">Status</th>
+                    <th class="center-text">Action</th>
+                </tr>
+            </thead>
+            <tbody id="productBody"></tbody>
+        </table>
+
+        <div id="pagination-controls" class="pagination-container hidden">
+            <button id="btn-prev" onclick="changePage(-1)">Previous</button>
+            <span id="page-info">Page 1 of 1</span>
+            <button id="btn-next" onclick="changePage(1)">Next</button>
+        </div>
+>>>>>>> 83e1001998c66e863e02a87130b9eb5c1f567787
+    </div>
+</main>
+
+<<<<<<< HEAD
     <main class="dashboard-main">
 
         <div id="order-list-view" class="w-full">
@@ -458,6 +548,293 @@
             $('showLimit').addEventListener('change', () => { currentPage = 1; processData(); });
         });
     </script>
+=======
+<div id="qtyModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+        <h3 id="modalTitle" class="m-0 text-left">Product Name</h3>
+        <p id="modalStockInfo" class="sub-text text-left m-0"></p>
+        <label class="text-left filter-label-spaced">Quantity:</label>
+        <input type="number" id="modalQty" class="modal-qty-input center-text m-0" value="1" min="1">
+        <div class="split mt-15">
+            <button class="btn-proceed w-full m-0" onclick="confirmAdd()">Confirm</button>
+            <button class="btn-cancel w-full m-0" onclick="closeQtyModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="barcodeModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+        <div class="text-left filter-heading">
+            <h3 class="m-0">Print Label</h3>
+            <span class="sub-text">Generate 30x20mm thermal barcode labels</span>
+        </div>
+        <div class="barcode-preview-container">
+            <div id="barcodePrintArea">
+                <div id="barcodeProdName">Product Name</div>
+                <svg id="barcodeTarget"></svg>
+            </div>
+        </div>
+        <div class="print-setup-row">
+            <label class="m-0">Print Copies:</label>
+            <input type="number" id="printCopies" value="1" min="1" max="100" class="input-qty center-text m-0">
+        </div>
+        <div class="split">
+            <button class="btn-proceed w-full m-0" onclick="triggerPrint()">Print Now</button>
+            <button class="btn-cancel w-full m-0" onclick="closeBarcodeModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<div id="cartModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box cart-modal-box">
+        <div class="cart-header">
+            <h3 class="m-0" style="color: white;">Your Cart</h3>
+            <button onclick="clearCart()" class="btn-cancel" style="width: auto; background: none; border: 1px solid white; color: white; padding: 4px 8px; margin: 0; font-size: 10px; cursor: pointer;">CLEAR ALL</button>
+        </div>
+        <div class="cart-col-headers">
+            <span>PRODUCT</span>
+            <span class="center-text">QTY</span>
+            <span class="text-right">TOTAL</span>
+            <span></span>
+        </div>
+        <div id="cartPreviewList" class="cart-item-list"></div>
+        <div class="cart-footer">
+            <div class="total-row">
+                <span>Total Amount</span>
+                <span id="cartTotalDisplay">₱0.00</span>
+            </div>
+            <div class="split">
+                <button class="btn-proceed w-full m-0" onclick="goToCheckout()">Go to Checkout</button>
+                <button class="btn-cancel w-full m-0" onclick="closeCart()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="../authGuard.js"></script>
+<script>
+    const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
+    let products = [];
+    let cart = JSON.parse(localStorage.getItem("pendingCart") || "[]");
+    let selectedProduct = null;
+    let currentPage = 1;
+
+    function showToast(message, isError = false) {
+        const toast = document.getElementById("toast");
+        toast.innerText = message;
+        toast.className = isError ? "show error" : "show";
+        setTimeout(() => { toast.className = ""; }, 3000);
+    }
+
+    async function loadProducts() {
+        try {
+            const res = await fetch('/api/products');
+            products = await res.json();
+            updateBadge();
+            resetAndRender();
+        } catch(e) { console.error("Load failed", e); }
+    }
+    loadProducts();
+
+    function resetAndRender() {
+        currentPage = 1;
+        render();
+    }
+
+    function changePage(step) {
+        currentPage += step;
+        render();
+    }
+
+    function render() {
+        const search = document.getElementById("searchInput").value.toLowerCase();
+        const category = document.getElementById("categoryFilter").value;
+        const sort = document.getElementById("sortMode").value;
+        const limit = document.getElementById("showLimit").value;
+
+        let data = [...products];
+        if (search) data = data.filter(p => p.productName.toLowerCase().includes(search) || p.barcode.includes(search));
+        if (category !== "All") data = data.filter(p => p.category === category);
+        
+        if (sort === "az") data.sort((a,b) => a.productName.localeCompare(b.productName));
+        else if (sort === "za") data.sort((a,b) => b.productName.localeCompare(a.productName));
+        else if (sort === "priceLowHigh") data.sort((a,b) => a.price - b.price);
+        else if (sort === "priceHighLow") data.sort((a,b) => b.price - a.price);
+
+        const parsedLimit = limit === "all" ? data.length : parseInt(limit);
+        const totalPages = Math.ceil(data.length / parsedLimit) || 1;
+        
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIndex = (currentPage - 1) * parsedLimit;
+        const paginatedData = data.slice(startIndex, startIndex + parsedLimit);
+        
+        const body = document.getElementById("productBody");
+        body.innerHTML = paginatedData.length ? "" : `<tr><td colspan="6" class="center-text">No products found</td></tr>`;
+
+        paginatedData.forEach(p => {
+            const isOut = p.stockQuantity <= 0;
+            const statusLabel = isOut ? "Out of Stock" : (p.stockQuantity <= 10 ? "Low Stock" : "In Stock");
+            const statusClass = isOut ? "status-outstock" : (p.stockQuantity <= 10 ? "status-lowstock" : "status-instock");
+
+            body.innerHTML += `
+            <tr>
+                <td>
+                    <div class="product-name-col">
+                        <img src="${p.imagePath || placeholderImg}" onerror="this.src='${placeholderImg}'">
+                        <div><strong>${p.productName}</strong><br><span class="sub-text">BC: ${p.barcode}</span></div>
+                    </div>
+                </td>
+                <td class="sub-text"><strong>${p.brand || ''}</strong> ${p.productDescription || ''}</td>
+                <td><strong>₱${parseFloat(p.price).toFixed(2)}</strong></td>
+                <td>${p.stockQuantity}</td>
+                <td class="center-text"><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+                <td class="center-text">
+                    <div class="action-group">
+                        <button class="btn-add" onclick="openQtyModal('${p.barcode}')" ${isOut ? 'disabled' : ''}>
+                            ${isOut ? 'No Stock' : 'Add'}
+                        </button>
+                        <button class="btn-view" onclick="previewBarcode('${p.barcode}')">
+                            Print
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+        });
+
+        updatePaginationUI(data.length, totalPages);
+    }
+
+    function updatePaginationUI(totalItems, totalPages) {
+        const limit = document.getElementById("showLimit").value;
+        const container = document.getElementById("pagination-controls");
+        
+        if (limit === 'all' || totalItems <= parseInt(limit)) {
+            container.classList.add('hidden');
+            container.style.display = "none";
+            return;
+        }
+
+        container.classList.remove('hidden');
+        container.style.display = "flex";
+        document.getElementById("page-info").textContent = `Page ${currentPage} of ${totalPages}`;
+        document.getElementById("btn-prev").disabled = currentPage === 1;
+        document.getElementById("btn-next").disabled = currentPage === totalPages;
+    }
+
+    // Modal Toggling fixed to use style.display
+    function previewBarcode(barcode) {
+        const prod = products.find(p => p.barcode === barcode);
+        if(!prod) return;
+        document.getElementById("barcodeProdName").innerText = prod.productName;
+        document.getElementById("printCopies").value = 1;
+        JsBarcode("#barcodeTarget", barcode, {
+            format: "CODE128", width: 1.2, fontSize: 12, height: 45, margin: 10, displayValue: true, background: "white"
+        });
+        document.getElementById("barcodeModal").style.display = "flex";
+    }
+
+    function closeBarcodeModal() { 
+        document.getElementById("barcodeModal").style.display = "none"; 
+    }
+
+    function triggerPrint() { window.print(); }
+
+    function openQtyModal(barcode) {
+        selectedProduct = products.find(p => p.barcode === barcode);
+        if (!selectedProduct || selectedProduct.stockQuantity <= 0) return;
+        document.getElementById("modalTitle").innerText = selectedProduct.productName;
+        document.getElementById("modalStockInfo").innerText = `Stock available: ${selectedProduct.stockQuantity}`;
+        document.getElementById("modalQty").value = 1;
+        document.getElementById("qtyModal").style.display = "flex";
+    }
+
+    function closeQtyModal() { 
+        document.getElementById("qtyModal").style.display = "none"; 
+    }
+
+    function confirmAdd() {
+        const qty = parseInt(document.getElementById("modalQty").value);
+        if (isNaN(qty) || qty < 1) return;
+        let existing = cart.find(i => i.barcode === selectedProduct.barcode);
+        let totalRequested = (existing ? existing.qty : 0) + qty;
+        
+        if (totalRequested > selectedProduct.stockQuantity) {
+            showToast("Insufficient stock!", true);
+            return;
+        }
+        
+        if(existing) existing.qty += qty;
+        else cart.push({ barcode: selectedProduct.barcode, qty: qty });
+        
+        localStorage.setItem("pendingCart", JSON.stringify(cart));
+        updateBadge();
+        closeQtyModal();
+        showToast("Product added to cart!");
+    }
+
+    function updateBadge() { 
+        document.getElementById("cartBadge").innerText = cart.length;
+    }
+
+    function openCartPreview() {
+        const list = document.getElementById("cartPreviewList");
+        let total = 0;
+        list.innerHTML = cart.length ? "" : "<p class='center-text sub-text p-20'>Your cart is empty.</p>";
+        
+        cart.forEach((item, idx) => {
+            const p = products.find(prod => prod.barcode === item.barcode);
+            if (!p) return;
+            const sub = p.price * item.qty;
+            total += sub;
+            list.innerHTML += `
+                <div class="cart-item-row">
+                    <div>
+                        <strong>${p.productName}</strong><br>
+                        <span class="sub-text">₱${parseFloat(p.price).toFixed(2)}</span>
+                    </div>
+                    <span class="center-text"><strong>${item.qty}</strong></span>
+                    <span class="text-right"><strong>₱${sub.toFixed(2)}</strong></span>
+                    <button class="btn-remove-item" onclick="removeItem(${idx})">✕</button>
+                </div>`;
+        });
+        document.getElementById("cartTotalDisplay").innerText = "₱" + total.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById("cartModal").style.display = "flex";
+    }
+
+    function removeItem(idx) {
+        cart.splice(idx, 1);
+        localStorage.setItem("pendingCart", JSON.stringify(cart));
+        updateBadge();
+        openCartPreview();
+    }
+
+    function clearCart() {
+        cart = [];
+        localStorage.setItem("pendingCart", JSON.stringify(cart));
+        updateBadge();
+        openCartPreview();
+        showToast("Cart cleared", true);
+    }
+
+    function closeCart() { 
+        document.getElementById("cartModal").style.display = "none"; 
+    }
+
+    function goToCheckout() { 
+        if (cart.length === 0) {
+            showToast("Please add items before checking out.", true);
+            return;
+        }
+        window.location.href = "sales-transaction.html"; 
+    }
+
+    ["searchInput", "categoryFilter", "sortMode", "showLimit"].forEach(id => {
+        document.getElementById(id).addEventListener(id === "searchInput" ? "input" : "change", resetAndRender);
+    });
+</script>
+>>>>>>> 83e1001998c66e863e02a87130b9eb5c1f567787
 </body>
 
 </html>
