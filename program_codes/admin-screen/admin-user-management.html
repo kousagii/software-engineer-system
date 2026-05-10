@@ -10,7 +10,7 @@
 <body>
     <div id="sidebar"></div>
 
-    <main class="dashboard-main" style="width: 100%;">  
+    <main class="dashboard-main w-full">  
         <div class="page-header">
             <h2>User Management</h2>
             <button class="btn-create" onclick="openCreateModal()">+ Create New User</button>
@@ -35,7 +35,7 @@
 
     <div class="modal-overlay" id="user-form-modal">
         <div class="modal-box" style="min-width: 450px; text-align: left;">
-            <h3 id="modal-title" style="text-align: center; margin-top: 0;">Create User</h3>
+            <h3 id="modal-title" class="center-text mt-0">Create User</h3>
             
             <input type="hidden" id="form-userid">
 

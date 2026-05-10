@@ -154,7 +154,7 @@ app.listen(PORT, () => {
 
 // GET route to fetch products for the inventory product list page
 app.get('/api/products', (req, res) => {
-    const sql = `SELECT * FROM product ORDER BY productID DESC`;
+    const sql = `SELECT * FROM product WHERE isActive = 1 ORDER BY productID DESC`;
     db.query(sql, (err, results) => {
         if (err) return res.status(500).json({ error: "Failed to fetch products" });
         res.json(results);
@@ -211,18 +211,18 @@ app.put('/api/products/:id', upload.single('productImage'), (req, res) => {
     });
 });
 
-// DELETE route to REMOVE a product
+// DELETE route to REMOVE a product (soft delete - marks as inactive)
 app.delete('/api/products/:id', (req, res) => {
     const { id } = req.params;
     
-    const sql = `DELETE FROM product WHERE productID = ?`;
+    const sql = `UPDATE product SET isActive = 0 WHERE productID = ?`;
     
     db.query(sql, [id], (err, result) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: "Failed to delete product" });
+            return res.status(500).json({ error: "Failed to remove product from view" });
         }
-        res.status(200).json({ message: "Product deleted successfully!" });
+        res.status(200).json({ message: "Product removed!" });
     });
 });
 
@@ -243,6 +243,7 @@ app.get('/api/suppliers', (req, res) => {
         FROM supplier s
         LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID
         LEFT JOIN product p ON sp.productID = p.productID
+        WHERE s.isActive = 1
         GROUP BY s.supplierID;
     `;
 
@@ -304,13 +305,16 @@ app.put('/api/suppliers/:id', (req, res) => {
     });
 });
 
-// DELETE route to REMOVE a supplier
+// DELETE route to REMOVE a supplier (soft delete - marks as inactive)
 app.delete('/api/suppliers/:id', (req, res) => {
     const { id } = req.params;
-    const sql = `DELETE FROM supplier WHERE supplierID = ?`;
+    const sql = `UPDATE supplier SET isActive = 0 WHERE supplierID = ?`;
     db.query(sql, [id], (err, result) => {
-        if (err) return res.status(500).json({ error: "Failed to delete supplier" });
-        res.status(200).json({ message: "Supplier deleted successfully!" });
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Failed to remove supplier from view" });
+        }
+        res.status(200).json({ message: "Supplier removed!" });
     });
 });
 
