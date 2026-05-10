@@ -9,7 +9,7 @@
 <body>
     <div id="sidebar"></div>
 
-    <div id="custom-modal" class="modal-overlay hidden" style="justify-content: center; align-items: center;">
+    <div id="custom-modal" class="modal-overlay hidden">
         <div class="modal-box">
             <div id="modal-message"></div>
             <div id="modal-actions" style="margin-top: 20px;"></div>
@@ -18,7 +18,7 @@
 
     <main class="dashboard-main">
         
-        <div id="supplier-list-view" style="width: 100%;">
+        <div id="supplier-list-view" class="w-full">
             <div class="page-header">
                 <h2>Supplier Management</h2>
                 <button class="btn-create" onclick="openForm()">+ Create Supplier</button>
@@ -57,7 +57,7 @@
                         </tr>
                     </thead>
                     <tbody id="supplier-table-body">
-                        <tr><td colspan="6" style="text-align: center;">Loading...</td></tr>
+                        <tr><td colspan="6" class="center-text">Loading...</td></tr>
                     </tbody>
                 </table>
 
@@ -69,7 +69,7 @@
             </div>
         </div>
 
-        <div id="create-supplier-view" class="hidden" style="width: 100%;">
+        <div id="create-supplier-view" class="hidden w-full">
             <div class="page-header">
                 <button class="btn-back" onclick="toggleView('supplier-list-view')">← Back to List</button>
             </div>
@@ -228,7 +228,7 @@
                         <td><strong>${s.supplierName}</strong><br><small>ID: ${s.supplierID}</small></td>
                         <td class="sub-text">${s.contactNumber || 'N/A'}</td>
                         <td class="sub-text">${s.email || 'N/A'}</td>
-                        <td class="sub-text" style="max-width: 200px;">${addr}</td>
+                        <td class="sub-text address-cell">${addr}</td>
                         <td><button class="btn-view" onclick="viewProducts('${safeName}', '${safeProds}')">↗ View (${count})</button></td>
                         <td>
                             <div style="display: flex; gap: 5px;">
@@ -238,7 +238,7 @@
                         </td>
                     </tr>
                 `;            
-            }).join('') || '<tr><td colspan="6" style="text-align:center;">No results found.</td></tr>';
+            }).join('') || '<tr><td colspan="6" class="center-text">No results found.</td></tr>';
         }
 
         // --- Form Logic ---
@@ -280,7 +280,7 @@
                 supplierList = await res.json();
                 currentPage = 1;
                 processData();
-            } catch { $('supplier-table-body').innerHTML = '<tr><td colspan="6" style="text-align:center;">Error loading data.</td></tr>'; }
+            } catch { $('supplier-table-body').innerHTML = '<tr><td colspan="6" class="center-text">Error loading data.</td></tr>'; }
         }
 
         async function saveSupplier() {

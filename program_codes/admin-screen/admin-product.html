@@ -1,105 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product Management | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 </head>
+
 <body>
     <div id="sidebar"></div>
 
-    <div id="custom-modal" class="modal-overlay hidden" style="justify-content: center; align-items: center;">
+    <div id="custom-modal" class="modal-overlay">
         <div class="modal-box">
             <p id="modal-message"></p>
-            <div id="modal-actions"></div>
+            <div id="modal-actions" class="action-group"></div>
         </div>
     </div>
 
+    <div id="barcodeModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="text-left filter-heading">
+                <h3 class="m-0">Print Label</h3>
+                <span class="sub-text">Generate 30x20mm thermal barcode labels</span>
+            </div>
+
+            <div class="barcode-preview-container">
+                <div id="barcodePreviewArea" class="barcode-label">
+                    <div id="barcodeProdName" class="barcode-prod-name">Product Name</div>
+                    <svg id="barcodeTarget" class="barcode-target"></svg>
+                </div>
+            </div>
+
+            <div class="print-setup-row">
+                <label class="m-0">Print Copies:</label>
+                <input type="number" id="printCopies" value="1" min="1" max="100" class="input-qty center-text m-0">
+            </div>
+
+            <div class="split">
+                <button class="btn-proceed w-full m-0" onclick="triggerPrint()">
+                    Print Now
+                </button>
+                <button class="btn-cancel w-full m-0" onclick="closeBarcodeModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden print-only barcode container -->
+    <div id="barcodePrintContainer"></div>
+
     <main class="dashboard-main">
-        
-        <div id="product-list-view" style="width: 100%;">
+
+        <div id="product-list-view" class="w-full">
             <div class="page-header">
                 <h2>Product Management</h2>
                 <button class="btn-create" onclick="openForm()">+ Create Product</button>
             </div>
 
-                <div class="form-panel toolbar">
-                    <div class="search-group">
-                        <label>Search</label>
-                        <input type="text" id="searchInput" placeholder="Search here..." style="width: 250px;">
+            <div class="form-panel toolbar">
+                <div class="search-group">
+                    <label class="m-0">Search</label>
+                    <input type="text" id="searchInput" placeholder="Search here..." class="input-barcode m-0">
+                </div>
+                <div class="toolbar-right">
+                    <div class="toolbar-group">
+                        <label class="m-0">Category</label>
+                        <select id="categoryFilter" class="m-0">
+                            <option value="All">All</option>
+                            <option value="Tools">Tools</option>
+                            <option value="Cement">Cement</option>
+                            <option value="Wood">Wood</option>
+                            <option value="Roofing">Roofing</option>
+                            <option value="Bricks">Bricks</option>
+                            <option value="Paints">Paints</option>
+                            <option value="Electrical">Electrical</option>
+                        </select>
                     </div>
-                    <div class="toolbar-right">
-                        <div class="toolbar-group">
-                            <label>Category</label>
-                            <select id="categoryFilter">
-                                <option value="All">All</option>
-                                <option value="Tools">Tools</option>
-                                <option value="Cement">Cement</option>
-                                <option value="Wood">Wood</option>
-                                <option value="Roofing">Roofing</option>
-                                <option value="Bricks">Bricks</option>
-                                <option value="Paints">Paints</option>
-                                <option value="Electrical">Electrical</option>
-                            </select>
-                        </div>
-                        <div class="sort-group">
-                            <label>Show</label>
-                            <select id="showLimit" style="width: 70px;">
-                                <option value="5">5</option>
-                                <option value="10" selected>10</option>
-                                <option value="20">20</option>
-                                <option value="all">All</option>
-                            </select>
-                            <label style="margin-left: 20px;">Sort by</label>
-                            <select id="sortMode" style="width: 150px;">
-                                <option value="default">Default</option>
-                                <option value="az">Name: A-Z</option>
-                                <option value="za">Name: Z-A</option>
-                                <option value="priceLowHigh">Price: Low to High</option>
-                                <option value="priceHighLow">Price: High to Low</option>
-                            </select>
-                        </div>
+                    <div class="sort-group toolbar-group">
+                        <label class="m-0">Show</label>
+                        <select id="showLimit" class="input-qty m-0">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="all">All</option>
+                        </select>
+                        <label class="m-0">Sort</label>
+                        <select id="sortMode" class="m-0">
+                            <option value="default">Default</option>
+                            <option value="az">Name: A-Z</option>
+                            <option value="za">Name: Z-A</option>
+                            <option value="priceLowHigh">Price: Low to High</option>
+                            <option value="priceHighLow">Price: High to Low</option>
+                        </select>
                     </div>
                 </div>
+            </div>
 
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Products</th>
-                                <th>Description</th>
-                                <th>Price</th>
-                                <th>Stocks</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="product-table-body">
-                            <tr><td colspan="5" style="text-align: center;">Loading products...</td></tr>
-                        </tbody>
-                    </table>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>Stocks</th>
+                            <th class="center-text">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="product-table-body">
+                        <tr>
+                            <td colspan="5" class="center-text">Loading products...</td>
+                        </tr>
+                    </tbody>
+                </table>
 
-                    <div id="pagination-controls" class="pagination-container hidden">
-                        <button id="btn-prev" onclick="changePage(-1)">Previous</button>
-                        <span id="page-info" style="font-size: 14px;">Page 1 of 1</span>
-                        <button id="btn-next" onclick="changePage(1)">Next</button>
-                    </div>
+                <div id="pagination-controls" class="pagination-container" style="display: none;">
+                    <button id="btn-prev" onclick="changePage(-1)">Previous</button>
+                    <span id="page-info">Page 1 of 1</span>
+                    <button id="btn-next" onclick="changePage(1)">Next</button>
                 </div>
+            </div>
         </div>
 
-        <div id="create-product-view" class="hidden" style="width: 100%;">
+        <div id="create-product-view" class="w-full" style="display: none;">
             <div class="page-header">
-                <button class="btn-back" onclick="toggleView('product-list-view')">← Back to List</button>
+                <button class="btn-back m-0" onclick="toggleView('product-list-view')">← Back to List</button>
             </div>
 
             <div class="split">
                 <div class="form-panel">
                     <h3 id="form-title">Create Product</h3>
-                    
+
                     <label>Name</label>
                     <input type="text" id="prodName" placeholder="e.g. Pliers" oninput="updatePreview()">
-                    
-                    <div class="split" style="gap: 20px; margin-top: 10px;">
+
+                    <div class="split">
                         <div>
                             <label>Category</label>
                             <select id="prodCategory" onchange="updatePreview()">
@@ -118,12 +157,13 @@
                         </div>
                     </div>
 
-                    <div class="split" style="gap: 20px; margin-top: 10px;">
+                    <div class="split">
                         <div>
                             <label>Stock Quantity</label>
                             <div class="qty-control">
                                 <button class="qty-btn" onclick="changeStock(-1)">-</button>
-                                <input type="number" id="prodStock" value="25" style="text-align: center; margin: 0; width: 60px;" oninput="updatePreview()">
+                                <input type="number" id="prodStock" value="25" class="center-text m-0"
+                                    oninput="updatePreview()">
                                 <button class="qty-btn" onclick="changeStock(1)">+</button>
                             </div>
                         </div>
@@ -134,17 +174,21 @@
                     </div>
 
                     <label>Description</label>
-                    <textarea id="prodDescription" rows="4" placeholder="Description" oninput="updatePreview()"></textarea>
+                    <textarea id="prodDescription" rows="4" placeholder="Description"
+                        oninput="updatePreview()"></textarea>
 
                     <label>Upload image</label>
-                    
-                    <div style="margin-bottom: 10px;">
-                        <img id="img-preview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E" alt="Image Preview" onerror="this.onerror=null; this.src=placeholderImg;" style="width: 80px; height: 80px; object-fit: contain; border: 1px dashed #ccc; padding: 5px; background: #fff; border-radius: 4px;">
+                    <div class="image-upload-box">
+                        <img id="img-preview"
+                            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"
+                            alt="Preview" onerror="this.onerror=null; this.src=placeholderImg;" class="w-full">
                     </div>
 
-                    <div class="split align-end" style="gap: 10px;">
-                        <input type="file" id="prodImage" accept="image/*" onchange="previewSelectedImage(event)" style="flex: 2; padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; cursor: pointer;">
-                        <button type="button" id="btn-generate-barcode" onclick="generateBarcode()" style="background: #e0e0e0; color: #333; flex: 1;">Generate barcode</button>
+                    <div class="input-row">
+                        <input type="file" id="prodImage" accept="image/*" onchange="previewSelectedImage(event)"
+                            class="input-barcode">
+                        <button type="button" id="btn-generate-barcode" class="btn-back"
+                            onclick="generateBarcode()">Generate barcode</button>
                     </div>
                 </div>
 
@@ -157,17 +201,20 @@
                         <p><strong>Stock Quantity:</strong> <span id="prevStock">25</span></p>
                         <p><strong>Price:</strong> ₱<span id="prevPrice">180</span></p>
                         <p><strong>Description:</strong> <span id="prevDesc">Description</span></p>
-                        
-                        <br>
-                        <p><strong>Barcode:</strong></p>
-                        <div class="barcode-placeholder" style="letter-spacing: 2px;">|| |||| || ||| |||||||</div>
-                        <p id="prevBarcode" style="text-align: center; font-family: monospace; font-weight: bold; color: #d9534f;">Click 'Generate barcode'</p>
 
                         <br>
-                        <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 10px;">
-                        <p><strong>Product ID:</strong> <span id="prevProductId" style="font-family: monospace; color: #8fc96a; font-weight: bold;">(Auto-generated on save)</span></p>
+                        <p><strong>Barcode:</strong></p>
+                        <div class="center-text">
+                            <svg id="barcode-canvas" class="w-full" style="display: none;"></svg>
+                            <p id="prevBarcode" class="center-text font-barcode sub-text">Click 'Generate barcode'</p>
+                        </div>
+
+                        <br>
+                        <hr style="border: 0; border-top: 1px solid var(--border-light); margin-bottom: 10px;">
+                        <p><strong>Product ID:</strong> <span id="prevProductId" class="sub-text">(Auto-generated on
+                                save)</span></p>
                     </div>
-                    <button class="btn-create" id="btn-save" onclick="saveProduct()" style="width: 100%; margin-top: 20px;">Create Product</button>
+                    <button class="btn-create w-full" id="btn-save" onclick="saveProduct()">Create Product</button>
                 </div>
             </div>
         </div>
@@ -177,36 +224,33 @@
     <script src="../authGuard.js"></script>
     <script>
         let productList = [], currentEditId = null, currentBarcode = "";
-        let currentPage = 1; 
-        
+        let currentPage = 1;
+        let currentPrintBarcode = "", currentPrintName = "";
+
         const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
-        
-        // --- Utility Helpers ---
+
         const $ = id => document.getElementById(id);
         const val = (id, v) => v !== undefined ? $(id).value = v : $(id).value;
 
-        // --- Modal & Views ---
         function toggleView(view) {
-            $('product-list-view').classList.toggle('hidden', view !== 'product-list-view');
-            $('create-product-view').classList.toggle('hidden', view !== 'create-product-view');
+            $('product-list-view').style.display = view === 'product-list-view' ? 'block' : 'none';
+            $('create-product-view').style.display = view === 'create-product-view' ? 'block' : 'none';
             if (view === 'product-list-view') loadProducts();
         }
 
-        const closeModal = () => $('custom-modal').classList.remove('flex');
+        const closeModal = () => $('custom-modal').style.display = 'none';
 
         function showAlert(msg, isConfirm = false, cb = null) {
             $('modal-message').innerHTML = msg;
-            $('modal-actions').innerHTML = isConfirm 
+            $('modal-actions').innerHTML = isConfirm
                 ? `<button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
                    <button class="modal-btn btn-danger" id="conf-btn">Confirm</button>`
                 : `<button class="modal-btn btn-ok" onclick="closeModal()">OK</button>`;
-            
+
             if (cb) $('conf-btn').onclick = () => { closeModal(); cb(); };
-            $('custom-modal').classList.add('flex');
+            $('custom-modal').style.display = 'flex';
         }
 
-        // --- Core Algorithms & Pagination ---
-        
         function resetAndProcess() {
             currentPage = 1;
             processData();
@@ -223,12 +267,12 @@
             const sort = val('sortMode');
             const limit = val('showLimit');
 
-            // 1. Filter
             if (query) {
-                data = data.filter(p => 
+                data = data.filter(p =>
                     (p.productName || "").toLowerCase().includes(query) ||
                     (p.productID || "").toString().includes(query) ||
-                    (p.productDescription || "").toLowerCase().includes(query)
+                    (p.productDescription || "").toLowerCase().includes(query) ||
+                    (p.barcode || "").includes(query)
                 );
             }
 
@@ -237,7 +281,6 @@
                 data = data.filter(p => p.category === category);
             }
 
-            // 2. Sort
             if (sort !== 'default') {
                 data.sort((a, b) => {
                     if (sort === 'az') return (a.productName || "").localeCompare(b.productName || "");
@@ -264,11 +307,11 @@
             const limit = val('showLimit');
             const container = $('pagination-controls');
             if (limit === 'all' || totalItems <= parseInt(limit)) {
-                container.classList.add('hidden');
+                container.style.display = 'none';
                 return;
             }
 
-            container.classList.remove('hidden');
+            container.style.display = 'flex';
             $('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
             $('btn-prev').disabled = currentPage === 1;
             $('btn-next').disabled = currentPage === totalPages;
@@ -282,7 +325,7 @@
                             <img src="${p.imagePath || placeholderImg}" alt="${p.productName}" onerror="this.onerror=null; this.src=placeholderImg;">
                             <div class="product-info">
                                 <strong>${p.productName}</strong><br>
-                                <span class="sub-text" style="color: #777; font-size: 12px;">ID: ${p.productID}</span>
+                                <span class="sub-text">BC: ${p.barcode}</span>
                             </div>
                         </div>
                     </td>
@@ -290,18 +333,121 @@
                     <td>₱ ${parseFloat(p.price).toFixed(2)}</td>
                     <td>${p.stockQuantity}</td>
                     <td>
-                        <button class="btn-edit" onclick="openForm(${p.productID})">Edit</button>
-                        <button class="btn-delete" onclick="deleteProduct(${p.productID})">Delete</button>
+                        <div class="action-group">
+                            <button class="btn-edit" onclick="openForm(${p.productID})">Edit</button>
+                            <button class="btn-view" onclick="previewBarcode('${p.barcode}')">Print</button>
+                            <button class="btn-delete" onclick="deleteProduct(${p.productID})">Delete</button>
+                        </div>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="5" style="text-align: center;">No products found.</td></tr>';
+            `).join('') || '<tr><td colspan="5" class="center-text">No products found.</td></tr>';
         }
 
-        // --- Form Logic & Interactivity ---
+        function generateBarcode() {
+            if (currentEditId) return;
+
+            let isUnique = false;
+            let newBarcode = "";
+
+            while (!isUnique) {
+                newBarcode = Date.now().toString().slice(-8) + Math.floor(1000 + Math.random() * 9000).toString();
+                const exists = productList.find(p => p.barcode === newBarcode);
+                if (!exists) {
+                    isUnique = true;
+                }
+            }
+
+            currentBarcode = newBarcode;
+            renderPreviewBarcode();
+        }
+
+        function renderPreviewBarcode() {
+            const canvas = $('barcode-canvas');
+            const prevText = $('prevBarcode');
+
+            if (currentBarcode) {
+                prevText.style.display = 'none';
+                canvas.style.display = 'inline-block';
+                JsBarcode("#barcode-canvas", currentBarcode, {
+                    format: "CODE128",
+                    width: 1.5,
+                    height: 40,
+                    displayValue: true,
+                    margin: 10
+                });
+            } else {
+                canvas.style.display = 'none';
+                prevText.style.display = 'block';
+                prevText.textContent = "Click 'Generate barcode'";
+            }
+        }
+
+        function renderPrintBarcodes(barcode, name, copies) {
+            const area = document.getElementById("barcodePrintContainer");
+            area.innerHTML = "";
+            for (let i = 0; i < copies; i++) {
+                const label = document.createElement("div");
+                label.className = "barcode-label";
+
+                const nameDiv = document.createElement("div");
+                nameDiv.className = "barcode-prod-name";
+                nameDiv.innerText = name;
+
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.className = "barcode-target";
+
+                label.appendChild(nameDiv);
+                label.appendChild(svg);
+                area.appendChild(label);
+
+                JsBarcode(svg, barcode, {
+                    format: "CODE128",
+                    width: 1.2,
+                    fontSize: 12,
+                    height: 45,
+                    margin: 10,
+                    displayValue: true,
+                    background: "white"
+                });
+            }
+        }
+
+        function previewBarcode(barcode) {
+            const prod = productList.find(p => p.barcode === barcode);
+            if (!prod) return;
+            currentPrintBarcode = barcode;
+            currentPrintName = prod.productName;
+
+            document.getElementById("barcodeProdName").innerText = prod.productName;
+            JsBarcode("#barcodeTarget", barcode, {
+                format: "CODE128",
+                width: 1.2,
+                fontSize: 12,
+                height: 45,
+                margin: 10,
+                displayValue: true,
+                background: "white"
+            });
+
+            document.getElementById("printCopies").value = 1;
+            document.getElementById("barcodeModal").style.display = "flex";
+        }
+
+        function closeBarcodeModal() {
+            document.getElementById("barcodeModal").style.display = "none";
+        }
+
+        function triggerPrint() {
+            let copies = parseInt(document.getElementById("printCopies").value);
+            if (isNaN(copies) || copies < 1) copies = 1;
+            renderPrintBarcodes(currentPrintBarcode, currentPrintName, copies);
+            window.print();
+        }
+
         function openForm(id = null) {
             currentEditId = id;
-            const p = productList.find(x => x.productID === id) || { 
-                productName: '', brand: '', category: 'Tools', stockQuantity: 25, price: '', productDescription: '', barcode: '', imagePath: '' 
+            const p = productList.find(x => x.productID === id) || {
+                productName: '', brand: '', category: 'Tools', stockQuantity: 25, price: '', productDescription: '', barcode: '', imagePath: ''
             };
 
             currentBarcode = p.barcode || "";
@@ -312,8 +458,8 @@
             val('prodStock', p.stockQuantity || 25);
             val('prodPrice', p.price || '');
             val('prodDescription', p.productDescription || '');
-            
-            $('prodImage').value = ''; 
+
+            $('prodImage').value = '';
             $('img-preview').src = p.imagePath ? p.imagePath : placeholderImg;
 
             $('form-title').innerText = id ? "Edit Product" : "Create Product";
@@ -322,12 +468,8 @@
 
             const btnBarcode = $('btn-generate-barcode');
             btnBarcode.disabled = !!id;
-            btnBarcode.style.opacity = id ? "0.5" : "1";
 
-            const prevBarcode = $('prevBarcode');
-            prevBarcode.textContent = id ? currentBarcode : "Click 'Generate barcode'";
-            prevBarcode.style.color = id ? "#333" : "#d9534f";
-
+            renderPreviewBarcode();
             updatePreview();
             toggleView('create-product-view');
         }
@@ -340,13 +482,6 @@
                 const p = productList.find(x => x.productID === currentEditId);
                 $('img-preview').src = (p && p.imagePath) ? p.imagePath : placeholderImg;
             }
-        }
-
-        function generateBarcode() {
-            if (currentEditId) return; 
-            currentBarcode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
-            $('prevBarcode').textContent = currentBarcode;
-            $('prevBarcode').style.color = "#333";
         }
 
         function changeStock(amount) {
@@ -366,20 +501,19 @@
             $('prevDesc').textContent = val('prodDescription') || 'Description';
         }
 
-        // --- API Calls ---
         async function loadProducts() {
             try {
                 const res = await fetch('/api/products');
-                productList = await res.json(); 
-                processData(); 
-            } catch { $('product-table-body').innerHTML = '<tr><td colspan="5" style="text-align: center;">Error loading data.</td></tr>'; }
+                productList = await res.json();
+                processData();
+            } catch { $('product-table-body').innerHTML = '<tr><td colspan="5" class="center-text">Error loading data.</td></tr>'; }
         }
 
         function deleteProduct(id) {
             showAlert("Are you sure you want to delete this product?", true, async () => {
                 try {
                     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-                    if (res.ok) { showAlert("Product deleted!"); loadProducts(); } 
+                    if (res.ok) { showAlert("Product deleted!"); loadProducts(); }
                     else { const result = await res.json(); showAlert("Error: " + result.error); }
                 } catch { showAlert("Failed to connect to the server."); }
             });
@@ -408,7 +542,7 @@
                     method: currentEditId ? 'PUT' : 'POST',
                     body: formData
                 });
-                
+
                 if (res.ok) {
                     showAlert(`Product ${currentEditId ? 'updated' : 'saved'} successfully!`);
                     toggleView('product-list-view');
@@ -419,7 +553,6 @@
             } catch { showAlert("Failed to connect to the server."); }
         }
 
-        // --- Initialization ---
         document.addEventListener("DOMContentLoaded", () => {
             loadProducts();
             $('searchInput').addEventListener('keyup', resetAndProcess);
@@ -429,4 +562,5 @@
         });
     </script>
 </body>
+
 </html>

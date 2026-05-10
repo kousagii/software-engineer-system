@@ -1,429 +1,438 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Management | Udicon Trading</title>
-  <link rel="stylesheet" href="../style.css"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Management | Udicon Trading</title>
+    <link rel="stylesheet" href="../style.css" />
 </head>
+
 <body>
-  <div id="sidebar"></div>
-  
-  <div id="custom-modal" class="modal-overlay hidden" style="justify-content:center; align-items:center;">
-    <div class="modal-box">
-      <p id="modal-message"></p>
-      <div id="modal-actions"></div>
-    </div>
-  </div>
+    <div id="sidebar"></div>
 
-  <main class="dashboard-main">
-    
-    <div id="order-list-view" style="width: 100%;">
-      <div class="page-header">
-        <h2>Order Management</h2>
-        <button class="btn-create" onclick="openForm()">+ Create Purchase Order</button>
-      </div>
-
-      <div class="form-panel toolbar">
-        <div class="search-group">
-          <label>Search</label>
-          <input type="text" id="searchInput" placeholder="Search here..." style="width:320px;">
+    <div id="custom-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <p id="modal-message"></p>
+            <div id="modal-actions"></div>
         </div>
-        <div class="toolbar-right">
-          <div class="toolbar-group">
-            <label>Status</label>
-            <select id="statusFilter">
-              <option value="All">All</option>
-              <option value="Pending">Pending</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </div>
-          <div class="sort-group">
-            <label>Show</label>
-            <select id="showLimit" style="width:70px;">
-              <option value="5">5</option>
-              <option value="10" selected>10</option>
-              <option value="20">20</option>
-              <option value="all">All</option>
-            </select>
-            <label style="margin-left:20px;">Sort by</label>
-            <select id="sortMode" style="width:150px;">
-              <option value="dateDesc">Date: Newest</option>
-              <option value="dateAsc">Date: Oldest</option>
-              <option value="status">Status</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Order Date</th>
-              <th>Supplier</th>
-              <th>Products</th>
-              <th>Qty</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="orders-table-body">
-            <tr><td colspan="7" style="text-align:center;">Loading orders...</td></tr>
-          </tbody>
-        </table>
-
-        <div id="pagination-controls" class="pagination-container hidden">
-          <button id="btn-prev" onclick="changePage(-1)">Previous</button>
-          <span id="page-info" style="font-size:14px;">Page 1 of 1</span>
-          <button id="btn-next" onclick="changePage(1)">Next</button>
-        </div>
-      </div>
     </div>
 
-    <div id="create-order-view" class="hidden" style="width: 100%;">
-      <div class="page-header">
-          <button class="btn-back" onclick="toggleView('order-list-view')">← Back to List</button>
-      </div>
+    <main class="dashboard-main">
 
-      <div class="split">
-          <div class="form-panel">
-              <h3 id="form-title">Create Purchase Order</h3>
-              
-              <label>Supplier</label>
-              <select id="supplierSelect" onchange="handleSupplierChange()" style="width:100%;"></select>
+        <div id="order-list-view" class="w-full">
+            <div class="page-header">
+                <h2>Order Management</h2>
+                <button class="btn-create" onclick="openForm()">+ Create Purchase Order</button>
+            </div>
 
-              <label style="margin-top:15px;">Contact Information</label>
-              <input type="text" id="supplierContact" placeholder="Contact number or email" style="width:100%;">
+            <div class="form-panel toolbar">
+                <div class="search-group">
+                    <label>Search</label>
+                    <input type="text" id="searchInput" placeholder="Search here...">
+                </div>
+                <div class="toolbar-right">
+                    <div class="toolbar-group">
+                        <label>Status</label>
+                        <select id="statusFilter">
+                            <option value="All">All</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="sort-group">
+                        <label>Show</label>
+                        <select id="showLimit" style="width: 70px;">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="all">All</option>
+                        </select>
+                        <label>Sort</label>
+                        <select id="sortMode" style="width:150px;">
+                            <option value="dateDesc">Date: Newest</option>
+                            <option value="dateAsc">Date: Oldest</option>
+                            <option value="status">Status</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
 
-              <label style="margin-top:15px;">Shipment Information</label>
-              <textarea id="shipmentInfo" rows="4" placeholder="Address, ETA, courier details" style="width:100%;"></textarea>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Order Date</th>
+                            <th>Supplier</th>
+                            <th>Products</th>
+                            <th>Qty</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-table-body">
+                        <tr>
+                            <td colspan="7" class="center-text">Loading orders...</td>
+                        </tr>
+                    </tbody>
+                </table>
 
-              <label style="margin-top:15px;">Order Status</label>
-              <select id="orderStatus" style="width:100%;">
-                  <option value="Pending">Pending</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Cancelled">Cancelled</option>
-              </select>
-          </div>
+                <div id="pagination-controls" class="pagination-container hidden">
+                    <button id="btn-prev" onclick="changePage(-1)">Previous</button>
+                    <span id="page-info" style="font-size:14px;">Page 1 of 1</span>
+                    <button id="btn-next" onclick="changePage(1)">Next</button>
+                </div>
+            </div>
+        </div>
 
-          <div class="form-panel">
-              <h3>Order Items</h3>
-              <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Select a supplier first to view available products.</p>
-              
-              <div id="itemsContainer" class="items-list" style="max-height:350px; overflow:auto; padding:10px; border:1px solid #eee; background:#fafafa; border-radius:6px; margin-bottom: 15px;">
-                  </div>
-              
-              <div style="display:flex; justify-content: space-between; align-items: center;">
-                  <button class="btn-create" onclick="addItemRow()" style="background: #e0e0e0; color: #333;">+ Add Item</button>
-                  <button class="btn-create" id="btn-save-order" onclick="saveOrder()" style="width: 200px;">Save Order</button>
-              </div>
-          </div>
-      </div>
-    </div>
+        <div id="create-order-view" class="hidden w-full">
+            <div class="page-header">
+                <button class="btn-back" onclick="toggleView('order-list-view')">← Back to List</button>
+            </div>
 
-  </main>
+            <div class="split">
+                <div class="form-panel">
+                    <h3 id="form-title">Create Purchase Order</h3>
 
-  <script src="../authGuard.js"></script>
-  <script src="inventory-navbar.js"></script>
-  <script>
-    let orders = [], products = [], suppliers = [], currentPage = 1, currentEditId = null;
+                    <label>Supplier</label>
+                    <select id="supplierSelect" onchange="handleSupplierChange()" class="w-full"></select>
 
-    const $ = id => document.getElementById(id);
-    const val = (id, v) => v !== undefined ? $(id).value = v : $(id).value;
+                    <label class="mt-15">Contact Information</label>
+                    <input type="text" id="supplierContact" placeholder="Contact number or email" class="w-full">
 
-    // --- Modal Helpers ---
-    function showAlert(msg, isConfirm = false, cb = null) {
-      $('modal-message').innerHTML = msg;
-      $('modal-actions').innerHTML = isConfirm
-        ? `<button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
+                    <label class="mt-15">Shipment Information</label>
+                    <textarea id="shipmentInfo" rows="4" placeholder="Address, ETA, courier details"
+                        class="w-full"></textarea>
+
+                    <label class="mt-15">Order Status</label>
+                    <select id="orderStatus" class="w-full">
+                        <option value="Pending">Pending</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="form-panel">
+                    <h3>Order Items</h3>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Select a supplier first to view
+                        available products.</p>
+
+                    <div id="itemsContainer" class="items-list"
+                        style="max-height:350px; overflow:auto; padding:10px; border:1px solid #eee; background:#fafafa; border-radius:6px; margin-bottom: 15px;">
+                    </div>
+
+                    <div style="display:flex; justify-content: space-between; align-items: center;">
+                        <button class="btn-create" onclick="addItemRow()" style="background: #e0e0e0; color: #333;">+
+                            Add Item</button>
+                        <button class="btn-create" id="btn-save-order" onclick="saveOrder()" style="width: 200px;">Save
+                            Order</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="../authGuard.js"></script>
+    <script src="inventory-navbar.js"></script>
+    <script>
+        let orders = [], products = [], suppliers = [], currentPage = 1, currentEditId = null;
+
+        const $ = id => document.getElementById(id);
+        const val = (id, v) => v !== undefined ? $(id).value = v : $(id).value;
+
+        // --- Modal Helpers ---
+        function showAlert(msg, isConfirm = false, cb = null) {
+            $('modal-message').innerHTML = msg;
+            $('modal-actions').innerHTML = isConfirm
+                ? `<button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
            <button class="modal-btn btn-danger" id="conf-btn">Confirm</button>`
-        : `<button class="modal-btn btn-ok" onclick="closeModal()">OK</button>`;
-      if (cb) setTimeout(() => { $('conf-btn').onclick = () => { closeModal(); cb(); }; }, 50);
-      $('custom-modal').classList.add('flex');
-    }
-    function closeModal() { $('custom-modal').classList.remove('flex'); }
-
-    // --- View Toggling ---
-    function toggleView(view) {
-        $('order-list-view').classList.toggle('hidden', view !== 'order-list-view');
-        $('create-order-view').classList.toggle('hidden', view !== 'create-order-view');
-        if (view === 'order-list-view') {
-            loadOrders(); 
+                : `<button class="modal-btn btn-ok" onclick="closeModal()">OK</button>`;
+            if (cb) setTimeout(() => { $('conf-btn').onclick = () => { closeModal(); cb(); }; }, 50);
+            $('custom-modal').classList.add('flex');
         }
-    }
+        function closeModal() { $('custom-modal').classList.remove('flex'); }
 
-    // --- Form Controls (Create & Edit) ---
-  function openForm(id = null) {
-    currentEditId = id;
-    clearItems();
-    
-    const order = id ? orders.find(x => x.orderID == id) : null;
-    const isCompleted = order && order.status === 'Completed';
-    
-    toggleInputs(!isCompleted);
-
-    if (!id) {
-        $('form-title').innerText = 'Create Purchase Order';
-        val('supplierContact', '');
-        val('shipmentInfo', '');
-        val('orderStatus', 'Pending');
-        populateSupplierSelect();
-        addItemRow(); 
-    } else {
-        if (!order) return showAlert('Order not found');
-        
-        $('form-title').innerText = (isCompleted ? 'View' : 'Edit') + ' Purchase Order #' + id;
-        populateSupplierSelect(order.supplierID);
-        val('supplierContact', order.contact || '');
-        val('shipmentInfo', order.shipmentInfo || '');
-        val('orderStatus', order.status || 'Pending');
-        
-        if (order.items && order.items.length > 0) {
-            // Pass the isCompleted status to every item row
-            order.items.forEach(it => addItemRow(it.productID, it.qty, isCompleted));
-        } else {
-            addItemRow(null, 1, isCompleted);
-        }
-    }
-    
-    toggleView('create-order-view');
-}
-
-  // Helper to disable/enable all form fields
-  function toggleInputs(enabled) {
-      $('supplierSelect').disabled = !enabled;
-      $('supplierContact').disabled = !enabled;
-      $('shipmentInfo').disabled = !enabled;
-      $('orderStatus').disabled = !enabled;
-      $('btn-save-order').style.display = enabled ? 'block' : 'none';
-      const addBtn = document.querySelector('.btn-create[onclick="addItemRow()"]');
-      if (addBtn) {
-          addBtn.style.display = enabled ? 'block' : 'none';
-      }
-  }
-  
-  // Update addItemRow to handle disabled state
-  function addItemRow(selectedProductId = null, qty = 1, disabled = false) {
-      const row = document.createElement('div');
-      row.className = 'item-row';
-      row.style.display = 'flex';
-      row.style.gap = '10px';
-      row.style.marginBottom = '10px';
-
-      const sel = document.createElement('select');
-      sel.style.flex = '1';
-      sel.disabled = disabled; // Lock product selection
-      
-      const allowedProducts = getAllowedProductsForCurrentSupplier();
-      sel.innerHTML = '<option value="">-- Select product --</option>' + 
-          allowedProducts.map(p => `<option value="${p.productID}" ${p.productID == selectedProductId ? 'selected' : ''}>${p.productName} (₱${p.price})</option>`).join('');
-      
-      const qin = document.createElement('input');
-      qin.type = 'number'; 
-      qin.min = 1; 
-      qin.value = qty; 
-      qin.style.width = '80px';
-      qin.disabled = disabled; 
-      
-      row.appendChild(sel);
-      row.appendChild(qin);
-      
-      if (!disabled) {
-          const removeBtn = document.createElement('button');
-          removeBtn.type = 'button'; 
-          removeBtn.className = 'btn-delete'; 
-          removeBtn.textContent = 'X';
-          removeBtn.onclick = () => row.remove();
-          row.appendChild(removeBtn);
-      }
-      
-      $('itemsContainer').appendChild(row);
-  }
-    // --- Supplier & Product Logic ---
-    function populateSupplierSelect(selectedId = null) {
-        const sel = $('supplierSelect');
-        sel.innerHTML = '<option value="">-- Select supplier --</option>' + 
-            suppliers.map(s => `<option value="${s.supplierID}" ${s.supplierID == selectedId ? 'selected' : ''}>${s.supplierName}</option>`).join('');
-        
-        if (selectedId) handleSupplierChange(false);
-    }
-
-    function handleSupplierChange(resetItems = true) {
-        const selId = val('supplierSelect');
-        const s = suppliers.find(x => String(x.supplierID) === String(selId));
-        
-        if (s) {
-            // Auto-fill contact info based on DB data if empty
-            if(resetItems) val('supplierContact', s.contactNumber || s.email || '');
-        } else {
-            val('supplierContact', '');
+        // --- View Toggling ---
+        function toggleView(view) {
+            $('order-list-view').classList.toggle('hidden', view !== 'order-list-view');
+            $('create-order-view').classList.toggle('hidden', view !== 'create-order-view');
+            if (view === 'order-list-view') {
+                loadOrders();
+            }
         }
 
-        if (resetItems) {
+        // --- Form Controls (Create & Edit) ---
+        function openForm(id = null) {
+            currentEditId = id;
             clearItems();
-            addItemRow();
-        } else {
-            updateItemSelectOptions();
+
+            const order = id ? orders.find(x => x.orderID == id) : null;
+            const isCompleted = order && order.status === 'Completed';
+
+            toggleInputs(!isCompleted);
+
+            if (!id) {
+                $('form-title').innerText = 'Create Purchase Order';
+                val('supplierContact', '');
+                val('shipmentInfo', '');
+                val('orderStatus', 'Pending');
+                populateSupplierSelect();
+                addItemRow();
+            } else {
+                if (!order) return showAlert('Order not found');
+
+                $('form-title').innerText = (isCompleted ? 'View' : 'Edit') + ' Purchase Order #' + id;
+                populateSupplierSelect(order.supplierID);
+                val('supplierContact', order.contact || '');
+                val('shipmentInfo', order.shipmentInfo || '');
+                val('orderStatus', order.status || 'Pending');
+
+                if (order.items && order.items.length > 0) {
+                    // Pass the isCompleted status to every item row
+                    order.items.forEach(it => addItemRow(it.productID, it.qty, isCompleted));
+                } else {
+                    addItemRow(null, 1, isCompleted);
+                }
+            }
+
+            toggleView('create-order-view');
         }
-    }
 
-    function clearItems() { $('itemsContainer').innerHTML = ''; }
-
-    function getAllowedProductsForCurrentSupplier() {
-        const sid = val('supplierSelect');
-        if (!sid) return []; // Require supplier selection first
-        
-        const s = suppliers.find(x => String(x.supplierID) === String(sid));
-        if (!s || !s.productIDs) return [];
-        
-        // This assumes the backend returns productIDs as a comma-separated string (e.g., "1,4,5")
-        const ids = s.productIDs.toString().split(',').map(x => x.trim());
-        return products.filter(p => ids.includes(String(p.productID)));
-    }
-
-    function updateItemSelectOptions() {
-        const allowed = getAllowedProductsForCurrentSupplier();
-        const rows = Array.from($('itemsContainer').children);
-        
-        rows.forEach(r => {
-            const sel = r.querySelector('select');
-            const curVal = sel.value;
-            
-            sel.innerHTML = '<option value="">-- Select product --</option>' + 
-                allowed.map(p => `<option value="${p.productID}">${p.productName} (₱${p.price})</option>`).join('');
-            
-            // Retain selection if it's still allowed
-            if (curVal && allowed.some(p => String(p.productID) === String(curVal))) {
-                sel.value = curVal;
+        // Helper to disable/enable all form fields
+        function toggleInputs(enabled) {
+            $('supplierSelect').disabled = !enabled;
+            $('supplierContact').disabled = !enabled;
+            $('shipmentInfo').disabled = !enabled;
+            $('orderStatus').disabled = !enabled;
+            $('btn-save-order').style.display = enabled ? 'block' : 'none';
+            const addBtn = document.querySelector('.btn-create[onclick="addItemRow()"]');
+            if (addBtn) {
+                addBtn.style.display = enabled ? 'block' : 'none';
             }
-        });
-    }
+        }
 
-    function getItemsFromUI() {
-        const rows = Array.from($('itemsContainer').children);
-        return rows.map(r => {
-            const sel = r.querySelector('select');
-            const q = r.querySelector('input');
-            const prod = products.find(p => p.productID == sel.value) || {};
-            return { productID: sel.value, productName: prod.productName || '', qty: parseInt(q.value) || 0 };
-        }).filter(i => i.productID && i.qty > 0);
-    }
+        // Update addItemRow to handle disabled state
+        function addItemRow(selectedProductId = null, qty = 1, disabled = false) {
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            row.style.display = 'flex';
+            row.style.gap = '10px';
+            row.style.marginBottom = '10px';
 
-    // --- API Calls ---
-    async function loadProducts() { try { const res = await fetch('/api/products'); products = await res.json(); } catch { products = []; } }
-    async function loadSuppliers() { try { const res = await fetch('/api/suppliers'); suppliers = await res.json(); } catch { suppliers = []; } }
-    async function loadOrders() {
-      try { 
-          const res = await fetch('/api/orders'); 
-          orders = await res.json(); 
-          processData(); 
-      } catch { 
-          $('orders-table-body').innerHTML = '<tr><td colspan="7" style="text-align:center;">Error loading orders.</td></tr>'; 
-      }
-    }
+            const sel = document.createElement('select');
+            sel.style.flex = '1';
+            sel.disabled = disabled; // Lock product selection
 
-    async function saveOrder() {
-        const supplierID = val('supplierSelect');
-        if (!supplierID) return showAlert('Please select a supplier first.');
-        
-        const payload = {
-            supplierID: supplierID,
-            contact: val('supplierContact'),
-            shipmentInfo: val('shipmentInfo'),
-            status: val('orderStatus'),
-            items: getItemsFromUI()
-        };
+            const allowedProducts = getAllowedProductsForCurrentSupplier();
+            sel.innerHTML = '<option value="">-- Select product --</option>' +
+                allowedProducts.map(p => `<option value="${p.productID}" ${p.productID == selectedProductId ? 'selected' : ''}>${p.productName} (₱${p.price})</option>`).join('');
 
-        if (payload.items.length === 0) return showAlert('Please add at least one valid item.');
+            const qin = document.createElement('input');
+            qin.type = 'number';
+            qin.min = 1;
+            qin.value = qty;
+            qin.style.width = '80px';
+            qin.disabled = disabled;
 
-        try {
-            const url = currentEditId ? `/api/orders/${currentEditId}` : '/api/orders';
-            const method = currentEditId ? 'PUT' : 'POST';
-            const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            
-            if (res.ok) { 
-                showAlert(`Order ${currentEditId ? 'updated' : 'created'} successfully`);
-                toggleView('order-list-view');
-            } else { 
-                const r = await res.json(); 
-                showAlert('Error: ' + (r.error || 'Save failed')); 
+            row.appendChild(sel);
+            row.appendChild(qin);
+
+            if (!disabled) {
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn-delete';
+                removeBtn.textContent = 'X';
+                removeBtn.onclick = () => row.remove();
+                row.appendChild(removeBtn);
             }
-        } catch { showAlert('Failed to connect to server'); }
-    }
 
-    function confirmDelete(id) { 
-        showAlert('Are you sure you want to delete this order?', true, async () => {
-            try { 
-                const res = await fetch(`/api/orders/${id}`, { method: 'DELETE' }); 
-                if (res.ok) { 
-                    showAlert('Order deleted'); 
-                    loadOrders(); 
-                } else { 
-                    const r = await res.json(); 
-                    showAlert('Error: ' + (r.error || 'Delete failed')); 
-                } 
+            $('itemsContainer').appendChild(row);
+        }
+        // --- Supplier & Product Logic ---
+        function populateSupplierSelect(selectedId = null) {
+            const sel = $('supplierSelect');
+            sel.innerHTML = '<option value="">-- Select supplier --</option>' +
+                suppliers.map(s => `<option value="${s.supplierID}" ${s.supplierID == selectedId ? 'selected' : ''}>${s.supplierName}</option>`).join('');
+
+            if (selectedId) handleSupplierChange(false);
+        }
+
+        function handleSupplierChange(resetItems = true) {
+            const selId = val('supplierSelect');
+            const s = suppliers.find(x => String(x.supplierID) === String(selId));
+
+            if (s) {
+                // Auto-fill contact info based on DB data if empty
+                if (resetItems) val('supplierContact', s.contactNumber || s.email || '');
+            } else {
+                val('supplierContact', '');
+            }
+
+            if (resetItems) {
+                clearItems();
+                addItemRow();
+            } else {
+                updateItemSelectOptions();
+            }
+        }
+
+        function clearItems() { $('itemsContainer').innerHTML = ''; }
+
+        function getAllowedProductsForCurrentSupplier() {
+            const sid = val('supplierSelect');
+            if (!sid) return []; // Require supplier selection first
+
+            const s = suppliers.find(x => String(x.supplierID) === String(sid));
+            if (!s || !s.productIDs) return [];
+
+            // This assumes the backend returns productIDs as a comma-separated string (e.g., "1,4,5")
+            const ids = s.productIDs.toString().split(',').map(x => x.trim());
+            return products.filter(p => ids.includes(String(p.productID)));
+        }
+
+        function updateItemSelectOptions() {
+            const allowed = getAllowedProductsForCurrentSupplier();
+            const rows = Array.from($('itemsContainer').children);
+
+            rows.forEach(r => {
+                const sel = r.querySelector('select');
+                const curVal = sel.value;
+
+                sel.innerHTML = '<option value="">-- Select product --</option>' +
+                    allowed.map(p => `<option value="${p.productID}">${p.productName} (₱${p.price})</option>`).join('');
+
+                // Retain selection if it's still allowed
+                if (curVal && allowed.some(p => String(p.productID) === String(curVal))) {
+                    sel.value = curVal;
+                }
+            });
+        }
+
+        function getItemsFromUI() {
+            const rows = Array.from($('itemsContainer').children);
+            return rows.map(r => {
+                const sel = r.querySelector('select');
+                const q = r.querySelector('input');
+                const prod = products.find(p => p.productID == sel.value) || {};
+                return { productID: sel.value, productName: prod.productName || '', qty: parseInt(q.value) || 0 };
+            }).filter(i => i.productID && i.qty > 0);
+        }
+
+        // --- API Calls ---
+        async function loadProducts() { try { const res = await fetch('/api/products'); products = await res.json(); } catch { products = []; } }
+        async function loadSuppliers() { try { const res = await fetch('/api/suppliers'); suppliers = await res.json(); } catch { suppliers = []; } }
+        async function loadOrders() {
+            try {
+                const res = await fetch('/api/orders');
+                orders = await res.json();
+                processData();
+            } catch {
+                $('orders-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error loading orders.</td></tr>';
+            }
+        }
+
+        async function saveOrder() {
+            const supplierID = val('supplierSelect');
+            if (!supplierID) return showAlert('Please select a supplier first.');
+
+            const payload = {
+                supplierID: supplierID,
+                contact: val('supplierContact'),
+                shipmentInfo: val('shipmentInfo'),
+                status: val('orderStatus'),
+                items: getItemsFromUI()
+            };
+
+            if (payload.items.length === 0) return showAlert('Please add at least one valid item.');
+
+            try {
+                const url = currentEditId ? `/api/orders/${currentEditId}` : '/api/orders';
+                const method = currentEditId ? 'PUT' : 'POST';
+                const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+                if (res.ok) {
+                    showAlert(`Order ${currentEditId ? 'updated' : 'created'} successfully`);
+                    toggleView('order-list-view');
+                } else {
+                    const r = await res.json();
+                    showAlert('Error: ' + (r.error || 'Save failed'));
+                }
             } catch { showAlert('Failed to connect to server'); }
-        }); 
-    }
+        }
 
-    // --- Table & Pagination Logic ---
-    function changePage(step) { currentPage += step; processData(); }
+        function confirmDelete(id) {
+            showAlert('Are you sure you want to delete this order?', true, async () => {
+                try {
+                    const res = await fetch(`/api/orders/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        showAlert('Order deleted');
+                        loadOrders();
+                    } else {
+                        const r = await res.json();
+                        showAlert('Error: ' + (r.error || 'Delete failed'));
+                    }
+                } catch { showAlert('Failed to connect to server'); }
+            });
+        }
 
-    function processData() {
-      let data = [...orders];
-      const q = val('searchInput').toLowerCase();
-      
-      if (q) data = data.filter(o => (o.supplierName || '').toLowerCase().includes(q) || (o.orderID || '').toString().includes(q) || (o.items || []).some(it => (it.productName || '').toLowerCase().includes(q)));
-      
-      const status = val('statusFilter'); 
-      if (status !== 'All') data = data.filter(o => o.status === status);
-      
-      const sort = val('sortMode'); 
-      if (sort === 'dateAsc') data.sort((a, b) => new Date(a.orderDate) - new Date(b.orderDate)); 
-      else if (sort === 'status') data.sort((a, b) => (a.status || '').localeCompare(b.status || '')); 
-      else data.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+        // --- Table & Pagination Logic ---
+        function changePage(step) { currentPage += step; processData(); }
 
-      const limit = val('showLimit'); 
-      const parsedLimit = limit === 'all' ? data.length : parseInt(limit);
-      const totalPages = Math.ceil(data.length / parsedLimit) || 1; 
-      
-      if (currentPage > totalPages) currentPage = totalPages; 
-      if (currentPage < 1) currentPage = 1;
-      
-      const startIndex = (currentPage - 1) * parsedLimit; 
-      const paginated = data.slice(startIndex, startIndex + parsedLimit);
-      
-      renderTable(paginated); 
-      updatePaginationUI(data.length, totalPages);
-    }
+        function processData() {
+            let data = [...orders];
+            const q = val('searchInput').toLowerCase();
 
-    function updatePaginationUI(totalItems, totalPages) { 
-        const limit = val('showLimit'); 
-        const c = $('pagination-controls'); 
-        if (limit === 'all' || totalItems <= parseInt(limit)) { c.classList.add('hidden'); return; } 
-        c.classList.remove('hidden'); 
-        $('page-info').textContent = `Page ${currentPage} of ${totalPages}`; 
-        $('btn-prev').disabled = currentPage === 1; 
-        $('btn-next').disabled = currentPage === totalPages; 
-    }
+            if (q) data = data.filter(o => (o.supplierName || '').toLowerCase().includes(q) || (o.orderID || '').toString().includes(q) || (o.items || []).some(it => (it.productName || '').toLowerCase().includes(q)));
 
-    function renderTable(data) {
-  $('orders-table-body').innerHTML = data.map(o => {
-    const totalQty = (o.items || []).reduce((s, it) => s + (parseInt(it.qty) || 0), 0);
-    const productsHtml = (o.items || []).map(it => `<div class="order-product-item">${it.productName} <span style="color:#666;">x${it.qty}</span></div>`).join('');
-    const statusClass = 'status-' + (o.status || 'Pending').toLowerCase();
-    
- const isComp = o.status === 'Completed';
-  const actionButtons = isComp
-    ? `<button class="btn-edit" style="background:#2c3e50" onclick="openForm(${o.orderID})">View</button>
+            const status = val('statusFilter');
+            if (status !== 'All') data = data.filter(o => o.status === status);
+
+            const sort = val('sortMode');
+            if (sort === 'dateAsc') data.sort((a, b) => new Date(a.orderDate) - new Date(b.orderDate));
+            else if (sort === 'status') data.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+            else data.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+
+            const limit = val('showLimit');
+            const parsedLimit = limit === 'all' ? data.length : parseInt(limit);
+            const totalPages = Math.ceil(data.length / parsedLimit) || 1;
+
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * parsedLimit;
+            const paginated = data.slice(startIndex, startIndex + parsedLimit);
+
+            renderTable(paginated);
+            updatePaginationUI(data.length, totalPages);
+        }
+
+        function updatePaginationUI(totalItems, totalPages) {
+            const limit = val('showLimit');
+            const c = $('pagination-controls');
+            if (limit === 'all' || totalItems <= parseInt(limit)) { c.classList.add('hidden'); return; }
+            c.classList.remove('hidden');
+            $('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+            $('btn-prev').disabled = currentPage === 1;
+            $('btn-next').disabled = currentPage === totalPages;
+        }
+
+        function renderTable(data) {
+            $('orders-table-body').innerHTML = data.map(o => {
+                const totalQty = (o.items || []).reduce((s, it) => s + (parseInt(it.qty) || 0), 0);
+                const productsHtml = (o.items || []).map(it => `<div class="order-product-item">${it.productName} <span style="color:#666;">x${it.qty}</span></div>`).join('');
+                const statusClass = 'status-' + (o.status || 'Pending').toLowerCase();
+
+                const isComp = o.status === 'Completed';
+                const actionButtons = isComp
+                    ? `<button class="btn-edit" style="background:#2c3e50" onclick="openForm(${o.orderID})">View</button>
        <button class="btn-delete" onclick="confirmDelete(${o.orderID})">Delete</button>`
-    : `<button class="btn-edit" onclick="openForm(${o.orderID})">Edit</button>
+                    : `<button class="btn-edit" onclick="openForm(${o.orderID})">Edit</button>
        <button class="btn-delete" onclick="confirmDelete(${o.orderID})">Delete</button>`;
 
-    return `
+                return `
       <tr>
         <td>#${o.orderID}</td>
         <td>${new Date(o.orderDate || o.createdAt || '').toLocaleString()}</td>
@@ -436,18 +445,19 @@
         </td>
       </tr>
     `;
-  }).join('') || '<tr><td colspan="7" style="text-align:center;">No orders found.</td></tr>';
-}
+            }).join('') || '<tr><td colspan="7" class="center-text">No orders found.</td></tr>';
+        }
 
-    // --- Initialization ---
-    document.addEventListener('DOMContentLoaded', async () => {
-      await Promise.all([loadProducts(), loadSuppliers()]);
-      await loadOrders();
-      $('searchInput').addEventListener('keyup', () => { currentPage = 1; processData(); });
-      $('statusFilter').addEventListener('change', () => { currentPage = 1; processData(); });
-      $('sortMode').addEventListener('change', () => { currentPage = 1; processData(); });
-      $('showLimit').addEventListener('change', () => { currentPage = 1; processData(); });
-    });
-  </script>
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            await Promise.all([loadProducts(), loadSuppliers()]);
+            await loadOrders();
+            $('searchInput').addEventListener('keyup', () => { currentPage = 1; processData(); });
+            $('statusFilter').addEventListener('change', () => { currentPage = 1; processData(); });
+            $('sortMode').addEventListener('change', () => { currentPage = 1; processData(); });
+            $('showLimit').addEventListener('change', () => { currentPage = 1; processData(); });
+        });
+    </script>
 </body>
+
 </html>

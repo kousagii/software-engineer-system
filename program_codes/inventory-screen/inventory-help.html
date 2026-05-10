@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Name Help Desk</title>
     <link rel="stylesheet" href="../style.css">
 </head>
+
 <body>
 
     <div id="sidebar"></div>
 
     <main class="dashboard-main">
         <div class="page-header">
-            <h2>System Name Help Desk</h2>
+            <h2>Help Desk</h2>
             <div class="toolbar-right">
                 <button class="btn-create" id="contact-support">Contact Support</button>
             </div>
@@ -21,7 +23,7 @@
         <div class="search-split">
             <div class="search-filters-panel form-panel">
                 <h3 class="filter-heading">Topics</h3>
-                
+
                 <label class="filter-label filter-label-spaced">Data Management</label>
                 <div class="filter-options">
                     <span class="sub-text">Product & Barcode Setup</span><br>
@@ -56,7 +58,8 @@
                 </div>
 
                 <h3>Guides</h3>
-                <span class="sub-text">Step-by-step instructions for using the system and managing data and configurations.</span>
+                <span class="sub-text">Step-by-step instructions for using the system and managing data and
+                    configurations.</span>
 
                 <div class="table-container">
                     <table class="data-table">
@@ -94,10 +97,12 @@
 
                 <div class="form-panel">
                     <h3>Frequently Asked Questions</h3>
-                    
+
                     <label>How do I change the automatic backup schedule?</label>
-                    <span class="sub-text">Navigate to the <strong>Backups</strong> module and click the "Backup Settings" button. You can select the frequency for Full Backups and Incremental Backups, then click Save.</span>
-                    
+                    <span class="sub-text">Navigate to the <strong>Backups</strong> module and click the "Backup
+                        Settings" button. You can select the frequency for Full Backups and Incremental Backups, then
+                        click Save.</span>
+
                     <label class="filter-label-spaced">FAQ Question 2</label>
                     <span class="sub-text">Detailed answer or explanation for FAQ 2.</span>
 
@@ -198,7 +203,7 @@
                     if (rowText.includes(filter)) {
                         row.style.display = '';
                     } else {
-                        row.style.display = 'none'; 
+                        row.style.display = 'none';
                     }
                 });
             }
@@ -225,4 +230,5 @@
         });
     </script>
 </body>
+
 </html>

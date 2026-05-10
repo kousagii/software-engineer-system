@@ -5,99 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sales Transaction | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css"/>
-    <style>
-
-        /* === GLOBAL BOX SIZING === */
-        * { box-sizing: border-box; }
-
-        /* === PANEL & LAYOUT === */
-        .page-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .split { display: flex; gap: 20px; align-items: flex-start; }
-        
-        .form-panel-wide { 
-            flex: 1; 
-            min-width: 0; 
-            background: var(--white); 
-            padding: 25px; 
-            border-radius: var(--rad-lg); 
-            box-shadow: var(--shadow-main); 
-            border: 1px solid var(--border-light); 
-            height: fit-content; 
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .summary-panel { width: 350px; background: var(--white); padding: 25px; border-radius: var(--rad-lg); box-shadow: var(--shadow-main); border: 1px solid var(--border-light); height: fit-content; position: sticky; top: 20px; flex-shrink: 0; }
-        .summary-item { display: flex; justify-content: space-between; margin: 12px 0; font-size: 15px; }
-        .total-display { background: var(--bg-main); padding: 20px; border-radius: var(--rad-md); border: 2px solid var(--bg-dark); margin: 20px 0; text-align: center; }
-        
-        /* === INPUT ROWS === */
-        .input-row { display: flex; gap: 12px; margin-bottom: 20px; align-items: flex-end; }
-        .input-barcode { flex: 2; }
-        .input-qty { width: 100px; }
-        .input-btn-container { display: flex; align-items: flex-end; }
-
-        /* === CART TABLE === */
-        .cart-container { max-height: 55vh; overflow-y: auto; overflow-x: auto; border-radius: var(--rad-md); width: 100%; border: 1px solid var(--border-light); }
-        .data-table { width: 100%; min-width: 500px; border-collapse: collapse; }
-        .data-table thead th { background-color: var(--bg-dark); color: var(--white); position: sticky; top: 0; z-index: 10; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; padding: 10px; }
-        .data-table tbody td { padding: 10px; border-bottom: 1px solid #eee; }
-        .qty-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #e0e0e0; font-weight: bold; border: none; cursor: pointer; border-radius: 4px; transition: background 0.2s; }
-        .qty-btn:hover { background: #d0d0d0; }
-        
-        #barcodeInput, #qtyInput { border: 2px solid var(--border-color); transition: border-color 0.3s; width: 100%; padding: 12px; }
-        #barcodeInput:focus, #qtyInput:focus { border-color: var(--bg-dark); outline: none; }
-
-        /* === MODALS & TOASTS === */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
-        .modal-box { background: white; padding: 30px; border-radius: 8px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
-        
-        /* Auto-fading Toast Notification */
-        #toast { visibility: hidden; min-width: 250px; background-color: #10b981; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 2000; left: 50%; bottom: 30px; transform: translateX(-50%); box-shadow: 0 4px 6px rgba(0,0,0,0.1); opacity: 0; transition: opacity 0.3s, bottom 0.3s; font-weight: 500; font-size: 15px;}
-        #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
-        #toast.error { background-color: #ef4444; }
-
-        button:disabled { background: #9ca3af !important; cursor: not-allowed !important; opacity: 0.8; }
-
-        /* === RECEIPT & PRINT STYLES === */
-        .receipt-container { background: white; padding: 20px; border-radius: 8px; width: 100%; max-width: 320px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); color: #000; text-align: left; font-family: 'Courier New', Courier, monospace; }
-        .receipt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 15px; margin-bottom: 15px; }
-        .receipt-header h2 { margin: 0; font-size: 22px; font-weight: bold; }
-        .receipt-header p { margin: 4px 0; font-size: 12px; color: #000; }
-        .receipt-items { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px; }
-        .receipt-items th { text-align: left; border-bottom: 1px solid #000; padding-bottom: 5px; }
-        .receipt-items td { padding: 5px 0; }
-        .receipt-totals { border-top: 1px dashed #000; padding-top: 15px; font-size: 13px; }
-        .receipt-totals div { display: flex; justify-content: space-between; margin-bottom: 6px; }
-        .receipt-totals .grand-total { font-weight: bold; font-size: 16px; margin-top: 10px; border-top: 1px solid #000; padding-top: 10px; }
-
-        /* === MEDIA QUERIES FOR RESPONSIVENESS === */
-        @media (max-width: 900px) {
-            .split { flex-direction: column; }
-            .summary-panel { width: 100%; position: static; margin-top: 10px; }
-        }
-
-        @media (max-width: 600px) {
-            .page-header-flex { flex-direction: column; align-items: stretch; gap: 15px; }
-            .page-header-flex button { width: 100%; }
-            .input-row { flex-direction: column; align-items: stretch; gap: 10px; }
-            .input-barcode, .input-qty, .input-btn-container { width: 100%; }
-            .input-btn-container button { width: 100%; }
-            .modal-box { padding: 20px; }
-        }
-
-        /* === 80mm THERMAL PRINTER CSS === */
-        @media print {
-            @page { margin: 0; size: 80mm auto; }
-            body > :not(#receiptModal) { display: none !important; }
-            body { margin: 0; padding: 0; background: white; }
-            #receiptModal { position: relative !important; left: 0; top: 0; width: 80mm !important; margin: 0 !important; padding: 0 !important; background: white !important; display: block !important; align-items: flex-start !important; justify-content: flex-start !important; }
-            .receipt-container { width: 76mm !important; max-width: 76mm !important; margin: 0 !important; padding: 2mm !important; box-sizing: border-box !important; border-radius: 0; box-shadow: none; border: none; }
-            .receipt-items { table-layout: fixed !important; width: 100% !important; }
-            .receipt-items td { word-wrap: break-word !important; white-space: normal !important; }
-            .no-print { display: none !important; }
-        }
-    </style>
 </head>
 <body>
 
@@ -105,28 +12,28 @@
 
 <div id="toast">Message</div>
 
-<main class="dashboard-main" style="padding: 20px;">
+<main class="dashboard-main">
     <header class="page-header-flex">
         <div>
-            <h2 style="margin: 0;">🛒 Sales Transaction</h2>
-            <p class="sub-text" style="margin: 5px 0 0 0;">Scan items or select from the Product List to checkout.</p>
+            <h2>Sales Transaction</h2>
+            <p class="sub-text">Scan items or select from the Product List to checkout.</p>
         </div>
-        <button class="btn-create" onclick="goToProductList()" style="height: 45px; padding: 0 25px; background: #3b82f6; border-color: #3b82f6;">📋 See Product List</button>
+        <button class="btn-view" onclick="goToProductList()">📋 See Product List</button>
     </header>
 
     <div class="split">
         <div class="form-panel-wide">
             <div class="input-row">
                 <div class="input-barcode">
-                    <label for="barcodeInput" style="display:block; margin-bottom:5px;">Scan Barcode</label>
+                    <label for="barcodeInput">Scan Barcode</label>
                     <input type="text" id="barcodeInput" placeholder="Enter barcode or scan..." autocomplete="off">
                 </div>
                 <div class="input-qty">
-                    <label for="qtyInput" style="display:block; margin-bottom:5px;">Quantity</label>
+                    <label for="qtyInput" class="d-block mb-5">Quantity</label>
                     <input type="number" id="qtyInput" value="1" min="1">
                 </div>
                 <div class="input-btn-container">
-                    <button class="btn-create" onclick="addProduct()" style="height: 45px; padding: 0 25px;">Add Item</button>
+                    <button class="btn-create btn-add-item" onclick="addProduct()">Add Item</button>
                 </div>
             </div>
 
@@ -135,91 +42,87 @@
                     <thead>
                         <tr>
                             <th>Product List</th>
-                            <th style="text-align: center;">Price</th>
-                            <th style="text-align: center;">Qty</th>
-                            <th style="text-align: center;">Subtotal</th>
-                            <th style="text-align: center;">Remove</th>
+                            <th class="center-text">Price</th>
+                            <th class="center-text">Qty</th>
+                            <th class="center-text">Subtotal</th>
+                            <th class="center-text">Remove</th>
                         </tr>
                     </thead>
                     <tbody id="cartTable">
-                        <tr><td colspan="5" style="text-align:center; padding:60px; color:#9ca3af;">Cart is empty. Scan a barcode or select from the product list to add items.</td></tr>
+                        <tr><td colspan="5" class="empty-cart-msg">Cart is empty. Scan a barcode or select from the product list to add items.</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
-                <button class="btn-cancel" 
-                    style="padding: 10px 25px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; background: #e5e7eb; color: #374151; border-radius: 4px; transition: background 0.2s;" 
-                    onmouseover="this.style.background='#d1d5db'" 
-                    onmouseout="this.style.background='#e5e7eb'" 
-                    onclick="clearCart()">
+            <div class="flex-end mt-15">
+                <button class="btn-clear-cart" onclick="clearCart()">
                     🗑️ CLEAR CART
                 </button>
             </div>
         </div>
 
         <div class="summary-panel">
-            <h3 style="border-bottom: 2px solid var(--bg-main); padding-bottom: 10px; margin-top:0;">🧾 Cart Summary</h3>
+            <h3 class="summary-title">🧾 Cart Summary</h3>
             <div class="summary-item"><span>Total No. of Items:</span><strong id="itemCount">0</strong></div>
             <div class="summary-item"><span>Subtotal:</span><strong>₱ <span id="subtotalAmount">0.00</span></strong></div>
             
-            <div style="margin-top: 15px;">
-                <label for="discount" style="display:block; margin-bottom:5px;">Discount (%)</label>
-                <input type="number" id="discount" value="0" min="0" max="100" oninput="updateTotal()" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px;">
+            <div class="mt-15">
+                <label for="discount" class="d-block mb-5">Discount (%)</label>
+                <input type="number" id="discount" value="0" min="0" max="100" oninput="updateTotal()" class="discount-input">
             </div>
             
-            <div class="summary-item" style="color: #e63946; margin-top:10px;">
+            <div class="summary-item discount-amt-row">
                 <span>Discount Amount:</span><span>- ₱ <span id="discountDisplay">0.00</span></span>
             </div>
             
             <div class="total-display">
-                <p style="font-size: 13px; text-transform: uppercase; margin-bottom: 5px; color: #555;">Total Amount Due</p>
-                <h2 style="margin:0; color: var(--bg-dark); font-size: 28px;">₱ <span id="totalAmount">0.00</span></h2>
+                <p class="total-label">Total Amount Due</p>
+                <h2 class="total-val">₱ <span id="totalAmount">0.00</span></h2>
             </div>
-            <button class="btn-create" style="width:100%; padding: 18px; font-weight: bold; font-size: 16px; border: none; cursor: pointer; background: var(--bg-dark); color: white; border-radius: 4px;" onclick="openPayment()">PROCEED TO PAYMENT</button>
+            <button class="btn-proceed-large mt-15" onclick="openPayment()">PROCEED TO PAYMENT</button>
         </div>
     </div>
 </main>
 
 <div class="modal-overlay" id="paymentModal">
-    <div class="modal-box" style="border-top: 8px solid var(--bg-dark);">
-        <h3 style="margin-top:0;">Finalize Payment</h3>
+    <div class="modal-box modal-accent">
+        <h3 class="m-0 text-left">Finalize Payment</h3>
         
-        <div class="total-display" style="background: #f8f9fa; border-style: dashed; padding: 15px;">
-            <p style="margin:0;">Total Payable</p>
-            <strong style="font-size: 24px;">₱ <span id="modalTotal">0.00</span></strong>
+        <div class="total-display dashed-total-box mt-15 text-left">
+            <p class="m-0">Total Payable</p>
+            <strong class="f-24">₱ <span id="modalTotal">0.00</span></strong>
         </div>
 
-        <div style="text-align: left; margin: 15px 0;">
-            <label for="paymentMode" style="display:block; margin-bottom: 5px;">Payment Method</label>
-            <select id="paymentMode" style="width: 100%; padding: 12px; font-size: 16px; border: 2px solid var(--border-light); border-radius: 4px; outline: none;" onchange="handlePaymentMode()">
+        <div class="text-left my-15">
+            <label for="paymentMode" class="d-block mb-5">Payment Method</label>
+            <select id="paymentMode" class="payment-select" onchange="handlePaymentMode()">
                 <option value="Cash">💵 Cash</option>
                 <option value="GCash">📱 GCash</option>
                 <option value="Bank Transfer">🏦 Bank Transfer</option>
             </select>
         </div>
 
-        <div id="digitalPaymentDetails" style="display: none; background: #e0f2fe; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; border: 1px solid #bae6fd;">
-            <label for="referenceNumber" style="font-size: 13px; font-weight: bold; color: #0369a1;">Reference / Trace Number</label>
-            <input type="text" id="referenceNumber" placeholder="Enter Ref No. (Required)" style="width: 100%; padding: 8px; border: 1px solid #7dd3fc; border-radius: 4px; margin-top: 4px; margin-bottom: 8px; box-sizing: border-box; outline: none; font-size: 14px;">
+        <div id="digitalPaymentDetails" class="digital-panel" style="display: none;">
+            <label for="referenceNumber" class="digital-label">Reference / Trace Number</label>
+            <input type="text" id="referenceNumber" placeholder="Enter Ref No. (Required)" class="digital-input">
             
-            <label for="digitalAmount" style="font-size: 13px; font-weight: bold; color: #0369a1; display: block;">Amount Paid (Digital)</label>
-            <input type="number" id="digitalAmount" min="0" step="0.01" style="width: 100%; padding: 8px; border: 1px solid #7dd3fc; border-radius: 4px; margin-top: 4px; box-sizing: border-box; outline: none; font-size: 14px;">
+            <label for="digitalAmount" class="digital-label">Amount Paid (Digital)</label>
+            <input type="number" id="digitalAmount" min="0" max="1000000" step="0.01" class="digital-input">
         </div>
 
-        <div style="text-align: left; margin: 15px 0;">
-            <label for="cashInput" style="display:block; margin-bottom: 5px;">Cash Received</label>
-            <input type="number" id="cashInput" min="0" step="0.01" style="font-size: 22px; padding: 15px; border: 2px solid var(--bg-dark); border-radius: 4px; text-align: center; width: 100%; outline: none;">
+        <div class="text-left my-15">
+            <label for="cashInput" class="d-block mb-5">Cash Received</label>
+            <input type="number" id="cashInput" min="0" max="1000000" step="0.01" class="cash-input">
         </div>
         
-        <div id="changeBox" style="background: #e7f3e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <p style="margin:0; font-size: 13px;">Change</p>
-            <strong style="font-size: 26px;">₱ <span id="changeAmount">0.00</span></strong>
+        <div id="changeBox" class="change-box text-left" style="background: var(--bg-main);">
+            <p class="change-label">Change</p>
+            <strong class="change-val">₱ <span id="changeAmount">0.00</span></strong>
         </div>
         
-        <div style="display: flex; gap: 10px;">
-            <button id="confirmBtn" class="btn-create" style="flex:2; padding: 15px; font-weight: bold; border:none; border-radius: 4px; cursor: pointer;" onclick="confirmPayment()">Confirm Payment</button>
-            <button class="btn-cancel" style="flex:1; padding: 15px; font-weight: bold; border:none; border-radius: 4px; background: #e5e7eb; color: #374151; cursor: pointer;" onclick="closeModal('paymentModal')">Cancel</button>
+        <div class="flex-gap-10">
+            <button id="confirmBtn" class="btn-confirm" onclick="confirmPayment()">Confirm Payment</button>
+            <button class="btn-cancel-large" onclick="closeModal('paymentModal')">Cancel</button>
         </div>
     </div>
 </div>
@@ -229,17 +132,17 @@
         <div class="receipt-header">
             <h2>UDICON TRADING</h2>
             <p>Official Sales Receipt</p>
-            <p style="margin-top: 10px;">TXN: <strong id="receipt-txn">---</strong></p>
+            <p class="mt-10">TXN: <strong id="receipt-txn">---</strong></p>
             <p>Date: <span id="receipt-date">---</span></p>
             <p>Method: <strong id="receipt-method">---</strong></p>
         </div>
 
-        <table class="receipt-items">
+        <table class="receipt-items w-full">
             <thead>
                 <tr>
-                    <th>Item</th>
-                    <th style="text-align: center;">Qty</th>
-                    <th style="text-align: right;">Amount</th>
+                    <th class="text-left">Item</th>
+                    <th class="center-text">Qty</th>
+                    <th class="text-right">Amount</th>
                 </tr>
             </thead>
             <tbody id="receipt-items-body">
@@ -250,35 +153,40 @@
             <div><span>Subtotal:</span> <span id="receipt-subtotal">₱0.00</span></div>
             <div><span>Discount:</span> <span id="receipt-discount">- ₱0.00</span></div>
             <div class="grand-total"><span>Total Due:</span> <span id="receipt-total">₱0.00</span></div>
-            <div id="receipt-payment-section" style="margin-top: 10px; color: #4b5563;"></div>
+            
+            <div id="receipt-digital-row" style="display: none; padding-top: 10px; margin-top: 10px; border-top: 1px dashed #ccc;">
+                <span id="receipt-digital-label">Digital Paid:</span> 
+                <span id="receipt-digital-val">₱0.00</span>
+            </div>
+            
+            <div id="receipt-cash-row" style="padding-top: 10px; margin-top: 10px; border-top: 1px dashed #ccc;">
+                <span>Cash Received:</span> 
+                <span id="receipt-cash-val">₱0.00</span>
+            </div>
+
+            <div class="grand-total" style="padding-top: 8px; margin-top: 8px; border-top: 1px solid #000;">
+                <span>Change:</span> 
+                <span id="receipt-change-val">₱0.00</span>
+            </div>
         </div>
 
-        <p style="text-align: center; font-size: 12px; margin-top: 20px;">Thank you for your purchase!</p>
+        <p class="receipt-footer-msg">Thank you for your purchase!</p>
 
-        <div class="no-print" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
-            <button class="btn-create" style="padding: 12px; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="window.print()">🖨️ Print Receipt</button>
-            <button class="btn-cancel" style="padding: 12px; border:none; border-radius:4px; font-weight:bold; background: #e5e7eb; color: #374151; cursor:pointer;" onclick="closeModal('receiptModal')">Close</button>
+        <div class="no-print flex-col-gap-10 mt-15">
+            <button class="btn-receipt-action" onclick="window.print()">Print Receipt</button>
+            <button class="btn-receipt-cancel" onclick="closeModal('receiptModal')">Close</button>
         </div>
     </div>
 </div>
 
 <div class="modal-overlay" id="clearCartModal">
-    <div class="modal-box" style="border-top: 8px solid var(--bg-dark); max-width: 350px;">
-        <h3 style="margin-top:0;">Clear Cart</h3>
-        <p style="margin: 15px 0 25px 0; color: #4b5563; font-size: 15px;">Are you sure you want to remove all items from the cart?</p>
+    <div class="modal-box modal-accent-small">
+        <h3 class="m-0">Clear Cart</h3>
+        <p class="clear-msg">Are you sure you want to remove all items from the cart?</p>
         
-        <div style="display: flex; gap: 10px;">
-            <button class="btn-create" 
-                    style="flex:2; padding: 12px; font-weight: bold; border:none; border-radius: 4px; background: var(--bg-dark); color: white; cursor: pointer;" 
-                    onclick="executeClearCart()">
-                Yes, Clear All
-            </button>
-            
-            <button class="btn-cancel" 
-                    style="flex:1; padding: 12px; font-weight: bold; border:none; border-radius: 4px; background: #e5e7eb; color: #374151; cursor: pointer;" 
-                    onclick="closeModal('clearCartModal')">
-                Cancel
-            </button>
+        <div class="flex-gap-10">
+            <button class="btn-confirm" onclick="executeClearCart()">Yes, Clear All</button>
+            <button class="btn-cancel-large" onclick="closeModal('clearCartModal')">Cancel</button>
         </div>
     </div>
 </div>
@@ -380,26 +288,27 @@ async function addProduct(manualBarcode = null, manualQty = null) {
 function renderCart() {
     const body = el("cartTable");
     if (cart.length === 0) {
-        body.innerHTML = `<tr><td colspan="5" style="padding:60px; text-align:center; color:#9ca3af;">Cart is empty. Use Product List or scan an item.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="5" class="empty-cart-msg">Cart is empty. Use Product List or scan an item.</td></tr>`;
     } else {
         body.innerHTML = cart.map((item, i) => `
             <tr>
-                <td style="text-align:left; min-width: 150px;"><strong>${item.productName}</strong><br><small>Barcode: ${item.barcode}</small></td>
-                <td>₱${item.price.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
-            <td>
-                <div style="display:flex; align-items:center; justify-content:center; gap:5px;">
-                    <button class="qty-btn" onclick="updateQty(${i}, -1)">-</button>
-                    <input type="number" 
-                        value="${item.qty}" 
-                        min="1" 
-                        max="${item.stockQuantity}"
-                        style="width: 50px; text-align: center; border: 1px solid var(--border-light); border-radius: 4px; padding: 4px 0; font-weight: bold;"
-                        onchange="updateQty(${i}, 0, this.value)"> <button class="qty-btn" onclick="updateQty(${i}, 1)">+</button>
-                </div>
-            </td>
-                <td style="font-weight:600; color: var(--bg-dark);">₱${(item.price * item.qty).toLocaleString(undefined, {minimumFractionDigits:2})}</td>
-                <td style="text-align: center;">
-                    <button style="background-color: #ef4444; color: white; border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#dc2626'" onmouseout="this.style.backgroundColor='#ef4444'" onclick="removeItem(${i})" title="Remove Item">X</button>
+                <td class="cart-name-cell"><strong>${item.productName}</strong><br><small>Barcode: ${item.barcode}</small></td>
+                <td class="center-text">₱${item.price.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                <td>
+                    <div class="cart-qty-cell">
+                        <button class="qty-btn" onclick="updateQty(${i}, -1)">-</button>
+                        <input type="number" 
+                            value="${item.qty}" 
+                            min="1" 
+                            max="${item.stockQuantity}"
+                            class="cart-qty-input"
+                            onchange="manualQtyUpdate(${i}, this.value)"> 
+                        <button class="qty-btn" onclick="updateQty(${i}, 1)">+</button>
+                    </div>
+                </td>
+                <td class="center-text cart-subtotal">₱${(item.price * item.qty).toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                <td class="center-text">
+                    <button class="btn-remove-red" onclick="removeItem(${i})" title="Remove Item">X</button>
                 </td>
             </tr>`).join("");
     }
@@ -484,7 +393,7 @@ function openPayment() {
     el("digitalAmount").value = "";
     el("cashInput").value = "";
     el("changeAmount").innerText = "0.00";
-    el("changeBox").style.background = "#fff5f5"; 
+    el("changeBox").style.background = "var(--white)"; 
     
     el("paymentModal").style.display = "flex";
     setTimeout(() => el("cashInput").focus(), 150);
@@ -507,11 +416,19 @@ function calculateChange() {
     const change = totalPaid - total;
     
     el("changeAmount").innerText = Math.max(0, change).toLocaleString(undefined, {minimumFractionDigits:2});
-    el("changeBox").style.background = change >= 0 ? "#e7f3e8" : "#fff5f5";
+    el("changeBox").style.background = change >= 0 ? "var(--bg-main)" : "var(--white)";
 }
 
-el("cashInput").addEventListener("input", calculateChange);
-el("digitalAmount").addEventListener("input", calculateChange);
+// Ensure strict limit up to 1,000,000 on inputs
+el("cashInput").addEventListener("input", function() {
+    if (parseFloat(this.value) > 1000000) this.value = 1000000;
+    calculateChange();
+});
+
+el("digitalAmount").addEventListener("input", function() {
+    if (parseFloat(this.value) > 1000000) this.value = 1000000;
+    calculateChange();
+});
 
 async function confirmPayment() {
     const totalText = el("modalTotal").innerText.replace(/,/g, '');
@@ -602,21 +519,21 @@ function generateDigitalReceipt(data) {
     el('receipt-date').innerText = new Date(data.timestamp).toLocaleString();
     
     let methodText = data.paymentMethod;
-    if (data.cashReceived > 0 && data.digitalAmount > 0) {
+    if (data.rawCash > 0 && data.digitalAmount > 0) {
         methodText = `SPLIT (${data.paymentMethod} & Cash)`;
     }
 
     if (data.referenceNumber && data.referenceNumber.trim() !== "") {
-        methodText += `<br><span style="font-size: 11px;">Ref: ${data.referenceNumber}</span>`;
+        methodText += `<br><span class="receipt-ref">Ref: ${data.referenceNumber}</span>`;
     }
     el('receipt-method').innerHTML = methodText;
     
     const tbody = el('receipt-items-body');
     tbody.innerHTML = data.items.map(i => `
         <tr>
-            <td style="padding-right: 5px;">${i.productName}</td>
-            <td style="text-align: center;">${i.qty}</td>
-            <td style="text-align: right;">₱${(i.price * i.qty).toFixed(2)}</td>
+            <td class="pr-5 text-left">${i.productName}</td>
+            <td class="center-text">${i.qty}</td>
+            <td class="text-right">₱${(i.price * i.qty).toFixed(2)}</td>
         </tr>
     `).join('');
 
@@ -625,33 +542,33 @@ function generateDigitalReceipt(data) {
     el('receipt-discount').innerText = `- ₱${data.discountAmount.toFixed(2)}`;
     el('receipt-total').innerText = `₱${data.totalAmount.toFixed(2)}`;
     
-    let paymentDetailsHTML = '<div style="display: block; width: 100%;">'; 
-    
+    const digitalRow = el('receipt-digital-row');
     if (data.paymentMethod !== 'Cash' && data.digitalAmount > 0) {
-        paymentDetailsHTML += `<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 4px;">
-            <span>${data.paymentMethod} Paid:</span> 
-            <span>₱${data.digitalAmount.toFixed(2)}</span>
-        </div>`;
+        digitalRow.style.display = "flex"; 
+        el('receipt-digital-label').innerText = `${data.paymentMethod} Paid:`;
+        el('receipt-digital-val').innerText = `₱${data.digitalAmount.toFixed(2)}`;
+    } else {
+        digitalRow.style.display = "none";
     }
     
-    if (data.cashReceived > 0 || data.paymentMethod === 'Cash') {
-        paymentDetailsHTML += `<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 4px;">
-            <span>Cash Received:</span> 
-            <span>₱${data.cashReceived.toFixed(2)}</span>
-        </div>`;
+    const cashRow = el('receipt-cash-row');
+    if (data.rawCash > 0 || data.paymentMethod === 'Cash') {
+        cashRow.style.display = "flex";
+        if (data.paymentMethod !== 'Cash' && data.digitalAmount > 0) {
+            cashRow.style.borderTop = "none";
+            cashRow.style.paddingTop = "0";
+            cashRow.style.marginTop = "5px";
+        } else {
+            cashRow.style.borderTop = "1px dashed #ccc";
+            cashRow.style.paddingTop = "10px";
+            cashRow.style.marginTop = "10px";
+        }
+        el('receipt-cash-val').innerText = `₱${(data.rawCash || 0).toFixed(2)}`;
+    } else {
+        cashRow.style.display = "none";
     }
 
-    const totalPaid = (data.cashReceived || 0) + (data.digitalAmount || 0);
-    const change = totalPaid - data.totalAmount;
-    
-    paymentDetailsHTML += `<div style="display: flex; justify-content: space-between; width: 100%; font-weight: bold; margin-top: 5px; padding-top: 5px; border-top: 1px dotted #000;">
-        <span>Change:</span> 
-        <span>₱${Math.max(0, change).toFixed(2)}</span>
-    </div>`;
-
-    paymentDetailsHTML += '</div>';
-
-    el('receipt-payment-section').innerHTML = paymentDetailsHTML;
+    el('receipt-change-val').innerText = `₱${Math.max(0, data.change || 0).toFixed(2)}`;
     el('receiptModal').style.display = 'flex';
 }
 
@@ -685,7 +602,6 @@ function clearCart() {
     if (cart.length === 0) return; 
     el("clearCartModal").style.display = "flex"; 
 }
-
 
 function executeClearCart() {
     cart = [];
