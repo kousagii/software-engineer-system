@@ -77,7 +77,7 @@ function renderSidebar(role) {
                 <div class="menu">
                     <a href="../sales-screen/sales-transaction.html">Sales Transaction</a>
                     <a href="../sales-screen/sales-product-list.html">Product List</a>
-                    <a href="../sales-screen/sales-refund-or-change.html">Refund / Change</a>
+                    <a href="../sales-screen/sales-refund-or-exchange.html">Refund / Exchange</a>
                 </div>
             </div>
             <div class="bottom-menu">

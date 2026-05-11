@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sales Transaction | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
 
         /* === GLOBAL BOX SIZING === */
         * { box-sizing: border-box; }
 
         /* === PANEL & LAYOUT === */
-        .page-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .split { display: flex; gap: 20px; align-items: flex-start; }
         
         .form-panel-wide { 
@@ -23,6 +23,7 @@
             box-shadow: var(--shadow-main); 
             border: 1px solid var(--border-light); 
             height: fit-content; 
+            min-height: 400px;
             display: flex;
             flex-direction: column;
         }
@@ -105,11 +106,11 @@
 
 <div id="toast">Message</div>
 
-<main class="dashboard-main" style="padding: 20px;">
-    <header class="page-header-flex">
+<main class="dashboard-main">
+    <header class="page-header">
         <div>
-            <h2 style="margin: 0;">🛒 Sales Transaction</h2>
-            <p class="sub-text" style="margin: 5px 0 0 0;">Scan items or select from the Product List to checkout.</p>
+            <h2>Sales Transaction</h2>
+            <p class="sub-text">Scan items or select from the Product List to checkout.</p>
         </div>
         <button class="btn-create" onclick="goToProductList()" style="height: 45px; padding: 0 25px; background: #3b82f6; border-color: #3b82f6;">📋 See Product List</button>
     </header>
@@ -130,7 +131,7 @@
                 </div>
             </div>
 
-            <div class="cart-container">
+            <div class="cart-container" style="flex-grow: 1; margin-bottom: 20px;">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -142,16 +143,16 @@
                         </tr>
                     </thead>
                     <tbody id="cartTable">
-                        <tr><td colspan="5" style="text-align:center; padding:60px; color:#9ca3af;">Cart is empty. Scan a barcode or select from the product list to add items.</td></tr>
+                        <tr><td colspan="5" style="text-align:center; padding:90px; color:#9ca3af;">Cart is empty. Scan Product or select from the Product List.</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+            <div style="display: flex; justify-content: flex-end; padding-top: 5px; border-top: 1px solid var(--border-light);">
                 <button class="btn-cancel" 
-                    style="padding: 10px 25px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; background: #e5e7eb; color: #374151; border-radius: 4px; transition: background 0.2s;" 
-                    onmouseover="this.style.background='#d1d5db'" 
-                    onmouseout="this.style.background='#e5e7eb'" 
+                    style="padding: 10px 25px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; background: #e5e7eb; color: #374151; border-radius: 4px; transition: background 0.2s;"   
+                    onmouseover="this.style.background='#d1d5db'; this.style.color='#374151'"    
+                    onmouseout="this.style.background='#e5e7eb'; this.style.color='#374151'"      
                     onclick="clearCart()">
                     🗑️ CLEAR CART
                 </button>
@@ -199,17 +200,26 @@
             </select>
         </div>
 
-        <div id="digitalPaymentDetails" style="display: none; background: #e0f2fe; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; border: 1px solid #bae6fd;">
-            <label for="referenceNumber" style="font-size: 13px; font-weight: bold; color: #0369a1;">Reference / Trace Number</label>
-            <input type="text" id="referenceNumber" placeholder="Enter Ref No. (Required)" style="width: 100%; padding: 8px; border: 1px solid #7dd3fc; border-radius: 4px; margin-top: 4px; margin-bottom: 8px; box-sizing: border-box; outline: none; font-size: 14px;">
-            
-            <label for="digitalAmount" style="font-size: 13px; font-weight: bold; color: #0369a1; display: block;">Amount Paid (Digital)</label>
-            <input type="number" id="digitalAmount" min="0" step="0.01" style="width: 100%; padding: 8px; border: 1px solid #7dd3fc; border-radius: 4px; margin-top: 4px; box-sizing: border-box; outline: none; font-size: 14px;">
+        <div id="digitalPaymentDetails" style="display: none; background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; border: 1px solid #bae6fd;">
+            <div style="margin-bottom: 10px;">
+                <label for="digitalAmount" style="font-size: 13px; font-weight: bold; color: #0369a1; display: block;">Amount Paid (Digital)</label>
+                <input type="number" id="digitalAmount" min="0" step="0.01" placeholder="0.00" style="width: 100%; padding: 8px; border: 1px solid #7dd3fc; border-radius: 4px; margin-top: 4px; box-sizing: border-box; outline: none; font-size: 14px;" oninput="calculateChange()">
+            </div>
+            <div>
+                <label for="referenceNumber" style="font-size: 13px; font-weight: bold; color: #0369a1; display: block;">Reference / Trace Number</label>
+                <input type="text" id="referenceNumber" placeholder="Enter Ref No." style="width: 100%; padding: 8px; border: 1px solid #7dd3fc; border-radius: 4px; margin-top: 4px; box-sizing: border-box; outline: none; font-size: 14px;">
+            </div>
         </div>
 
         <div style="text-align: left; margin: 15px 0;">
-            <label for="cashInput" style="display:block; margin-bottom: 5px;">Cash Received</label>
-            <input type="number" id="cashInput" min="0" step="0.01" style="font-size: 22px; padding: 15px; border: 2px solid var(--bg-dark); border-radius: 4px; text-align: center; width: 100%; outline: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <label for="cashInput" style="margin: 0; font-weight: bold;">Cash Received</label>
+                <span id="cashOptionalBadge" style="display: none; font-size: 11px; background: #f3f4f6; color: #6b7280; padding: 2px 8px; border-radius: 12px; border: 1px solid #e5e7eb; font-weight: normal;">Optional</span>
+            </div>
+            
+            <input type="number" id="cashInput" min="0" step="0.01" placeholder="0.00" style="font-size: 22px; padding: 15px; border: 2px solid var(--bg-dark); border-radius: 4px; text-align: center; width: 100%; outline: none;" oninput="calculateChange()">
+            
+            <p id="cashHelpText" style="display: none; color: #9ca3af; font-size: 12px; margin-top: 5px; margin-bottom: 0;">Leave empty if paid fully via Digital.</p>
         </div>
         
         <div id="changeBox" style="background: #e7f3e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -253,7 +263,13 @@
             <div id="receipt-payment-section" style="margin-top: 10px; color: #4b5563;"></div>
         </div>
 
-        <p style="text-align: center; font-size: 12px; margin-top: 20px;">Thank you for your purchase!</p>
+        <div id="receipt-qr" style="display: flex; flex-direction: row; align-items: center; justify-content: flex-start; margin-top: 10px; gap: 10px;">
+            <div id="qrcode-canvas" style="display: flex; align-items: center; justify-content: center;"></div>
+            <div style="display: flex; flex-direction: column; justify-content: center; text-align: left;">
+                <span style="font-size: 8px; color: #666; text-transform: uppercase; line-height: 1.4;">Scan for Refund/Exchange</span>
+                <p style="font-size: 12px; margin-top: 6px; margin-bottom: 0; line-height: 1.4;"> Thank you for choosing Udicon Trading!</p>
+            </div>
+        </div>
 
         <div class="no-print" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
             <button class="btn-create" style="padding: 12px; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="window.print()">🖨️ Print Receipt</button>
@@ -384,19 +400,19 @@ function renderCart() {
     } else {
         body.innerHTML = cart.map((item, i) => `
             <tr>
-                <td style="text-align:left; min-width: 150px;"><strong>${item.productName}</strong><br><small>Barcode: ${item.barcode}</small></td>
+                <td style="text-align:left; min-width: 150px;"><strong>${item.productName}</strong><br><small>BC: ${item.barcode}</small></td>
                 <td>₱${item.price.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
-            <td>
-                <div style="display:flex; align-items:center; justify-content:center; gap:5px;">
-                    <button class="qty-btn" onclick="updateQty(${i}, -1)">-</button>
-                    <input type="number" 
-                        value="${item.qty}" 
-                        min="1" 
-                        max="${item.stockQuantity}"
-                        style="width: 50px; text-align: center; border: 1px solid var(--border-light); border-radius: 4px; padding: 4px 0; font-weight: bold;"
-                        onchange="updateQty(${i}, 0, this.value)"> <button class="qty-btn" onclick="updateQty(${i}, 1)">+</button>
-                </div>
-            </td>
+                <td>
+                    <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <button class="qty-btn" onclick="updateQty(${i}, -1)">-</button>
+                        <input type="number" 
+                            value="${item.qty}" 
+                            min="1" 
+                            max="${item.stockQuantity}"
+                            style="width: 80px; text-align: center; border: 1px solid var(--border-light); border-radius: 4px; padding: 4px 2; font-weight: bold;"
+                            onchange="updateQty(${i}, 0, this.value)"> <button class="qty-btn" onclick="updateQty(${i}, 1)">+</button>
+                    </div>
+                </td>
                 <td style="font-weight:600; color: var(--bg-dark);">₱${(item.price * item.qty).toLocaleString(undefined, {minimumFractionDigits:2})}</td>
                 <td style="text-align: center;">
                     <button style="background-color: #ef4444; color: white; border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#dc2626'" onmouseout="this.style.backgroundColor='#ef4444'" onclick="removeItem(${i})" title="Remove Item">X</button>
@@ -455,19 +471,29 @@ function handlePaymentMode() {
     const mode = el("paymentMode").value;
     const total = parseFloat(el("modalTotal").innerText.replace(/,/g, ''));
     const digitalPanel = el("digitalPaymentDetails");
+    const optionalBadge = el("cashOptionalBadge");
+    const helpText = el("cashHelpText");
     
     if (mode !== "Cash") {
+        // --- DIGITAL MODE ---
         digitalPanel.style.display = "block";
         el("digitalAmount").value = total.toFixed(2);
         el("cashInput").value = ""; 
         
+        optionalBadge.style.display = "inline-block";
+        helpText.style.display = "block";
+        
         calculateChange();
         setTimeout(() => el("referenceNumber").focus(), 100);
     } else {
+        // --- CASH MODE ---
         digitalPanel.style.display = "none";
         el("referenceNumber").value = ""; 
         el("digitalAmount").value = "";
         el("cashInput").value = "";
+        
+        optionalBadge.style.display = "none";
+        helpText.style.display = "none";
         
         calculateChange();
         el("cashInput").focus();
@@ -584,9 +610,8 @@ async function confirmPayment() {
             cart = [];
             el("discount").value = 0;
             renderCart();
-        } else {
-            const errData = await res.json();
-            showToast(`❌ Failed: ${errData.error || 'Database error'}`, true);
+        
+            setTimeout(() => el("barcodeInput").focus(), 500);
         }
     } catch (err) {
         showToast("Server error. Check connection.", true);
@@ -598,7 +623,8 @@ async function confirmPayment() {
 }
 
 function generateDigitalReceipt(data) {
-    el('receipt-txn').innerText = data.transactionId;
+    // 1. Transaction Info
+    el('receipt-txn').innerHTML = data.transactionId;
     el('receipt-date').innerText = new Date(data.timestamp).toLocaleString();
     
     let methodText = data.paymentMethod;
@@ -611,6 +637,7 @@ function generateDigitalReceipt(data) {
     }
     el('receipt-method').innerHTML = methodText;
     
+    // 2. Items Table
     const tbody = el('receipt-items-body');
     tbody.innerHTML = data.items.map(i => `
         <tr>
@@ -620,38 +647,49 @@ function generateDigitalReceipt(data) {
         </tr>
     `).join('');
 
+    // 3. Totals
     const subtotal = data.items.reduce((s, i) => s + (i.price * i.qty), 0);
     el('receipt-subtotal').innerText = `₱${subtotal.toFixed(2)}`;
     el('receipt-discount').innerText = `- ₱${data.discountAmount.toFixed(2)}`;
     el('receipt-total').innerText = `₱${data.totalAmount.toFixed(2)}`;
     
+    // 4. Payment Details Logic
     let paymentDetailsHTML = '<div style="display: block; width: 100%;">'; 
-    
     if (data.paymentMethod !== 'Cash' && data.digitalAmount > 0) {
         paymentDetailsHTML += `<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 4px;">
             <span>${data.paymentMethod} Paid:</span> 
             <span>₱${data.digitalAmount.toFixed(2)}</span>
         </div>`;
     }
-    
     if (data.cashReceived > 0 || data.paymentMethod === 'Cash') {
         paymentDetailsHTML += `<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 4px;">
             <span>Cash Received:</span> 
             <span>₱${data.cashReceived.toFixed(2)}</span>
         </div>`;
     }
-
     const totalPaid = (data.cashReceived || 0) + (data.digitalAmount || 0);
     const change = totalPaid - data.totalAmount;
-    
     paymentDetailsHTML += `<div style="display: flex; justify-content: space-between; width: 100%; font-weight: bold; margin-top: 5px; padding-top: 5px; border-top: 1px dotted #000;">
         <span>Change:</span> 
         <span>₱${Math.max(0, change).toFixed(2)}</span>
     </div>`;
-
     paymentDetailsHTML += '</div>';
-
     el('receipt-payment-section').innerHTML = paymentDetailsHTML;
+
+    // --- 5. QR CODE GENERATION ---
+    const qrContainer = document.getElementById("qrcode-canvas");
+    if (qrContainer) {
+        qrContainer.innerHTML = ""; // Clear old QR code
+        new QRCode(qrContainer, {
+            text: data.transactionId, // The code to be scanned later
+            width: 60,
+            height: 60,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.M
+        });
+    }
+
     el('receiptModal').style.display = 'flex';
 }
 
@@ -712,6 +750,11 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+
+function clearSelectionMode() {
+    localStorage.removeItem("selectionMode");
+}
+
 </script>
 </body>
 </html>

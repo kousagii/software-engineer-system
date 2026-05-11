@@ -811,6 +811,128 @@ app.post('/api/reduceStock', (req, res) => {
         .catch(err => res.status(500).json({ error: "Stock update failed" }));
 });
 
+//REFUND and CHANGE
+
+// 1. GET TRANSACTION DETAILS BY CODE
+app.get('/api/getTransactionForRefund', (req, res) => {
+    // We use transactionCode (e.g., "TXN-12345") instead of the internal ID
+    const txnCode = req.query.code;
+    
+    const sql = `
+        SELECT 
+            i.productID, 
+            p.productName, 
+            p.price, 
+            i.quantity 
+        FROM sales_transaction t
+        JOIN sales_item i ON t.transactionID = i.transactionID
+        JOIN product p ON i.productID = p.productID
+        WHERE t.transactionCode = ?`;
+
+    db.query(sql, [txnCode], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Database error" });
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ error: "No transaction found with that code." });
+        }
+        res.json(results);
+    });
+});
+
+// 2. PROCESS ADJUSTMENT (Refund or Exchange)
+app.post('/api/processAdjustment', async (req, res) => {
+    const { 
+        mode, 
+        transactionCode,  // Format: UTE-20260510-041943 (Orig: UT-...)
+        originalTxnCode,  
+        returns,          
+        exchanges,        
+        paymentMethod, 
+        cashReceived, 
+        digitalAmount, 
+        referenceNumber,  
+        netBalance 
+    } = req.body;
+    
+    const sessionUserID = req.session?.user?.id || 1; 
+
+    try {
+        await db.promise().beginTransaction();
+
+        const finalStatus = (mode === 'exchange') ? 'Exchanged' : 'Refunded';
+
+        /**
+         * INSERT INTO HEADER TABLE
+         * Note: totalAmount is stored as -netBalance. 
+         * If netBalance is 500 (Refund), we store -500 to reduce total daily sales.
+         * If netBalance is -500 (Customer paid extra), we store 500 as additional revenue.
+         */
+        const logSql = `
+            INSERT INTO sales_transaction 
+            (transactionCode, userID, transDateTime, totalAmount, paymentMethod, paymentStatus, referenceNumber, cashReceived, digitalAmount) 
+            VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?)
+        `;
+
+        const [txnResult] = await db.promise().query(logSql, [
+            transactionCode,   
+            sessionUserID, 
+            -netBalance,        
+            paymentMethod,
+            finalStatus,
+            referenceNumber || null, 
+            cashReceived || 0,
+            digitalAmount || 0
+        ]);
+
+        const dbAutoId = txnResult.insertId;
+
+        // --- 1. HANDLE RETURNS (RESTOCK) ---
+        for (const item of returns) {
+            // Add back to inventory
+            await db.promise().query(
+                `UPDATE product SET stockQuantity = stockQuantity + ? WHERE productID = ?`, 
+                [item.qty, item.productID]
+            );
+
+            // Record in sales_item with negative quantity for reporting clarity
+            await db.promise().query(
+                `INSERT INTO sales_item (transactionID, productID, quantity, subtotal) VALUES (?, ?, ?, ?)`,
+                [dbAutoId, item.productID, -item.qty, -(item.price * item.qty)]
+            );
+        }
+
+        // --- 2. HANDLE EXCHANGES (REDUCE STOCK) ---
+        for (const item of exchanges) {
+            // Subtract from inventory
+            await db.promise().query(
+                `UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`, 
+                [item.qty, item.productID]
+            );
+
+            // Record in sales_item as a normal sale entry
+            await db.promise().query(
+                `INSERT INTO sales_item (transactionID, productID, quantity, subtotal) VALUES (?, ?, ?, ?)`,
+                [dbAutoId, item.productID, item.qty, (item.price * item.qty)]
+            );
+        }
+
+        await db.promise().commit();
+        
+        res.json({ 
+            success: true, 
+            message: "Adjustment processed successfully", 
+            transactionCode: transactionCode 
+        });
+
+    } catch (error) {
+        await db.promise().rollback();
+        console.error("❌ Adjustment DB Error:", error);
+        res.status(500).json({ error: "Database transaction failed: " + error.message });
+    }
+});
+
 // BACK UP FUNCTIONS & SCHEDULES
 
 let fullBackupJob;
