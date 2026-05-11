@@ -1,19 +1,326 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Udicon Trading | Sales & Inventory System</title>
-    <link rel="stylesheet" href="../style.css"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Udicon Trading</title>
+  <link rel="stylesheet" href="../style.css" />
 </head>
+
 <body>
 
   <div id="sidebar"></div>
-  
-  <main>
+
+  <main class="dashboard-main">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+      <div>
+        <h2 class="dash-page-title">Dashboard</h2>
+        <p class="sub-text dash-subtitle" id="dash-greeting">Welcome back!</p>
+      </div>
+      <div class="toolbar-right">
+        <span class="sub-text" id="dash-datetime"></span>
+      </div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="split dash-cards-row">
+
+      <div class="form-panel dash-stat-card">
+        <div class="dash-stat-icon dash-icon-green">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="7" width="20" height="14" rx="2" stroke="#2b8a4e" stroke-width="1.8"
+              stroke-linejoin="round" />
+            <path d="M16 7V5a4 4 0 0 0-8 0v2" stroke="#2b8a4e" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M9 12h6M9 16h4" stroke="#2b8a4e" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="dash-stat-info">
+          <div class="sub-text">Total Products</div>
+          <h3 class="mt-0" id="stat-products">—</h3>
+        </div>
+      </div>
+
+      <div class="form-panel dash-stat-card">
+        <div class="dash-stat-icon dash-icon-blue">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="8" r="4" stroke="#356ac3" stroke-width="1.8" />
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#356ac3" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="dash-stat-info">
+          <div class="sub-text">System Users</div>
+          <h3 class="mt-0" id="stat-users">—</h3>
+        </div>
+      </div>
+
+      <div class="form-panel dash-stat-card">
+        <div class="dash-stat-icon dash-icon-yellow">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3L2 20h20L12 3z" stroke="#856404" stroke-width="1.8" stroke-linejoin="round" />
+            <path d="M12 10v4" stroke="#856404" stroke-width="1.8" stroke-linecap="round" />
+            <circle cx="12" cy="17" r="0.8" fill="#856404" stroke="#856404" stroke-width="1" />
+          </svg>
+        </div>
+        <div class="dash-stat-info">
+          <div class="sub-text">Low / Out of Stock</div>
+          <h3 class="mt-0" id="stat-lowstock">—</h3>
+        </div>
+      </div>
+
+      <div class="form-panel dash-stat-card">
+        <div class="dash-stat-icon dash-icon-dark">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="9" stroke="#264027" stroke-width="1.8" />
+            <path d="M12 7v5l3 3" stroke="#264027" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M8.5 15.5c.8 1.2 2 2 3.5 2s2.7-.8 3.5-2" stroke="#264027" stroke-width="1.5"
+              stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="dash-stat-info">
+          <div class="sub-text">Today's Sales</div>
+          <h3 class="mt-0" id="stat-sales">—</h3>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CONTENT SPLIT: Recent Sales | Recent Purchase Orders -->
+    <div class="split dash-lower-split">
+
+      <!-- RECENT SALES TRANSACTIONS -->
+      <div class="dash-main-col">
+        <div class="table-container">
+          <div class="page-header">
+            <h3 class="mt-0">Recent Sales</h3>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Transaction ID</th>
+                <th>Date &amp; Time</th>
+                <th>Total Amount</th>
+              </tr>
+            </thead>
+            <tbody id="dash-txn-body">
+              <tr>
+                <td colspan="3" class="center-text sub-text">Loading…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RECENT PURCHASE ORDERS -->
+      <div class="dash-main-col">
+        <div class="table-container">
+          <div class="page-header">
+            <h3 class="mt-0">Recent Purchase Orders</h3>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Products</th>
+                <th>Date &amp; Time</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="dash-orders-body">
+              <tr>
+                <td colspan="5" class="center-text sub-text">Loading…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- STOCK ALERTS -->
+    <div class="table-container dash-alert-section">
+      <div class="page-header">
+        <h3 class="mt-0">Stock Alerts</h3>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Product Name</th>
+            <th>Category</th>
+            <th>Stock Level</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="dash-alert-body">
+          <tr>
+            <td colspan="4" class="center-text sub-text">Loading…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
   </main>
 
   <script src="../authGuard.js"></script>
+  <script>
+    // --- Live clock ---
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('dash-datetime').textContent =
+        now.toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
+        '\u2002\u2014\u2002' +
+        now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+    }
+    updateClock();
+    setInterval(updateClock, 60000);
+
+    // --- Greeting ---
+    (function setGreeting() {
+      const hour = new Date().getHours();
+      const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+      document.getElementById('dash-greeting').textContent = greet + ', Admin!';
+    })();
+
+    // --- Fetch helper ---
+    async function safeFetch(url) {
+      try {
+        const r = await fetch(url);
+        if (!r.ok) return null;
+        return await r.json();
+      } catch { return null; }
+    }
+
+    // --- Format date ---
+    function fmtDate(raw) {
+      if (!raw) return '—';
+      return new Date(raw).toLocaleString('en-PH', { dateStyle: 'short', timeStyle: 'short' });
+    }
+
+    // --- Format currency ---
+    function fmtPeso(val) {
+      return '₱ ' + parseFloat(val || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // --- Stat Cards ---
+    async function loadStats() {
+      const products = await safeFetch('/api/products');
+      if (products) {
+        document.getElementById('stat-products').textContent = products.length;
+        const lowStock = products.filter(p => p.stockQuantity <= 10);
+        document.getElementById('stat-lowstock').textContent = lowStock.length;
+        renderAlertTable(lowStock);
+      } else {
+        document.getElementById('stat-products').textContent = 'N/A';
+        document.getElementById('stat-lowstock').textContent = 'N/A';
+        document.getElementById('dash-alert-body').innerHTML =
+          '<tr><td colspan="4" class="center-text sub-text">Could not load stock data.</td></tr>';
+      }
+
+      const users = await safeFetch('/api/users');
+      document.getElementById('stat-users').textContent = users ? users.length : 'N/A';
+
+      // Today's sales total from /api/transactions
+      const txns = await safeFetch('/api/transactions?limit=200');
+      if (txns && Array.isArray(txns)) {
+        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const todayTotal = txns
+          .filter(t => t.transDateTime && new Date(t.transDateTime).toLocaleDateString('en-CA') === todayStr)
+          .reduce((sum, t) => sum + (parseFloat(t.totalAmount) || 0), 0);
+        document.getElementById('stat-sales').textContent = fmtPeso(todayTotal);
+      } else {
+        document.getElementById('stat-sales').textContent = 'N/A';
+      }
+    }
+
+    // --- Recent Sales Transactions ---
+    async function loadRecentTransactions() {
+      const tbody = document.getElementById('dash-txn-body');
+      const data = await safeFetch('/api/transactions?limit=8');
+
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="center-text sub-text">No transactions found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.map(t => {
+        return `<tr>
+          <td><strong>${t.transactionID}</strong></td>
+          <td>
+            <div class="datetime-cell">
+              <span class="date-label">${new Date(t.transDateTime).toLocaleDateString('en-PH', { dateStyle: 'short' })}</span>
+              <span class="time-label">${new Date(t.transDateTime).toLocaleTimeString('en-PH', { timeStyle: 'short' })}</span>
+            </div>
+          </td>
+          <td><strong>${fmtPeso(t.totalAmount)}</strong></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // --- Recent Purchase Orders ---
+    async function loadRecentOrders() {
+      const tbody = document.getElementById('dash-orders-body');
+      const data = await safeFetch('/api/orders');
+
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="center-text sub-text">No purchase orders found.</td></tr>';
+        return;
+      }
+
+      const recent = data.slice(0, 8);
+      tbody.innerHTML = recent.map(o => {
+        const productNames = (o.items && o.items.length > 0)
+          ? o.items.map(i => i.productName).join(', ')
+          : '—';
+        const total = (o.items || []).reduce((s, i) => s + ((parseFloat(i.unitCost) || 0) * (parseInt(i.qty) || 0)), 0);
+        const statusClass = o.status === 'Completed' ? 'status-instock'
+          : o.status === 'Cancelled' ? 'status-outstock'
+            : 'status-lowstock';
+        return `<tr>
+          <td><strong>PO-${o.orderID}</strong></td>
+          <td class="dash-products-cell">${productNames}</td>
+          <td>
+            <div class="datetime-cell">
+              <span class="date-label">${o.orderDate ? new Date(o.orderDate).toLocaleDateString('en-PH', { dateStyle: 'short' }) : '—'}</span>
+              <span class="time-label">${o.orderDate ? new Date(o.orderDate).toLocaleTimeString('en-PH', { timeStyle: 'short' }) : ''}</span>
+            </div>
+          </td>
+          <td><strong>${fmtPeso(total)}</strong></td>
+          <td><span class="status-pill ${statusClass}">${o.status}</span></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // --- Stock Alert Table ---
+    function renderAlertTable(lowStockProducts) {
+      const tbody = document.getElementById('dash-alert-body');
+      if (!lowStockProducts || lowStockProducts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="center-text sub-text">No stock alerts. All levels are good.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = lowStockProducts.map(p => {
+        const isOut = p.stockQuantity === 0;
+        const cls = isOut ? 'status-pill status-outstock' : 'status-pill status-lowstock';
+        const label = isOut ? 'Out of Stock' : 'Low Stock';
+        return `<tr>
+          <td><strong>${p.productName}</strong></td>
+          <td>${p.category || '—'}</td>
+          <td>${p.stockQuantity}</td>
+          <td><span class="${cls}">${label}</span></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // --- Init ---
+    document.addEventListener('DOMContentLoaded', () => {
+      loadStats();
+      loadRecentTransactions();
+      loadRecentOrders();
+    });
+  </script>
 
 </body>
+
 </html>

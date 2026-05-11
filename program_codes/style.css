@@ -1736,3 +1736,92 @@ input[type="radio"]:checked+.mode-label {
     margin-top: 10px;
     color: #4b5563;
 }
+
+/* ===================== DASHBOARD ===================== */
+.dash-page-title {
+    margin: 0;
+}
+
+.dash-subtitle {
+    margin: 4px 0 0;
+}
+
+.dash-cards-row {
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.dash-cards-row>.form-panel {
+    flex: 1;
+}
+
+.dash-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 20px 24px;
+}
+
+.dash-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--rad-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.dash-stat-icon svg {
+    width: 26px;
+    height: 26px;
+}
+
+.dash-icon-green {
+    background: #d4edda;
+}
+
+.dash-icon-blue {
+    background: #d0e8ff;
+}
+
+.dash-icon-yellow {
+    background: #fff3cd;
+}
+
+.dash-icon-dark {
+    background: #e2e8e2;
+}
+
+.dash-stat-info .sub-text {
+    margin: 0 0 4px;
+}
+
+.dash-stat-info h3 {
+    font-size: 1.6rem;
+    margin: 0;
+}
+
+.dash-lower-split {
+    gap: 24px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.dash-main-col {
+    flex: 1;
+    min-width: 0;
+}
+
+.dash-alert-section {
+    margin-top: 0;
+}
+
+.dash-products-cell {
+    max-width: 200px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: #555;
+    font-size: 13px;
+}
