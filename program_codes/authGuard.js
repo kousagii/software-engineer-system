@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const userRole = data.role;
 
             if (currentPath.includes('admin-screen') && userRole !== 'Admin') {
-                const sharedPages = ['admin-product', 'admin-supplier', 'admin-search'];
+                const sharedPages = ['admin-product', 'admin-supplier', 'admin-search', 'admin-report'];
                 const isSharedPage = sharedPages.some(page => currentPath.includes(page));
 
                 // If they are not InventoryStaff OR it's not a shared page, kick them out
@@ -35,15 +35,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            renderSidebar(userRole);
+            window.currentUserRole = userRole;
 
+            renderSidebar(userRole);
             setupLogoutButton();
+
+            if (typeof window.onAuthReady === 'function') {
+                window.onAuthReady(userRole);
+            }
         });
 });
 
 function renderSidebar(role) {
     const sidebarContainer = document.getElementById("sidebar");
-    if (!sidebarContainer) return; 
+    if (!sidebarContainer) return;
 
     let sidebarHTML = '';
 
@@ -96,14 +101,14 @@ function renderSidebar(role) {
                     <a href="../admin-screen/admin-search.html">Search</a>
                     <a href="../admin-screen/admin-product.html">Product</a>
                     <a href="../admin-screen/admin-supplier.html">Supplier</a>
-                    
+
                     <a href="../inventory-screen/inventory-order-management.html">Order Management</a>
-                    <a href="../inventory-screen/inventory-report.html">Reports</a>
+                    <a href="../admin-screen/admin-report.html">Reports</a>
                 </div>
             </div>
             <div class="bottom-menu">
                 <div class="menu">
-                     <a href="../inventory-screen/inventory-help.html">Help</a>
+                    <a href="../inventory-screen/inventory-help.html">Help</a>
                 </div>
                 <button class="logout" id="logoutBtn">Logout</button>
             </div>
@@ -120,7 +125,7 @@ function setupLogoutButton() {
             fetch('/api/logout', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
-                    window.location.href = '../log-in.html'; 
+                    window.location.href = '../log-in.html';
                 })
                 .catch(err => console.error("Logout failed", err));
         });

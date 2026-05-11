@@ -112,22 +112,22 @@
             <h2>Sales Transaction</h2>
             <p class="sub-text">Scan items or select from the Product List to checkout.</p>
         </div>
-        <button class="btn-create" onclick="goToProductList()" style="height: 45px; padding: 0 25px; background: #3b82f6; border-color: #3b82f6;">📋 See Product List</button>
+        <button class="btn-view" onclick="goToProductList()">📋 See Product List</button>
     </header>
 
     <div class="split">
         <div class="form-panel-wide">
             <div class="input-row">
                 <div class="input-barcode">
-                    <label for="barcodeInput" style="display:block; margin-bottom:5px;">Scan Barcode</label>
+                    <label for="barcodeInput">Scan Barcode</label>
                     <input type="text" id="barcodeInput" placeholder="Enter barcode or scan..." autocomplete="off">
                 </div>
                 <div class="input-qty">
-                    <label for="qtyInput" style="display:block; margin-bottom:5px;">Quantity</label>
+                    <label for="qtyInput" class="d-block mb-5">Quantity</label>
                     <input type="number" id="qtyInput" value="1" min="1">
                 </div>
                 <div class="input-btn-container">
-                    <button class="btn-create" onclick="addProduct()" style="height: 45px; padding: 0 25px;">Add Item</button>
+                    <button class="btn-create btn-add-item" onclick="addProduct()">Add Item</button>
                 </div>
             </div>
 
@@ -136,10 +136,10 @@
                     <thead>
                         <tr>
                             <th>Product List</th>
-                            <th style="text-align: center;">Price</th>
-                            <th style="text-align: center;">Qty</th>
-                            <th style="text-align: center;">Subtotal</th>
-                            <th style="text-align: center;">Remove</th>
+                            <th class="center-text">Price</th>
+                            <th class="center-text">Qty</th>
+                            <th class="center-text">Subtotal</th>
+                            <th class="center-text">Remove</th>
                         </tr>
                     </thead>
                     <tbody id="cartTable">
@@ -160,43 +160,43 @@
         </div>
 
         <div class="summary-panel">
-            <h3 style="border-bottom: 2px solid var(--bg-main); padding-bottom: 10px; margin-top:0;">🧾 Cart Summary</h3>
+            <h3 class="summary-title">Cart Summary</h3>
             <div class="summary-item"><span>Total No. of Items:</span><strong id="itemCount">0</strong></div>
             <div class="summary-item"><span>Subtotal:</span><strong>₱ <span id="subtotalAmount">0.00</span></strong></div>
             
-            <div style="margin-top: 15px;">
-                <label for="discount" style="display:block; margin-bottom:5px;">Discount (%)</label>
-                <input type="number" id="discount" value="0" min="0" max="100" oninput="updateTotal()" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px;">
+            <div class="mt-15">
+                <label for="discount" class="d-block mb-5">Discount (%)</label>
+                <input type="number" id="discount" value="0" min="0" max="100" oninput="updateTotal()" class="discount-input">
             </div>
             
-            <div class="summary-item" style="color: #e63946; margin-top:10px;">
+            <div class="summary-item discount-amt-row">
                 <span>Discount Amount:</span><span>- ₱ <span id="discountDisplay">0.00</span></span>
             </div>
             
             <div class="total-display">
-                <p style="font-size: 13px; text-transform: uppercase; margin-bottom: 5px; color: #555;">Total Amount Due</p>
-                <h2 style="margin:0; color: var(--bg-dark); font-size: 28px;">₱ <span id="totalAmount">0.00</span></h2>
+                <p class="total-label">Total Amount Due</p>
+                <h2 class="total-val">₱ <span id="totalAmount">0.00</span></h2>
             </div>
-            <button class="btn-create" style="width:100%; padding: 18px; font-weight: bold; font-size: 16px; border: none; cursor: pointer; background: var(--bg-dark); color: white; border-radius: 4px;" onclick="openPayment()">PROCEED TO PAYMENT</button>
+            <button class="btn-proceed-large mt-15" onclick="openPayment()">PROCEED TO PAYMENT</button>
         </div>
     </div>
 </main>
 
-<div class="modal-overlay" id="paymentModal">
-    <div class="modal-box" style="border-top: 8px solid var(--bg-dark);">
-        <h3 style="margin-top:0;">Finalize Payment</h3>
+<div class="modal-overlay" id="paymentModal" style="display: none;">
+    <div class="modal-box modal-accent">
+        <h3 class="m-0 text-left">Finalize Payment</h3>
         
-        <div class="total-display" style="background: #f8f9fa; border-style: dashed; padding: 15px;">
-            <p style="margin:0;">Total Payable</p>
-            <strong style="font-size: 24px;">₱ <span id="modalTotal">0.00</span></strong>
+        <div class="total-display dashed-total-box mt-15 text-left">
+            <p class="m-0">Total Payable</p>
+            <strong class="f-24">₱ <span id="modalTotal">0.00</span></strong>
         </div>
 
-        <div style="text-align: left; margin: 15px 0;">
-            <label for="paymentMode" style="display:block; margin-bottom: 5px;">Payment Method</label>
-            <select id="paymentMode" style="width: 100%; padding: 12px; font-size: 16px; border: 2px solid var(--border-light); border-radius: 4px; outline: none;" onchange="handlePaymentMode()">
-                <option value="Cash">💵 Cash</option>
-                <option value="GCash">📱 GCash</option>
-                <option value="Bank Transfer">🏦 Bank Transfer</option>
+        <div class="text-left my-15">
+            <label for="paymentMode" class="d-block mb-5">Payment Method</label>
+            <select id="paymentMode" class="payment-select" onchange="handlePaymentMode()">
+                <option value="Cash">Cash</option>
+                <option value="GCash">GCash</option>
+                <option value="Bank Transfer">Bank Transfer</option>
             </select>
         </div>
 
@@ -222,34 +222,34 @@
             <p id="cashHelpText" style="display: none; color: #9ca3af; font-size: 12px; margin-top: 5px; margin-bottom: 0;">Leave empty if paid fully via Digital.</p>
         </div>
         
-        <div id="changeBox" style="background: #e7f3e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <p style="margin:0; font-size: 13px;">Change</p>
-            <strong style="font-size: 26px;">₱ <span id="changeAmount">0.00</span></strong>
+        <div id="changeBox" class="change-box text-left" style="background: var(--bg-main);">
+            <p class="change-label">Change</p>
+            <strong class="change-val">₱ <span id="changeAmount">0.00</span></strong>
         </div>
         
-        <div style="display: flex; gap: 10px;">
-            <button id="confirmBtn" class="btn-create" style="flex:2; padding: 15px; font-weight: bold; border:none; border-radius: 4px; cursor: pointer;" onclick="confirmPayment()">Confirm Payment</button>
-            <button class="btn-cancel" style="flex:1; padding: 15px; font-weight: bold; border:none; border-radius: 4px; background: #e5e7eb; color: #374151; cursor: pointer;" onclick="closeModal('paymentModal')">Cancel</button>
+        <div class="flex-gap-10">
+            <button id="confirmBtn" class="btn-confirm" onclick="confirmPayment()">Confirm Payment</button>
+            <button class="btn-cancel-large" onclick="closeModal('paymentModal')">Cancel</button>
         </div>
     </div>
 </div>
 
-<div class="modal-overlay" id="receiptModal">
+<div class="modal-overlay" id="receiptModal" style="display: none;">
     <div class="receipt-container" id="printableReceipt">
         <div class="receipt-header">
             <h2>UDICON TRADING</h2>
             <p>Official Sales Receipt</p>
-            <p style="margin-top: 10px;">TXN: <strong id="receipt-txn">---</strong></p>
+            <p class="mt-10">TXN: <strong id="receipt-txn">---</strong></p>
             <p>Date: <span id="receipt-date">---</span></p>
             <p>Method: <strong id="receipt-method">---</strong></p>
         </div>
 
-        <table class="receipt-items">
+        <table class="receipt-items w-full">
             <thead>
                 <tr>
-                    <th>Item</th>
-                    <th style="text-align: center;">Qty</th>
-                    <th style="text-align: right;">Amount</th>
+                    <th class="text-left">Item</th>
+                    <th class="center-text">Qty</th>
+                    <th class="text-right">Amount</th>
                 </tr>
             </thead>
             <tbody id="receipt-items-body">
@@ -260,7 +260,21 @@
             <div><span>Subtotal:</span> <span id="receipt-subtotal">₱0.00</span></div>
             <div><span>Discount:</span> <span id="receipt-discount">- ₱0.00</span></div>
             <div class="grand-total"><span>Total Due:</span> <span id="receipt-total">₱0.00</span></div>
-            <div id="receipt-payment-section" style="margin-top: 10px; color: #4b5563;"></div>
+            
+            <div id="receipt-digital-row" style="display: none; padding-top: 10px; margin-top: 10px; border-top: 1px dashed #ccc;">
+                <span id="receipt-digital-label">Digital Paid:</span> 
+                <span id="receipt-digital-val">₱0.00</span>
+            </div>
+            
+            <div id="receipt-cash-row" style="padding-top: 10px; margin-top: 10px; border-top: 1px dashed #ccc;">
+                <span>Cash Received:</span> 
+                <span id="receipt-cash-val">₱0.00</span>
+            </div>
+
+            <div class="grand-total" style="padding-top: 8px; margin-top: 8px; border-top: 1px solid #000;">
+                <span>Change:</span> 
+                <span id="receipt-change-val">₱0.00</span>
+            </div>
         </div>
 
         <div id="receipt-qr" style="display: flex; flex-direction: row; align-items: center; justify-content: flex-start; margin-top: 10px; gap: 10px;">
@@ -271,30 +285,21 @@
             </div>
         </div>
 
-        <div class="no-print" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
-            <button class="btn-create" style="padding: 12px; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="window.print()">🖨️ Print Receipt</button>
-            <button class="btn-cancel" style="padding: 12px; border:none; border-radius:4px; font-weight:bold; background: #e5e7eb; color: #374151; cursor:pointer;" onclick="closeModal('receiptModal')">Close</button>
+        <div class="no-print flex-col-gap-10 mt-15">
+            <button class="btn-receipt-action" onclick="window.print()">Print Receipt</button>
+            <button class="btn-receipt-cancel" onclick="closeModal('receiptModal')">Close</button>
         </div>
     </div>
 </div>
 
-<div class="modal-overlay" id="clearCartModal">
-    <div class="modal-box" style="border-top: 8px solid var(--bg-dark); max-width: 350px;">
-        <h3 style="margin-top:0;">Clear Cart</h3>
-        <p style="margin: 15px 0 25px 0; color: #4b5563; font-size: 15px;">Are you sure you want to remove all items from the cart?</p>
+<div class="modal-overlay" id="clearCartModal" style="display: none;">
+    <div class="modal-box modal-accent-small">
+        <h3 class="m-0">Clear Cart</h3>
+        <p class="clear-msg">Are you sure you want to remove all items from the cart?</p>
         
-        <div style="display: flex; gap: 10px;">
-            <button class="btn-create" 
-                    style="flex:2; padding: 12px; font-weight: bold; border:none; border-radius: 4px; background: var(--bg-dark); color: white; cursor: pointer;" 
-                    onclick="executeClearCart()">
-                Yes, Clear All
-            </button>
-            
-            <button class="btn-cancel" 
-                    style="flex:1; padding: 12px; font-weight: bold; border:none; border-radius: 4px; background: #e5e7eb; color: #374151; cursor: pointer;" 
-                    onclick="closeModal('clearCartModal')">
-                Cancel
-            </button>
+        <div class="flex-gap-10">
+            <button class="btn-confirm" onclick="executeClearCart()">Yes, Clear All</button>
+            <button class="btn-cancel-large" onclick="closeModal('clearCartModal')">Cancel</button>
         </div>
     </div>
 </div>
@@ -396,7 +401,7 @@ async function addProduct(manualBarcode = null, manualQty = null) {
 function renderCart() {
     const body = el("cartTable");
     if (cart.length === 0) {
-        body.innerHTML = `<tr><td colspan="5" style="padding:60px; text-align:center; color:#9ca3af;">Cart is empty. Use Product List or scan an item.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="5" class="empty-cart-msg">Cart is empty. Use Product List or scan an item.</td></tr>`;
     } else {
         body.innerHTML = cart.map((item, i) => `
             <tr>
@@ -510,7 +515,7 @@ function openPayment() {
     el("digitalAmount").value = "";
     el("cashInput").value = "";
     el("changeAmount").innerText = "0.00";
-    el("changeBox").style.background = "#fff5f5"; 
+    el("changeBox").style.background = "var(--white)"; 
     
     el("paymentModal").style.display = "flex";
     setTimeout(() => el("cashInput").focus(), 150);
@@ -533,11 +538,19 @@ function calculateChange() {
     const change = totalPaid - total;
     
     el("changeAmount").innerText = Math.max(0, change).toLocaleString(undefined, {minimumFractionDigits:2});
-    el("changeBox").style.background = change >= 0 ? "#e7f3e8" : "#fff5f5";
+    el("changeBox").style.background = change >= 0 ? "var(--bg-main)" : "var(--white)";
 }
 
-el("cashInput").addEventListener("input", calculateChange);
-el("digitalAmount").addEventListener("input", calculateChange);
+// Ensure strict limit up to 1,000,000 on inputs
+el("cashInput").addEventListener("input", function() {
+    if (parseFloat(this.value) > 1000000) this.value = 1000000;
+    calculateChange();
+});
+
+el("digitalAmount").addEventListener("input", function() {
+    if (parseFloat(this.value) > 1000000) this.value = 1000000;
+    calculateChange();
+});
 
 async function confirmPayment() {
     const totalText = el("modalTotal").innerText.replace(/,/g, '');
@@ -628,12 +641,12 @@ function generateDigitalReceipt(data) {
     el('receipt-date').innerText = new Date(data.timestamp).toLocaleString();
     
     let methodText = data.paymentMethod;
-    if (data.cashReceived > 0 && data.digitalAmount > 0) {
+    if (data.rawCash > 0 && data.digitalAmount > 0) {
         methodText = `SPLIT (${data.paymentMethod} & Cash)`;
     }
 
     if (data.referenceNumber && data.referenceNumber.trim() !== "") {
-        methodText += `<br><span style="font-size: 11px;">Ref: ${data.referenceNumber}</span>`;
+        methodText += `<br><span class="receipt-ref">Ref: ${data.referenceNumber}</span>`;
     }
     el('receipt-method').innerHTML = methodText;
     
@@ -641,9 +654,9 @@ function generateDigitalReceipt(data) {
     const tbody = el('receipt-items-body');
     tbody.innerHTML = data.items.map(i => `
         <tr>
-            <td style="padding-right: 5px;">${i.productName}</td>
-            <td style="text-align: center;">${i.qty}</td>
-            <td style="text-align: right;">₱${(i.price * i.qty).toFixed(2)}</td>
+            <td class="pr-5 text-left">${i.productName}</td>
+            <td class="center-text">${i.qty}</td>
+            <td class="text-right">₱${(i.price * i.qty).toFixed(2)}</td>
         </tr>
     `).join('');
 
@@ -656,10 +669,11 @@ function generateDigitalReceipt(data) {
     // 4. Payment Details Logic
     let paymentDetailsHTML = '<div style="display: block; width: 100%;">'; 
     if (data.paymentMethod !== 'Cash' && data.digitalAmount > 0) {
-        paymentDetailsHTML += `<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 4px;">
-            <span>${data.paymentMethod} Paid:</span> 
-            <span>₱${data.digitalAmount.toFixed(2)}</span>
-        </div>`;
+        digitalRow.style.display = "flex"; 
+        el('receipt-digital-label').innerText = `${data.paymentMethod} Paid:`;
+        el('receipt-digital-val').innerText = `₱${data.digitalAmount.toFixed(2)}`;
+    } else {
+        digitalRow.style.display = "none";
     }
     if (data.cashReceived > 0 || data.paymentMethod === 'Cash') {
         paymentDetailsHTML += `<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 4px;">
@@ -723,7 +737,6 @@ function clearCart() {
     if (cart.length === 0) return; 
     el("clearCartModal").style.display = "flex"; 
 }
-
 
 function executeClearCart() {
     cart = [];
