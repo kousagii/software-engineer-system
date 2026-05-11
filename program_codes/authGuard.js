@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const userRole = data.role;
 
             if (currentPath.includes('admin-screen') && userRole !== 'Admin') {
-                const sharedPages = ['admin-product', 'admin-supplier', 'admin-search'];
+                const sharedPages = ['admin-product', 'admin-supplier', 'admin-search', 'admin-report'];
                 const isSharedPage = sharedPages.some(page => currentPath.includes(page));
 
                 // If they are not InventoryStaff OR it's not a shared page, kick them out
@@ -35,9 +35,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            renderSidebar(userRole);
+            window.currentUserRole = userRole;
 
+            renderSidebar(userRole);
             setupLogoutButton();
+
+            if (typeof window.onAuthReady === 'function') {
+                window.onAuthReady(userRole);
+            }
         });
 });
 

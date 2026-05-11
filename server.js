@@ -77,6 +77,9 @@ app.post('/api/users', async (req, res) => {
                 return res.status(500).json({ error: "Database error" });
             }
             res.status(201).json({ message: "User created successfully!", userID: result.insertId });
+            const sessionUserID = req.session?.user?.id || result.insertId;
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Create User', ?)`,
+                [sessionUserID, `Created user: ${username} (${role})`]);
         });
     } catch (error) {
         res.status(500).json({ error: "Hashing error" });
@@ -104,6 +107,8 @@ app.post('/api/login', (req, res) => {
                 role: user.role,
                 name: user.firstName
             };
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Login', ?)`,
+                [user.userID, `${user.firstName} ${user.lastName} (${user.role}) logged in`]);
             res.json({ message: "Login successful", role: user.role });
         } else {
             res.status(401).json({ error: "Incorrect password" });
@@ -121,6 +126,10 @@ app.get('/api/auth-status', (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => {
+    if (req.session && req.session.user) {
+        db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Logout', ?)`,
+            [req.session.user.id, `${req.session.user.name} logged out`]);
+    }
     req.session.destroy();
     res.json({ message: "Logged out" });
 });
@@ -177,6 +186,9 @@ app.post('/api/products', upload.single('productImage'), (req, res) => {
             }
             return res.status(500).json({ error: "Database error" });
         }
+        const sessionUserID = req.session?.user?.id || 1;
+        db.query(`INSERT INTO inventory_record (userID, productID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Add', ?, NOW(), ?)`,
+            [sessionUserID, result.insertId, parseInt(stockQuantity) || 0, `Added product: ${productName}`]);
         res.status(201).json({ message: "Success!" });
     });
 });
@@ -207,6 +219,9 @@ app.put('/api/products/:id', upload.single('productImage'), (req, res) => {
             console.error(err);
             return res.status(500).json({ error: "Failed to update product" });
         }
+        const sessionUserID = req.session?.user?.id || 1;
+        db.query(`INSERT INTO inventory_record (userID, productID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Edit', 0, NOW(), ?)`,
+            [sessionUserID, id, `Edited product: ${productName}`]);
         res.status(200).json({ message: "Product updated successfully!" });
     });
 });
@@ -222,6 +237,9 @@ app.delete('/api/products/:id', (req, res) => {
             console.error(err);
             return res.status(500).json({ error: "Failed to remove product from view" });
         }
+        const sessionUserID = req.session?.user?.id || 1;
+        db.query(`INSERT INTO inventory_record (userID, productID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Archive', 0, NOW(), ?)`,
+            [sessionUserID, id, `Archived product ID: ${id}`]);
         res.status(200).json({ message: "Product removed!" });
     });
 });
@@ -263,6 +281,9 @@ app.post('/api/suppliers', (req, res) => {
         if (err) return res.status(500).json({ error: "Database error" });
 
         const newSupplierId = result.insertId;
+        const sessionUserID = req.session?.user?.id || 1;
+        db.query(`INSERT INTO inventory_record (userID, supplierID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Supplier Add', 0, NOW(), ?)`,
+            [sessionUserID, newSupplierId, `Added supplier: ${supplierName}`]);
 
         if (productIDs && productIDs.length > 0) {
             const spSql = `INSERT INTO supplier_products (supplierID, productID) VALUES ?`;
@@ -287,6 +308,9 @@ app.put('/api/suppliers/:id', (req, res) => {
 
     db.query(sql, [supplierName, contactNumber, email, address, id], (err, result) => {
         if (err) return res.status(500).json({ error: "Failed to update supplier" });
+        const sessionUserID = req.session?.user?.id || 1;
+        db.query(`INSERT INTO inventory_record (userID, supplierID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Supplier Edit', 0, NOW(), ?)`,
+            [sessionUserID, id, `Edited supplier: ${supplierName}`]);
 
         db.query(`DELETE FROM supplier_products WHERE supplierID = ?`, [id], (delErr) => {
             if (delErr) console.error(delErr);
@@ -314,6 +338,9 @@ app.delete('/api/suppliers/:id', (req, res) => {
             console.error(err);
             return res.status(500).json({ error: "Failed to remove supplier from view" });
         }
+        const sessionUserID = req.session?.user?.id || 1;
+        db.query(`INSERT INTO inventory_record (userID, supplierID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Supplier Archive', 0, NOW(), ?)`,
+            [sessionUserID, id, `Archived supplier ID: ${id}`]);
         res.status(200).json({ message: "Supplier removed!" });
     });
 });
@@ -428,6 +455,9 @@ app.post('/api/orders', (req, res) => {
                         return res.status(500).json({ error: "Failed to insert order items" });
                     }
                     res.status(201).json({ message: "Order created", orderID });
+                    const sessionUserID = req.session?.user?.id || 1;
+                    db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Create Order', ?)`,
+                        [sessionUserID, `Created PO-${orderID} for supplier ID: ${supplierID}`]);
                 });
             });
         });
@@ -594,6 +624,9 @@ app.delete('/api/orders/:id', (req, res) => {
                 console.error(err2);
                 return res.status(500).json({ error: "Failed to delete order" });
             }
+            const sessionUserID = req.session?.user?.id || 1;
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Delete Order', ?)`,
+                [sessionUserID, `Deleted order ID: ${id}`]);
             res.json({ message: "Order deleted" });
         });
     });
@@ -653,6 +686,9 @@ app.put('/api/users/:id', async (req, res) => {
             }
 
             res.status(200).json({ message: "User updated successfully!" });
+            const sessionUserID = req.session?.user?.id || 1;
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Edit User', ?)`,
+                [sessionUserID, `Updated user: ${username} (${role})`]);
         });
 
     } catch (error) {
@@ -671,7 +707,129 @@ app.delete('/api/users/:id', (req, res) => {
             console.error(err);
             return res.status(500).json({ error: "Failed to delete user" });
         }
+        const sessionUserID = req.session?.user?.id || 1;
+        db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Delete User', ?)`,
+            [sessionUserID, `Deleted user ID: ${id}`]);
         res.status(200).json({ message: "User deleted successfully!" });
+    });
+});
+
+// --- REPORT API ENDPOINTS ---
+
+// Sales Performance Report
+app.get('/api/reports/sales', (req, res) => {
+    const { from, to } = req.query;
+    if (!from || !to) return res.status(400).json({ error: 'Date range required' });
+
+    const sql = `
+        SELECT 
+            DATE(st.transDateTime) AS day,
+            COUNT(DISTINCT st.transactionID) AS orders,
+            COALESCE(SUM(si.quantity), 0) AS productsSold,
+            COALESCE(SUM(st.totalAmount), 0) AS sales
+        FROM sales_transaction st
+        LEFT JOIN sales_item si ON st.transactionID = si.transactionID
+        WHERE DATE(st.transDateTime) BETWEEN ? AND ?
+          AND st.paymentStatus != 'Refunded'
+        GROUP BY DATE(st.transDateTime)
+        ORDER BY day ASC
+    `;
+
+    db.query(sql, [from, to], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Failed to generate sales report' });
+        }
+        res.json(results);
+    });
+});
+
+// User Logs Report - combines inventory_record + activity_log
+app.get('/api/reports/userlogs', (req, res) => {
+    const { from, to, role } = req.query;
+    if (!from || !to) return res.status(400).json({ error: 'Date range required' });
+
+    let roleFilter = '';
+    if (role === 'admin') roleFilter = "AND u.role = 'Admin'";
+    else if (role === 'sales') roleFilter = "AND u.role = 'SalesStaff'";
+    else if (role === 'inventory') roleFilter = "AND u.role = 'InventoryStaff'";
+
+    const sql = `
+        (
+            SELECT 
+                al.logDateTime AS dateTime,
+                CONCAT(u.firstName, ' ', u.lastName) AS userName,
+                u.role AS userType,
+                CONCAT(al.actionType, IFNULL(CONCAT(' - ', al.details), '')) AS action
+            FROM activity_log al
+            JOIN users u ON al.userID = u.userID
+            WHERE DATE(al.logDateTime) BETWEEN ? AND ?
+            ${roleFilter}
+        )
+        UNION ALL
+        (
+            SELECT 
+                ir.inventoryDate AS dateTime,
+                CONCAT(u.firstName, ' ', u.lastName) AS userName,
+                u.role AS userType,
+                CONCAT(
+                    ir.actionType, ' - ',
+                    CASE 
+                        WHEN ir.productID IS NOT NULL THEN CONCAT('Product: ', IFNULL(p.productName, CONCAT('ID ', ir.productID)))
+                        WHEN ir.supplierID IS NOT NULL THEN CONCAT('Supplier: ', IFNULL(s.supplierName, CONCAT('ID ', ir.supplierID)))
+                        ELSE ''
+                    END,
+                    CASE WHEN ir.quantityChange != 0 THEN CONCAT(' (Qty: ', IF(ir.quantityChange > 0, '+', ''), ir.quantityChange, ')') ELSE '' END,
+                    IFNULL(CONCAT(' - ', ir.details), '')
+                ) AS action
+            FROM inventory_record ir
+            JOIN users u ON ir.userID = u.userID
+            LEFT JOIN product p ON ir.productID = p.productID
+            LEFT JOIN supplier s ON ir.supplierID = s.supplierID
+            WHERE DATE(ir.inventoryDate) BETWEEN ? AND ?
+            ${roleFilter}
+        )
+        ORDER BY dateTime DESC
+    `;
+
+    db.query(sql, [from, to, from, to], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Failed to generate user logs report' });
+        }
+        res.json(results);
+    });
+});
+
+// Stock Alerts Report
+app.get('/api/reports/stocks', (req, res) => {
+    const { status } = req.query;
+
+    let stockFilter = 'WHERE p.isActive = 1 AND p.stockQuantity <= 10';
+    if (status === 'low') stockFilter += ' AND p.stockQuantity > 0';
+    else if (status === 'out') stockFilter += ' AND p.stockQuantity = 0';
+
+    const sql = `
+        SELECT 
+            p.productID,
+            p.productName AS product,
+            p.category,
+            p.stockQuantity AS stocks,
+            CASE 
+                WHEN p.stockQuantity = 0 THEN 'Out of Stock'
+                ELSE 'Low Stock'
+            END AS status
+        FROM product p
+        ${stockFilter}
+        ORDER BY p.stockQuantity ASC
+    `;
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Failed to generate stock alerts report' });
+        }
+        res.json(results);
     });
 });
 
@@ -699,9 +857,10 @@ app.get('/api/getProduct', (req, res) => {
 
         res.json(results[0]);
     });
+});
 
-    // GET recent sales transactions (for dashboard)
-    app.get('/api/transactions', (req, res) => {
+// GET recent sales transactions (for dashboard)
+app.get('/api/transactions', (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
         const sql = `
         SELECT st.transactionID, st.transactionCode, st.transDateTime,
@@ -806,6 +965,8 @@ app.get('/api/getProduct', (req, res) => {
                         .then(() => {
                             db.commit(cErr => {
                                 if (cErr) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
+                                db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Sale', ?)`,
+                                    [finalUserID, `Transaction ${transactionId} - Amount: ₱${parseFloat(totalAmount).toFixed(2)} - ${paymentMethod}`]);
                                 res.status(201).json({ message: "Transaction completed successfully.", transactionCode: transactionId });
                             });
                         })
@@ -834,9 +995,9 @@ app.get('/api/getProduct', (req, res) => {
         Promise.all(updatePromises)
             .then(() => res.json({ message: "Inventory updated" }))
             .catch(err => res.status(500).json({ error: "Stock update failed" }));
-    });
+});
 
-    // BACK UP FUNCTIONS & SCHEDULES
+// BACK UP FUNCTIONS & SCHEDULES
 
     let fullBackupJob;
     let incBackupJob;
@@ -1004,4 +1165,3 @@ app.get('/api/getProduct', (req, res) => {
             });
         });
     }
-});
