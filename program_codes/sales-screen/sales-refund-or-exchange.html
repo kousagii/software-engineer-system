@@ -116,7 +116,7 @@
                 <section id="exchangeSection" class="form-panel-wide hidden">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                         <h3 style="margin:0; color: var(--green-light);">Replacement Items</h3>
-                        <button class="btn-edit" style="width:auto;" onclick="addExchangeItem()">+ Add Replacement Item</button>
+                        <button class="btn-view" onclick="addExchangeItem()">+ Add Replacement Item</button>
                     </div>
                     <table class="data-table" id="exchangeTable">
                         <thead>
@@ -324,18 +324,35 @@
     // Fetches product details from API and adds to exchange list
     async function addSelectedItemToExchange(barcode) {
         try {
-            const res = await fetch(`/api/getProductByBarcode?barcode=${barcode}`);
-            if (!res.ok) return showToast("Product not found.", true);
-            
+            console.log("Selected barcode:", barcode);
+            if (!barcode) {
+                showToast("No barcode received.", true);
+                return;
+            }
+            const res = await fetch(`/api/getProduct?barcode=${encodeURIComponent(barcode)}`);
+            console.log("Response status:", res.status);
+            if (!res.ok) {
+                console.error("API response failed:", res.status);
+                return showToast("Product not found.", true);
+            }
             const product = await res.json();
-            exchangeList.push({ 
-                productID: product.productID, 
-                name: product.productName, 
-                price: parseFloat(product.price), 
-                qty: 1 
-            });
-            
+            console.log("Fetched product:", product);
+            const selectedQty = parseInt(localStorage.getItem("selectedQty")) || 1;
+            const existing = exchangeList.find(i => i.productID === product.productID);
+            if (existing) {
+                existing.qty += selectedQty;
+            } else {
+                exchangeList.push({
+                    productID: product.productID,
+                    name: product.productName,
+                    price: parseFloat(product.price),
+                    qty: selectedQty
+                });
+            }
+            localStorage.removeItem("selectedBarcode");
+            localStorage.removeItem("selectedQty");
             saveCurrentState();
+            renderAll();
         } catch (err) {
             console.error("Error adding item:", err);
             showToast("Error connecting to database.", true);
@@ -433,14 +450,23 @@
         }).join('');
     }
 
-    function stepQty(tableId, index, delta) {
-        const list = (tableId === "originalTable") ? returnList : exchangeList;
-        const item = list[index];
-        const max = item.originalQty ?? item.qty;
-        const newQty = Math.max(1, Math.min(max, (parseInt(item.qty) || 1) + delta));
+function stepQty(tableId, index, delta) {
+    const list = (tableId === "originalTable") ? returnList : exchangeList;
+    const item = list[index];
 
-        updateItemQty(tableId, index, newQty);
+    const currentQty = parseInt(item.qty) || 1;
+    const max = item.originalQty ?? item.qty;
+
+    // Show toast if exceeding purchased quantity
+    if (tableId === "originalTable" && delta > 0 && currentQty >= max) {
+        showToast(`Cannot exceed purchased quantity (${max})`, true);
+        return;
     }
+
+    const newQty = Math.max(1, Math.min(max, currentQty + delta));
+
+    updateItemQty(tableId, index, newQty);
+}
 
     function updateItemQty(tableId, index, newQty) {
         const qty = parseInt(newQty);
@@ -589,7 +615,14 @@
 
         if (res.ok) {
             closeModal('paymentModal');
-            localStorage.removeItem("pendingAdjustment");
+            localStorage.removeItem("pendingAdjustment");    
+
+            showToast(
+                currentMode === "exchange"
+                    ? "Exchange transaction completed successfully!"
+                    : "Refund transaction completed successfully!"
+            );
+            
             showFinalReceipt(finalGeneratedCode, payload);
         } else {
             showToast("Process failed. Check database connection.", true);

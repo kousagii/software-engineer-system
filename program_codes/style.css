@@ -774,14 +774,6 @@ button:hover {
 }
 
 /* LAYOUT & PANELS */
-.page-header-flex {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border-light);
-}
 
 .header-actions {
     display: flex;
@@ -1711,18 +1703,6 @@ input[type="radio"]:checked+.mode-label {
 }
 
 /* SALES-TRANSACTION STYLES */
-
-.btn-product-list {
-    height: 45px;
-    padding: 0 25px;
-    background: #3b82f6;
-    border-color: #3b82f6;
-}
-
-.btn-product-list:hover {
-    background: #2563eb;
-    border-color: #2563eb;
-}
 
 .label-sm {
     display: block;

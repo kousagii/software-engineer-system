@@ -410,6 +410,17 @@
                 showToast("Please add items before checking out.", true);
                 return;
             }
+
+            const selectionMode = localStorage.getItem("selectionMode");
+            if (selectionMode === "exchange") {
+                if (cart.length > 0) {
+                    localStorage.setItem("selectedBarcode", cart[0].barcode);
+                    localStorage.setItem("selectedQty", cart[0].qty);
+                }
+                localStorage.removeItem("pendingCart");
+                window.location.href = "sales-refund-or-exchange.html";
+                return;
+            }
             window.location.href = "sales-transaction.html";
         }
 
