@@ -1,73 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Refund / Exchange | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-        /* === GLOBAL & LAYOUT === */
-        * { box-sizing: border-box; }
-        .split { display: flex; gap: 25px; width: 100%; align-items: flex-start; }
-        .left-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
-        .right-col { width: 360px; flex-shrink: 0; position: sticky; top: 20px; }
-        .form-panel-wide { background: var(--white); padding: 20px; border-radius: var(--rad-md); box-shadow: var(--shadow-light); }
-
-        /* === MODE SWITCHER === */
-        .mode-pill-container { display: inline-flex; background: #e9e2d9; padding: 4px; border-radius: var(--rad-md); }
-        .mode-label { padding: 8px 18px; cursor: pointer; border-radius: var(--rad-sm); font-size: 13px; font-weight: 700; transition: 0.2s; text-transform: uppercase; }
-        .hidden-radio { display: none; }
-        input[type="radio"]:checked + .mode-label { background: var(--bg-dark); color: #fff; box-shadow: var(--shadow-light); }
-
-        /* === TABLES === */
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .data-table th { text-align: left; padding: 12px 8px; border-bottom: 2px solid var(--bg-main); color: var(--green-light); font-size: 12px; text-transform: uppercase; }
-        .data-table td { padding: 12px 8px; border-bottom: 1px solid var(--bg-main); }
-        
-        .receipt-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed var(--border-light); }
-        .receipt-total { margin-top: 15px; padding-top: 15px; border-top: 2px solid var(--green-light); display: flex; justify-content: space-between; align-items: center; }
-  
-        /* Checkbox Styling */
-        .return-checkbox { width: 20px; height: 20px; cursor: pointer; accent-color: var(--green-light); vertical-align: middle; }
-        .row-selected { background-color: #f0fdf4; }
-        .row-disabled { opacity: 0.6; background-color: #f9fafb; }
-        
-        /* Qty Button Helpers */
-        .qty-btn { width: 32px; height: 32px; border: 1px solid var(--border-light); background: #fff; cursor: pointer; border-radius: 4px; font-weight: bold; }
-        .qty-btn:hover:not(:disabled) { background: var(--bg-main); }
-        .qty-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-        /* === MODALS & TOASTS === */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-        .hidden { display: none !important; }
-
-        /* === 80mm THERMAL RECEIPT STYLES === */
-        .receipt-container { background: white; padding: 20px; border-radius: 8px; width: 100%; max-width: 320px; color: #000; text-align: left; font-family: 'Courier New', Courier, monospace; }
-        .receipt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 15px; margin-bottom: 15px; }
-        .receipt-header h2 { margin: 0; font-size: 22px; font-weight: bold; }
-        .receipt-header p { margin: 4px 0; font-size: 12px; color: #000; }
-        .receipt-items { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px; }
-        .receipt-items th { text-align: left; border-bottom: 1px solid #000; padding-bottom: 5px; }
-        .receipt-items td { padding: 5px 0; }
-        .receipt-totals { border-top: 1px dashed #000; padding-top: 15px; font-size: 13px; }
-        .receipt-totals div { display: flex; justify-content: space-between; margin-bottom: 6px; }
-        .receipt-totals .grand-total { font-weight: bold; font-size: 16px; margin-top: 10px; border-top: 1px solid #000; padding-top: 10px; }
-
-        /* === PRINT LOGIC === */
-        @media print {
-            @page { margin: 0; size: 80mm auto; }
-            body > :not(#receiptModal) { display: none !important; }
-            body { margin: 0; padding: 0; background: white; }
-            #receiptModal { position: relative !important; left: 0; top: 0; width: 80mm !important; margin: 0 !important; padding: 0 !important; background: white !important; display: block !important; }
-            .receipt-container { width: 76mm !important; max-width: 76mm !important; margin: 0 !important; padding: 2mm !important; box-sizing: border-box !important; border-radius: 0; box-shadow: none; border: none; }
-            .no-print { display: none !important; }
-        }
-
-        @media (max-width: 1150px) { .split { flex-direction: column; } .right-col { width: 100%; position: static; } }
-    </style>
 </head>
+
 <body>
 
     <div id="toast"></div>
@@ -75,64 +16,87 @@
 
     <main class="dashboard-main">
         <header class="page-header">
-            <h2>Refund / Exchange Item</h2>
-            <p class="sub-text">Process customer returns and exchanges of items.</p>
+            <div>
+                <h2 class="dash-page-title">Refund / Exchange Item</h2>
+                <p class="sub-text dash-subtitle">Process customer returns and exchanges of items.</p>
+            </div>
         </header>
 
-        <div class="split">
+        <div class="split w-full">
             <div class="left-col">
-                <section class="form-panel-wide" style="border-left: 5px solid var(--green-light);">
-                    <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+                <section class="form-panel-wide">
+                    <div class="flex flex-gap-10">
                         <div>
-                            <label style="font-weight: 800; color: var(--green-light); text-transform: uppercase; font-size: 13px;">1. Transaction Type</label><br>
-                            <div class="mode-pill-container">
-                                <label><input type="radio" name="mode" value="refund" class="hidden-radio" checked onclick="setMode('refund')"><span class="mode-label">Refund</span></label>
-                                <label><input type="radio" name="mode" value="exchange" class="hidden-radio" onclick="setMode('exchange')"><span class="mode-label">Exchange</span></label>
+                            <label class="label-bold search-th mt-0">1. Transaction Type</label>
+                            <div class="mode-pill-container mt-5">
+                                <label><input type="radio" name="mode" value="refund" class="hidden-radio" checked
+                                        onclick="setMode('refund')"><span class="mode-label">Refund</span></label>
+                                <label><input type="radio" name="mode" value="exchange" class="hidden-radio"
+                                        onclick="setMode('exchange')"><span class="mode-label">Exchange</span></label>
                             </div>
                         </div>
-                        <div style="flex: 1; min-width: 200px;">
-                            <label style="font-weight: 800; color: var(--green-light); text-transform: uppercase; font-size: 13px;">2. Search Receipt</label>
-                            <div style="display:flex; gap:10px; margin-top: 5px; align-items: center;">
-                                <input id="txnInput" type="text" placeholder="Enter Transaction Code or Scan Receipt QR Code" style="flex: 1; height: 42px;" onfocus="this.select()" autocomplete="off">
-                                <button class="btn-create;" style="width: 120px; height: 42px;" onclick="loadTransaction()">Search</button>
-                                <button class="btn-cancel" style="width: 120px; height: 42px;" onclick="clearAdjustment()">🗑️ Reset</button>
+                        <div class="w-full">
+                            <label class="label-bold search-th mt-0">2. Search Receipt</label>
+                            <div class="flex flex-gap-10 mt-5">
+                                <input id="txnInput" type="text"
+                                    placeholder="Enter Transaction Code"
+                                    class="w-full" onfocus="this.select()" autocomplete="off">
+                                <button class="btn-create" onclick="loadTransaction()">Search</button>
+                                <button class="btn-cancel" onclick="clearAdjustment()">Reset</button>
                             </div>
                         </div>
                     </div>
                 </section>
 
                 <section class="form-panel-wide">
-                    <h3 style="margin-top:0; color: var(--green-light);">Returned Items</h3>
+                    <h3 class="summary-title mt-0">Returned Items</h3>
                     <table class="data-table" id="originalTable">
                         <thead>
-                            <tr><th>Product</th><th>Price</th><th style="text-align:center;">Qty</th><th>Subtotal</th><th style="text-align:right;">Select Return Items</th></tr>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th class="text-center">Qty</th>
+                                <th>Subtotal</th>
+                                <th class="text-right">Select Return Items</th>
+                            </tr>
                         </thead>
                         <tbody id="returnTableBody">
-                            <tr><td colspan="5" style="text-align:center; padding:40px; color:#999;">No transaction loaded.</td></tr>
+                            <tr>
+                                <td colspan="5" class="text-center empty-cart-msg">No transaction loaded.</td>
+                            </tr>
                         </tbody>
                     </table>
                 </section>
 
                 <section id="exchangeSection" class="form-panel-wide hidden">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                        <h3 style="margin:0; color: var(--green-light);">Replacement Items</h3>
+                    <div class="toolbar mb-15">
+                        <h3 class="mt-0 summary-title mb-0">Replacement Items</h3>
                         <button class="btn-view" onclick="addExchangeItem()">+ Add Replacement Item</button>
                     </div>
                     <table class="data-table" id="exchangeTable">
                         <thead>
-                            <tr><th>Product</th><th>Price</th><th style="text-align:center;">Qty</th><th>Subtotal</th><th style="text-align:right;">Action</th></tr>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th class="text-center">Qty</th>
+                                <th>Subtotal</th>
+                                <th class="text-right">Action</th>
+                            </tr>
                         </thead>
                         <tbody id="exchangeTableBody">
-                            <tr><td colspan="5" style="text-align:center; padding:40px; color:#999;">No replacement items added.</td></tr>
+                            <tr>
+                                <td colspan="5" class="text-center empty-cart-msg">No replacement items added.</td>
+                            </tr>
                         </tbody>
                     </table>
                 </section>
             </div>
 
-            <aside class="right-col">
-                <div class="form-panel-wide">
-                    <h3 id="summaryTitle" style="margin:0; border-bottom: 1px solid var(--border-light); padding-bottom: 10px;">Refund Summary</h3>
-                    <div class="receipt-row" style="margin-top: 15px;">
+            <aside class="right-col summary-panel">
+                <div>
+                    <h3 id="summaryTitle" class="summary-title mt-0">Refund Summary</h3>
+                    
+                    <div class="receipt-row mt-15">
                         <span class="sub-text">Total Return Amount:</span>
                         <strong id="refundTotalDisplay">₱0.00</strong>
                     </div>
@@ -140,82 +104,86 @@
                         <span class="sub-text">Total Exchange Amount:</span>
                         <strong id="exchangeTotalDisplay">₱0.00</strong>
                     </div>
+                    
                     <div class="receipt-total">
-                        <span id="balanceLabel" style="font-weight:bold;"> Refund Amount:</span>
-                        <span style="font-size: 1.5em; font-weight:800; color:var(--green-light);">₱<span id="balanceTotal">0.00</span></span>
+                        <span id="balanceLabel" class="label-bold">Refund Amount:</span>
+                        <span class="total-val">₱<span id="balanceTotal">0.00</span></span>
                     </div>
-                    <div style="margin-top: 25px;">
-                        <label style="font-weight: 700; display: block; margin-bottom: 5px;">Return / Exchange Reason</label>
-                        <textarea id="reason" rows="3" placeholder="Enter reason for adjustment (e.g., defective item, wrong size, incorrect product, customer request)" style="width: 100%; padding: 10px; border: 1px solid var(--border-light); border-radius: 4px;"></textarea>
+
+                    <div class="mt-15">
+                        <label class="label-bold label-sm">Return / Exchange Reason</label>
+                        <textarea id="reason" rows="3" class="w-full"
+                            placeholder="Enter reason for adjustment (e.g., defective item, wrong size)"></textarea>
                     </div>
-                    <button class="btn-create" style="padding:15px; font-size:16px; margin-top:20px; width:100%; font-weight: bold;" onclick="initiateProcess()">
+
+                    <button class="btn-proceed-large mt-15" onclick="initiateProcess()">
                         Process Transaction
                     </button>
                 </div>
             </aside>
         </div>
 
-        <div class="modal-overlay" id="paymentModal" style="display: none;">
-            <div class="modal-content" style="width: 400px; border-top: 8px solid var(--bg-dark);">
-                <h3 style="margin-top:0;">Payment Collection</h3>
-                <div style="background: #f8f9fa; border: 1px dashed #ccc; padding: 15px; text-align: center; margin-bottom: 15px;">
-                    <p style="margin:0; font-size: 13px; color: #666;">Outstanding Balance</p>
-                    <strong style="font-size: 24px;">₱ <span id="modalTotal">0.00</span></strong>
+        <div class="modal-overlay" id="paymentModal">
+            <div class="modal-box modal-accent">
+                <h3 class="mt-0">Payment Collection</h3>
+                <div class="dashed-total-box mb-15 text-center">
+                    <p class="total-label mt-0">Outstanding Balance</p>
+                    <strong class="f-24">₱ <span id="modalTotal">0.00</span></strong>
                 </div>
-                
-                <div style="margin-bottom: 15px;">
-                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">Payment Method</label>
-                    <select id="paymentMode" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #ccc;" onchange="handlePaymentMode()">
-                        <option value="Cash">💵 Cash</option>
-                        <option value="GCash">📱 GCash</option>
-                        <option value="Bank Transfer">🏦 Bank Transfer</option>
+
+                <div class="mb-15 section-left">
+                    <label class="label-bold label-sm">Payment Method</label>
+                    <select id="paymentMode" class="payment-select" onchange="handlePaymentMode()">
+                        <option value="Cash">Cash</option>
+                        <option value="GCash">GCash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
                     </select>
                 </div>
 
-                <div id="digitalPaymentDetails" style="display: none; background: #e0f2fe; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #bae6fd;">
-                    <label style="font-size: 12px; font-weight: bold; color: #0369a1; display: block;">Digital Amount Paid</label>
-                    <input type="number" id="digitalAmount" step="0.01" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #7dd3fc; border-radius: 4px;" oninput="calculateChange()">
-                    <label style="font-size: 12px; font-weight: bold; color: #0369a1; display: block;">Reference / Trace No.</label>
-                    <input type="text" id="referenceNumber" placeholder="Required for digital payments" style="width: 100%; padding: 10px; border: 1px solid #7dd3fc; border-radius: 4px;">
+                <div id="digitalPaymentDetails" class="digital-panel-blue hidden">
+                    <label class="digital-label-blue">Digital Amount Paid</label>
+                    <input type="number" id="digitalAmount" step="0.01" class="digital-input mb-10" oninput="calculateChange()">
+                    <label class="digital-label-blue">Reference / Trace No.</label>
+                    <input type="text" id="referenceNumber" placeholder="Required for digital payments" class="digital-input">
                 </div>
 
-                <div style="margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                        <label style="font-weight: bold; margin: 0;">Cash Received</label>
-                        <span id="cashOptionalBadge" style="display: none; font-size: 11px; background: #f3f4f6; color: #6b7280; padding: 2px 8px; border-radius: 12px;">Optional</span>
+                <div class="mb-15 section-left">
+                    <div class="cash-label-row">
+                        <label class="label-bold m-0">Cash Received</label>
+                        <span id="cashOptionalBadge" class="optional-badge hidden">Optional</span>
                     </div>
-                    <input type="number" id="cashInput" style="font-size: 20px; padding: 12px; width: 100%; text-align: center; border: 2px solid var(--bg-dark); border-radius: 4px;" oninput="calculateChange()" placeholder="0.00">
+                    <input type="number" id="cashInput" class="cash-input" oninput="calculateChange()" placeholder="0.00">
                 </div>
 
-                <div id="changeBox" style="background: #e7f3e8; padding: 12px; text-align: center; margin-bottom: 20px; border-radius: 4px;">
-                    <p style="margin:0; font-size: 13px;">Change</p>
-                    <strong style="font-size: 24px;">₱ <span id="changeAmount">0.00</span></strong>
+                <div id="changeBox" class="change-box mb-15 text-center">
+                    <p class="change-label">Change</p>
+                    <strong class="change-val">₱ <span id="changeAmount">0.00</span></strong>
                 </div>
 
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn-create" style="flex:2; font-weight: bold; padding: 15px;" onclick="processFinalTransaction()">Confirm</button>
-                    <button class="btn-cancel" style="flex:1;" onclick="closeModal('paymentModal')">Cancel</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="modal-overlay" id="clearCartModal" style="display: none;">
-            <div class="modal-content" style="border-top: 8px solid var(--bg-dark); max-width: 350px; text-align: center;">
-                <h3 style="margin-top:0;">Clear Current Transaction</h3>
-                <p style="margin: 15px 0 25px 0; color: #4b5563; font-size: 15px;">Are you sure you want to clear all transaction items?</p>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn-create" style="flex:2; padding: 12px;" onclick="executeClearCart()">Yes, Clear</button>
-                    <button class="btn-cancel" style="flex:1; padding: 12px;" onclick="closeModal('clearCartModal')">Cancel</button>
+                <div class="flex flex-gap-10">
+                    <button class="btn-confirm" onclick="processFinalTransaction()">Confirm</button>
+                    <button class="btn-cancel-large" onclick="closeModal('paymentModal')">Cancel</button>
                 </div>
             </div>
         </div>
 
-        <div class="modal-overlay" id="receiptModal" style="display: none;">
+        <div class="modal-overlay" id="clearCartModal">
+            <div class="modal-box modal-accent-small text-center">
+                <h3 class="mt-0">Clear Current Transaction</h3>
+                <p class="clear-msg">Are you sure you want to clear all transaction items?</p>
+                <div class="flex flex-gap-10">
+                    <button class="btn-confirm" onclick="executeClearCart()">Yes, Clear</button>
+                    <button class="btn-cancel-large" onclick="closeModal('clearCartModal')">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="receiptModal">
             <div class="receipt-container" id="printableReceipt">
                 <div class="receipt-header">
                     <h2>UDICON TRADING</h2>
                     <p id="receipt-type-label">Transaction Receipt</p>
-                    <p style="margin-top: 10px;">TXN: <strong id="receipt-txn">---</strong></p>
+                    <p class="mt-10">TXN: <strong id="receipt-txn">---</strong></p>
                     <p>Date: <span id="receipt-date">---</span></p>
                     <p>Method: <strong id="receipt-method">---</strong></p>
                 </div>
@@ -224,466 +192,466 @@
                     <thead>
                         <tr>
                             <th>Item</th>
-                            <th style="text-align: center;">Qty</th>
-                            <th style="text-align: right;">Amount</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-right">Amount</th>
                         </tr>
                     </thead>
                     <tbody id="receipt-items-body"></tbody>
                 </table>
 
                 <div class="receipt-totals">
-                    <div><span>Returns Total:</span> <span id="receipt-return-total">₱0.00</span></div>
-                    <div id="receipt-exchange-row"><span>Exchange Total:</span> <span id="receipt-exchange-total">₱0.00</span></div>
-                    <div class="grand-total">
-                        <span id="receipt-net-label">Refund:</span> 
+                    <div class="receipt-row"><span>Returns Total:</span> <span id="receipt-return-total">₱0.00</span></div>
+                    <div id="receipt-exchange-row" class="receipt-row"><span>Exchange Total:</span> <span id="receipt-exchange-total">₱0.00</span></div>
+                    
+                    <div class="grand-total receipt-row">
+                        <span id="receipt-net-label">Refund:</span>
                         <span id="receipt-total">₱0.00</span>
                     </div>
-                    <div id="receipt-payment-section" style="margin-top: 10px; color: #4b5563; font-size: 12px;"></div>
+                    <div id="receipt-payment-section" class="receipt-payment-info"></div>
                 </div>
 
-                <div id="receipt-qr" style="display: flex; flex-direction: row; align-items: center; justify-content: flex-start; margin-top: 10px; gap: 10px;">
-                    <div id="qrcode-canvas" style="display: flex; align-items: center; justify-content: center;"></div>
-                    <div style="display: flex; flex-direction: column; justify-content: center; text-align: left;">
-                        <span style="font-size: 8px; color: #666; text-transform: uppercase; line-height: 1.4;">Scan for Refund/Exchange</span>
-                        <p style="font-size: 12px; margin-top: 6px; margin-bottom: 0; line-height: 1.4;"> Thank you for choosing Udicon Trading!</p>
+                <div id="receipt-qr" class="receipt-qr-row">
+                    <div id="qrcode-canvas" class="qr-canvas-box"></div>
+                    <div class="qr-text-col">
+                        <span class="qr-scan-label">Scan for Refund/Exchange</span>
+                        <p class="qr-thank-you"> Thank you for choosing Udicon Trading!</p>
                     </div>
                 </div>
 
-                <div class="no-print" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
-                    <button class="btn-create" onclick="window.print()">🖨️ Print Receipt</button>
-                    <button class="btn-cancel" onclick="location.reload()">Close & Reset</button>
+                <div class="no-print flex-col-gap-10 mt-15">
+                    <button class="btn-receipt-action" onclick="window.print()">Print Receipt</button>
+                    <button class="btn-receipt-cancel" onclick="location.reload()">Close & Reset</button>
                 </div>
             </div>
         </div>
     </main>
 
-<script src="../authGuard.js"></script>
-<script>
-    let currentMode = "refund";
-    let returnList = [];
-    let exchangeList = [];
-    const ui = (id) => document.getElementById(id);
+    <script src="../authGuard.js"></script>
+    <script>
+        let currentMode = "refund";
+        let returnList = [];
+        let exchangeList = [];
+        const ui = (id) => document.getElementById(id);
 
-    // --- 1. SCANNER & AUTO-FOCUS LOGIC ---
-    // Automatically focuses the search box if the user starts scanning/typing anywhere on the page
-    document.addEventListener('keydown', function(e) {
-        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-            const activeTag = document.activeElement.tagName.toLowerCase();
-            if (activeTag !== 'input' && activeTag !== 'textarea') {
-                const txnInput = ui("txnInput");
-                if (txnInput) txnInput.focus();
-            }
-        }
-    });
-
-    window.addEventListener('DOMContentLoaded', async () => {
-        ui("txnInput").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                loadTransaction();
+        // --- 1. SCANNER & AUTO-FOCUS LOGIC ---
+        document.addEventListener('keydown', function (e) {
+            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                const activeTag = document.activeElement.tagName.toLowerCase();
+                if (activeTag !== 'input' && activeTag !== 'textarea') {
+                    const txnInput = ui("txnInput");
+                    if (txnInput) txnInput.focus();
+                }
             }
         });
 
-        // Load session data FIRST (Restores the UI state immediately)
-        const saved = localStorage.getItem("pendingAdjustment");
-        if (saved) {
-            const session = JSON.parse(saved);
-            ui("txnInput").value = session.originalTxnCode || "";
-            ui("reason").value = session.reason || "";
-            returnList = session.returns || [];
-            exchangeList = session.exchanges || [];
-            if (session.mode) setMode(session.mode);
-        }
-
-        renderAll();
-
-        const selectedBarcode = localStorage.getItem("selectedBarcode");
-        const selectionMode = localStorage.getItem("selectionMode");
-
-        if (selectedBarcode && selectionMode === "exchange") {
-            await addSelectedItemToExchange(selectedBarcode);
-            localStorage.removeItem("selectedBarcode");
-            localStorage.removeItem("selectionMode");
-            localStorage.removeItem("selectedQty");
-            renderAll();
-        }
-
-        ui("txnInput").focus();
-        ui("reason").addEventListener("input", saveCurrentState);
-
-        const sidebarContainer = ui("sidebar");
-        if (sidebarContainer) {
-            sidebarContainer.addEventListener("click", (e) => {
-                if (e.target.closest("a")) {
-                    localStorage.removeItem("pendingAdjustment");
+        window.addEventListener('DOMContentLoaded', async () => {
+            ui("txnInput").addEventListener("keypress", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    loadTransaction();
                 }
             });
-        }
-    });
 
-    // Fetches product details from API and adds to exchange list
-    async function addSelectedItemToExchange(barcode) {
-        try {
-            console.log("Selected barcode:", barcode);
-            if (!barcode) {
-                showToast("No barcode received.", true);
-                return;
+            const saved = localStorage.getItem("pendingAdjustment");
+            if (saved) {
+                const session = JSON.parse(saved);
+                ui("txnInput").value = session.originalTxnCode || "";
+                ui("reason").value = session.reason || "";
+                returnList = session.returns || [];
+                exchangeList = session.exchanges || [];
+                if (session.mode) setMode(session.mode);
             }
-            const res = await fetch(`/api/getProduct?barcode=${encodeURIComponent(barcode)}`);
-            console.log("Response status:", res.status);
-            if (!res.ok) {
-                console.error("API response failed:", res.status);
-                return showToast("Product not found.", true);
+
+            renderAll();
+
+            const selectedBarcode = localStorage.getItem("selectedBarcode");
+            const selectionMode = localStorage.getItem("selectionMode");
+
+            if (selectedBarcode && selectionMode === "exchange") {
+                await addSelectedItemToExchange(selectedBarcode);
+                localStorage.removeItem("selectedBarcode");
+                localStorage.removeItem("selectionMode");
+                localStorage.removeItem("selectedQty");
+                renderAll();
             }
-            const product = await res.json();
-            console.log("Fetched product:", product);
-            const selectedQty = parseInt(localStorage.getItem("selectedQty")) || 1;
-            const existing = exchangeList.find(i => i.productID === product.productID);
-            if (existing) {
-                existing.qty += selectedQty;
-            } else {
-                exchangeList.push({
-                    productID: product.productID,
-                    name: product.productName,
-                    price: parseFloat(product.price),
-                    qty: selectedQty
+
+            ui("txnInput").focus();
+            ui("reason").addEventListener("input", saveCurrentState);
+
+            const sidebarContainer = ui("sidebar");
+            if (sidebarContainer) {
+                sidebarContainer.addEventListener("click", (e) => {
+                    if (e.target.closest("a")) {
+                        localStorage.removeItem("pendingAdjustment");
+                    }
                 });
             }
-            localStorage.removeItem("selectedBarcode");
-            localStorage.removeItem("selectedQty");
-            saveCurrentState();
-            renderAll();
-        } catch (err) {
-            console.error("Error adding item:", err);
-            showToast("Error connecting to database.", true);
+        });
+
+        async function addSelectedItemToExchange(barcode) {
+            try {
+                if (!barcode) {
+                    showToast("No barcode received.", true);
+                    return;
+                }
+                const res = await fetch(`/api/getProduct?barcode=${encodeURIComponent(barcode)}`);
+                if (!res.ok) return showToast("Product not found.", true);
+                
+                const product = await res.json();
+                const selectedQty = parseInt(localStorage.getItem("selectedQty")) || 1;
+                const existing = exchangeList.find(i => i.productID === product.productID);
+                
+                if (existing) {
+                    existing.qty += selectedQty;
+                } else {
+                    exchangeList.push({
+                        productID: product.productID,
+                        name: product.productName,
+                        price: parseFloat(product.price),
+                        qty: selectedQty
+                    });
+                }
+                localStorage.removeItem("selectedBarcode");
+                localStorage.removeItem("selectedQty");
+                saveCurrentState();
+                renderAll();
+            } catch (err) {
+                showToast("Error connecting to database.", true);
+            }
         }
-    }
 
-    // --- 2. CORE FUNCTIONS ---
-    function generateAdjCode(prefix, originalCode) {
-        const now = new Date();
-        const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
-        const timePart = now.toTimeString().slice(0, 8).replace(/:/g, '');
-        return `${prefix}-${datePart}-${timePart} (Orig: ${originalCode})`;
-    }
+        // --- 2. CORE FUNCTIONS ---
+        function generateAdjCode(prefix) {
+            const now = new Date();
+            const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
+            const timePart = now.toTimeString().slice(0, 8).replace(/:/g, '');
+            return `${prefix}-${datePart}-${timePart}`;
+        }
 
-    function showToast(msg, isError = false) {
-        const toast = ui("toast");
-        toast.innerText = msg;
-        toast.className = "show" + (isError ? " error" : "");
-        setTimeout(() => { toast.className = ""; }, 3000);
-    }
+        function buildDisplayCode(shortCode, originalCode) {
+            return `${shortCode} (Orig: ${originalCode})`;
+        }
 
-    function setMode(m) {
-        currentMode = m;
-        document.querySelector(`input[name="mode"][value="${m}"]`).checked = true;
-        ui("exchangeSection").classList.toggle('hidden', currentMode !== "exchange");
-        ui("exchangeLine").classList.toggle('hidden', currentMode !== "exchange");
-        ui("summaryTitle").innerText = currentMode === "exchange" ? "Exchange Summary" : "Refund Summary";
-        updateCalculations();
-    }
+        function showToast(msg, isError = false) {
+            const toast = ui("toast");
+            toast.innerText = msg;
+            toast.className = "show" + (isError ? " error" : "");
+            setTimeout(() => { toast.className = ""; }, 3000);
+        }
 
-    async function loadTransaction() {
-        const code = ui("txnInput").value.trim();
-        if(!code) return showToast("Please enter a valid transaction code.", true); 
-        
-        const res = await fetch(`/api/getTransactionForRefund?code=${code}`);
-        if(!res.ok) return showToast("Transaction not found.", true);
-        
-        const data = await res.json();
-        returnList = data.map(i => ({ 
-            productID: i.productID, 
-            name: i.productName, 
-            price: parseFloat(i.price), 
-            qty: i.quantity,
-            originalQty: i.quantity,
-            selected: false 
-        }));
-        
-        renderAll();
-        saveCurrentState();
-    }
+        function setMode(m) {
+            currentMode = m;
+            document.querySelector(`input[name="mode"][value="${m}"]`).checked = true;
+            ui("exchangeSection").classList.toggle('hidden', currentMode !== "exchange");
+            ui("exchangeLine").classList.toggle('hidden', currentMode !== "exchange");
+            ui("summaryTitle").innerText = currentMode === "exchange" ? "Exchange Summary" : "Refund Summary";
+            updateCalculations();
+        }
 
-    function renderAll() {
-        renderTable("originalTable", returnList, "removeReturnItem");
-        renderTable("exchangeTable", exchangeList, "removeExchangeItem");
-        updateCalculations();
-    }
+        async function loadTransaction() {
+            const code = ui("txnInput").value.trim();
+            if (!code) return showToast("Please enter a valid transaction code.", true);
 
-    function renderTable(id, data, actionFunc) {
-        const body = ui(id).querySelector("tbody");
-        const isReturnTable = (id === "originalTable");
+            const res = await fetch(`/api/getTransactionForRefund?code=${code}`);
+            if (!res.ok) return showToast("Transaction not found.", true);
 
-        if (data.length === 0) {
-            body.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:53px; color:#999;">
+            const data = await res.json();
+            returnList = data.map(i => ({
+                productID: i.productID,
+                name: i.productName,
+                price: parseFloat(i.price),
+                qty: i.quantity,
+                originalQty: i.quantity,
+                selected: false
+            }));
+
+            renderAll();
+            saveCurrentState();
+        }
+
+        function renderAll() {
+            renderTable("originalTable", returnList, "removeReturnItem");
+            renderTable("exchangeTable", exchangeList, "removeExchangeItem");
+            updateCalculations();
+        }
+
+        function renderTable(id, data, actionFunc) {
+            const body = ui(id).querySelector("tbody");
+            const isReturnTable = (id === "originalTable");
+
+            if (data.length === 0) {
+                body.innerHTML = `<tr><td colspan="5" class="text-center empty-cart-msg">
                 ${isReturnTable ? "No transaction loaded." : "No replacement items added."}
             </td></tr>`;
-            return;
-        }
+                return;
+            }
 
-        body.innerHTML = data.map((i, idx) => {
-            const isChecked = isReturnTable ? (i.selected !== false) : true;
-            const rowClass = isReturnTable ? (isChecked ? "row-selected" : "row-disabled") : "";
+            body.innerHTML = data.map((i, idx) => {
+                const isChecked = isReturnTable ? (i.selected !== false) : true;
 
-            return `
-                <tr class="${rowClass}">
-                    <td style="font-weight:500; vertical-align: middle;">${i.name}</td>
-                    <td class="sub-text" style="vertical-align: middle;">₱${i.price.toFixed(2)}</td>
-                    <td style="vertical-align: middle; text-align: center;">
-                        <div style="display: inline-flex; align-items: center; justify-content: center; gap: 5px;">
+                return `
+                <tr>
+                    <td class="cart-name-cell">${i.name}</td>
+                    <td class="sub-text">₱${i.price.toFixed(2)}</td>
+                    <td class="text-center">
+                        <div class="cart-qty-cell">
                             <button type="button" class="qty-btn" ${!isChecked ? 'disabled' : ''} onclick="stepQty('${id}', ${idx}, -1)">-</button>
                             <input type="number" value="${i.qty}" min="1" 
                                 ${!isChecked ? 'disabled' : ''}
-                                style="width: 50px; height: 32px; text-align: center; border: 1px solid var(--border-light); border-radius: 4px;"
+                                class="cart-qty-input"
                                 onchange="updateItemQty('${id}', ${idx}, this.value)">
                             <button type="button" class="qty-btn" ${!isChecked ? 'disabled' : ''} onclick="stepQty('${id}', ${idx}, 1)">+</button>
                         </div>
                     </td>
-                    <td style="font-weight:bold; vertical-align: middle;">₱${(i.price * i.qty).toFixed(2)}</td>
-                    <td style="text-align:right; vertical-align: middle;">
-                        ${isReturnTable ? 
-                            `<input type="checkbox" class="return-checkbox" ${isChecked ? 'checked' : ''} onchange="toggleReturnItem(${idx})">` : 
-                            `<button class="btn-delete" onclick="removeExchangeItem(${idx})">X</button>`
-                        }
+                    <td class="label-bold">₱${(i.price * i.qty).toFixed(2)}</td>
+                    <td class="text-right">
+                        ${isReturnTable ?
+                        `<label class="checkbox-label flex-end m-0"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleReturnItem(${idx})"></label>` :
+                        `<button class="btn-remove-red" onclick="removeExchangeItem(${idx})">X</button>`
+                    }
                     </td>
                 </tr>`;
-        }).join('');
-    }
-
-function stepQty(tableId, index, delta) {
-    const list = (tableId === "originalTable") ? returnList : exchangeList;
-    const item = list[index];
-
-    const currentQty = parseInt(item.qty) || 1;
-    const max = item.originalQty ?? item.qty;
-
-    // Show toast if exceeding purchased quantity
-    if (tableId === "originalTable" && delta > 0 && currentQty >= max) {
-        showToast(`Cannot exceed purchased quantity (${max})`, true);
-        return;
-    }
-
-    const newQty = Math.max(1, Math.min(max, currentQty + delta));
-
-    updateItemQty(tableId, index, newQty);
-}
-
-    function updateItemQty(tableId, index, newQty) {
-        const qty = parseInt(newQty);
-        const list = (tableId === "originalTable") ? returnList : exchangeList;
-        const item = list[index];
-
-        if (isNaN(qty) || qty < 1) {
-            showToast("Quantity must be at least 1", true);
-            renderAll();
-            return;
+            }).join('');
         }
 
-        if (tableId === "originalTable") {
-            const max = item.originalQty ?? item.qty;
-            if (qty > max) {
+        function stepQty(tableId, index, delta) {
+            const list = (tableId === "originalTable") ? returnList : exchangeList;
+            const item = list[index];
+
+            const currentQty = parseInt(item.qty) || 1;
+            
+            // Fix: Exchanged items do not carry a maximum quantity bound limits
+            const max = (tableId === "originalTable") ? (item.originalQty ?? item.qty) : Infinity;
+
+            if (tableId === "originalTable" && delta > 0 && currentQty >= max) {
                 showToast(`Cannot exceed purchased quantity (${max})`, true);
-                item.qty = max;
-                renderAll();
-                saveCurrentState();
                 return;
             }
+
+            const newQty = Math.max(1, Math.min(max, currentQty + delta));
+
+            updateItemQty(tableId, index, newQty);
         }
-        item.qty = qty;
 
-        saveCurrentState();
-        renderAll();
-    }
+        function updateItemQty(tableId, index, newQty) {
+            const qty = parseInt(newQty);
+            const list = (tableId === "originalTable") ? returnList : exchangeList;
+            const item = list[index];
 
-    function updateCalculations() {
-        const ret = returnList.filter(i => i.selected === true).reduce((s, i) => s + (i.price * i.qty), 0);
-        const exc = (currentMode === "exchange") ? exchangeList.reduce((s, i) => s + (i.price * i.qty), 0) : 0;
-        const net = ret - exc;
-        
-        ui("refundTotalDisplay").innerText = `₱${ret.toFixed(2)}`;
-        ui("exchangeTotalDisplay").innerText = `₱${exc.toFixed(2)}`;
-        ui("balanceLabel").innerText = net >= 0 ? "Refund Amount:" : "Collect Payment:";
-        ui("balanceTotal").innerText = Math.abs(net).toFixed(2);
-    }
+            if (isNaN(qty) || qty < 1) {
+                showToast("Quantity must be at least 1", true);
+                renderAll();
+                return;
+            }
 
-    function toggleReturnItem(index) {
-        returnList[index].selected = !returnList[index].selected;
-        saveCurrentState();
-        renderAll();
-    }
+            if (tableId === "originalTable") {
+                const max = item.originalQty ?? item.qty;
+                if (qty > max) {
+                    showToast(`Cannot exceed purchased quantity (${max})`, true);
+                    item.qty = max;
+                    renderAll();
+                    saveCurrentState();
+                    return;
+                }
+            }
+            item.qty = qty;
 
-    function saveCurrentState() {
-        localStorage.setItem("pendingAdjustment", JSON.stringify({
-            mode: currentMode, 
-            originalTxnCode: ui("txnInput").value,
-            returns: returnList, 
-            exchanges: exchangeList, 
-            reason: ui("reason").value
-        }));
-    }
-
-    function closeModal(id) { ui(id).style.display = 'none'; }
-    function openModal(id) { ui(id).style.display = 'flex'; }
-    function clearAdjustment() { openModal('clearCartModal'); }
-    function executeClearCart() { localStorage.removeItem("pendingAdjustment"); location.reload(); }
-
-    // --- 3. PAYMENT & PROCESSING ---
-    function handlePaymentMode() {
-        const mode = ui("paymentMode").value;
-        const totalToCollect = parseFloat(ui("modalTotal").innerText) || 0;
-        const digitalPanel = ui("digitalPaymentDetails");
-        const optionalBadge = ui("cashOptionalBadge");
-
-        if (mode !== "Cash") {
-            digitalPanel.style.display = "block";
-            optionalBadge.style.display = "inline-block";
-            ui("digitalAmount").value = totalToCollect.toFixed(2);
-            ui("cashInput").value = "";
-            setTimeout(() => ui("referenceNumber").focus(), 100);
-        } else {
-            digitalPanel.style.display = "none";
-            optionalBadge.style.display = "none";
-            ui("digitalAmount").value = 0;
-            ui("cashInput").value = "";
-            ui("cashInput").focus();
+            saveCurrentState();
+            renderAll();
         }
-        calculateChange();
-    }
 
-    function calculateChange() {
-        const payable = parseFloat(ui("modalTotal").innerText) || 0;
-        const digitalPaid = parseFloat(ui("digitalAmount").value) || 0;
-        const cashReceived = parseFloat(ui("cashInput").value) || 0;
-        const totalReceived = digitalPaid + cashReceived;
-        const change = totalReceived - payable;
-        ui("changeAmount").innerText = (change > 0) ? change.toFixed(2) : "0.00";
-        ui("changeBox").style.background = (totalReceived < (payable - 0.01)) ? "#fee2e2" : "#e7f3e8";
-    }
+        function updateCalculations() {
+            const ret = returnList.filter(i => i.selected === true).reduce((s, i) => s + (i.price * i.qty), 0);
+            const exc = (currentMode === "exchange") ? exchangeList.reduce((s, i) => s + (i.price * i.qty), 0) : 0;
+            const net = ret - exc;
 
-    function initiateProcess() {
-        const activeReturns = returnList.filter(i => i.selected !== false);
-        if (activeReturns.length === 0) return showToast("Please select at least one item to return.", true);
-        if (!ui("reason").value.trim()) return showToast("Please provide a reason.", true);
-
-        const retVal = activeReturns.reduce((s, i) => s + (i.price * i.qty), 0);
-        const excVal = exchangeList.reduce((s, i) => s + (i.price * i.qty), 0);
-        const net = retVal - excVal;
-
-        if (net < -0.01) { 
-            ui("modalTotal").innerText = Math.abs(net).toFixed(2); 
-            openModal("paymentModal"); 
-            handlePaymentMode(); 
-        } else {
-            processFinalTransaction();
+            ui("refundTotalDisplay").innerText = `₱${ret.toFixed(2)}`;
+            ui("exchangeTotalDisplay").innerText = `₱${exc.toFixed(2)}`;
+            ui("balanceLabel").innerText = net >= 0 ? "Refund Amount:" : "Collect Payment:";
+            ui("balanceTotal").innerText = Math.abs(net).toFixed(2);
         }
-    }
 
-    async function processFinalTransaction() {
-        const activeReturns = returnList.filter(i => i.selected !== false);
-        const retVal = activeReturns.reduce((s, i) => s + (i.price * i.qty), 0);
-        const excVal = exchangeList.reduce((s, i) => s + (i.price * i.qty), 0);
-        const net = retVal - excVal;
-
-        const mode = ui("paymentMode").value;
-        const inputedRef = ui("referenceNumber").value.trim();
-        const originalCode = ui("txnInput").value.trim();
-        
-        if (net < 0 && mode !== "Cash" && !inputedRef) return showToast("Reference number is required.", true);
-
-        const prefix = currentMode === "exchange" ? "UTE" : "UTR";
-        const finalGeneratedCode = generateAdjCode(prefix, originalCode);
-
-        const payload = {
-            mode: currentMode,
-            transactionCode: finalGeneratedCode, 
-            originalTxnCode: originalCode,
-            returns: activeReturns,
-            exchanges: exchangeList,
-            reason: ui("reason").value,
-            paymentMethod: net < 0 ? mode : "Adjustment",
-            cashReceived: parseFloat(ui("cashInput").value) || 0,
-            digitalAmount: parseFloat(ui("digitalAmount").value) || 0,
-            referenceNumber: inputedRef, 
-            netBalance: net
-        };
-
-        const res = await fetch('/api/processAdjustment', { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-            closeModal('paymentModal');
-            localStorage.removeItem("pendingAdjustment");    
-
-            showToast(
-                currentMode === "exchange"
-                    ? "Exchange transaction completed successfully!"
-                    : "Refund transaction completed successfully!"
-            );
-            
-            showFinalReceipt(finalGeneratedCode, payload);
-        } else {
-            showToast("Process failed. Check database connection.", true);
+        function toggleReturnItem(index) {
+            returnList[index].selected = !returnList[index].selected;
+            saveCurrentState();
+            renderAll();
         }
-    }
 
-    // --- 4. RECEIPT & QR GENERATION ---
-    function showFinalReceipt(code, data) {
-        const formattedCode = code.replace(" (Orig:", "<br><span style='font-size: 11px; font-weight: normal;'>(Orig:");
-        ui("receipt-txn").innerHTML = formattedCode + "</span>";
-        ui("receipt-date").innerText = new Date().toLocaleString();
-        ui("receipt-type-label").innerText = data.mode.toUpperCase() + " RECEIPT";
-        ui("receipt-method").innerText = data.paymentMethod;
-
-        let html = `<tr><td colspan="3" style="font-weight:bold; border-bottom: 1px solid #eee;">[RETURNS]</td></tr>`;
-        data.returns.forEach(i => html += `<tr><td>${i.name}</td><td style="text-align:center;">${i.qty}</td><td style="text-align:right;">₱${(i.price*i.qty).toFixed(2)}</td></tr>`);
-        
-        if (data.exchanges.length > 0) {
-            html += `<tr><td colspan="3" style="font-weight:bold; padding-top:10px; border-bottom: 1px solid #eee;">[EXCHANGES]</td></tr>`;
-            data.exchanges.forEach(i => html += `<tr><td>${i.name}</td><td style="text-align:center;">${i.qty}</td><td style="text-align:right;">₱${(i.price*i.qty).toFixed(2)}</td></tr>`);
+        function saveCurrentState() {
+            localStorage.setItem("pendingAdjustment", JSON.stringify({
+                mode: currentMode,
+                originalTxnCode: ui("txnInput").value,
+                returns: returnList,
+                exchanges: exchangeList,
+                reason: ui("reason").value
+            }));
         }
-        
-        ui("receipt-items-body").innerHTML = html;
-        ui("receipt-return-total").innerText = `₱${data.returns.reduce((s,i)=>s+(i.price*i.qty),0).toFixed(2)}`;
-        ui("receipt-exchange-total").innerText = `₱${data.exchanges.reduce((s,i)=>s+(i.price*i.qty),0).toFixed(2)}`;
-        ui("receipt-exchange-row").style.display = data.mode === 'exchange' ? 'flex' : 'none';
-        ui("receipt-net-label").innerText = data.netBalance < 0 ? "Amount Collected:" : "Amount Refunded:";
-        ui("receipt-total").innerText = `₱${Math.abs(data.netBalance).toFixed(2)}`;
 
-        if(data.netBalance < 0) {
-            const totalPaid = data.cashReceived + data.digitalAmount;
-            const change = totalPaid - Math.abs(data.netBalance);
-            ui("receipt-payment-section").innerHTML = `
-                Received: ₱${totalPaid.toFixed(2)} | Change: ₱${Math.max(0, change).toFixed(2)}
-                ${data.referenceNumber ? '<br>Ref: ' + data.referenceNumber : ''}
+        function closeModal(id) { ui(id).style.display = 'none'; }
+        function openModal(id) { ui(id).style.display = 'flex'; }
+        function clearAdjustment() { openModal('clearCartModal'); }
+        function executeClearCart() { localStorage.removeItem("pendingAdjustment"); location.reload(); }
+
+        // --- 3. PAYMENT & PROCESSING ---
+        function handlePaymentMode() {
+            const mode = ui("paymentMode").value;
+            const totalToCollect = parseFloat(ui("modalTotal").innerText) || 0;
+            const digitalPanel = ui("digitalPaymentDetails");
+            const optionalBadge = ui("cashOptionalBadge");
+
+            if (mode !== "Cash") {
+                digitalPanel.classList.remove("hidden");
+                optionalBadge.classList.remove("hidden");
+                ui("digitalAmount").value = totalToCollect.toFixed(2);
+                ui("cashInput").value = "";
+                setTimeout(() => ui("referenceNumber").focus(), 100);
+            } else {
+                digitalPanel.classList.add("hidden");
+                optionalBadge.classList.add("hidden");
+                ui("digitalAmount").value = 0;
+                ui("cashInput").value = "";
+                ui("cashInput").focus();
+            }
+            calculateChange();
+        }
+
+        function calculateChange() {
+            const payable = parseFloat(ui("modalTotal").innerText) || 0;
+            const digitalPaid = parseFloat(ui("digitalAmount").value) || 0;
+            const cashReceived = parseFloat(ui("cashInput").value) || 0;
+            const totalReceived = digitalPaid + cashReceived;
+            const change = totalReceived - payable;
+            ui("changeAmount").innerText = (change > 0) ? change.toFixed(2) : "0.00";
+            ui("changeBox").style.background = (totalReceived < (payable - 0.01)) ? "#fee2e2" : "#e7f3e8";
+        }
+
+        function initiateProcess() {
+            const activeReturns = returnList.filter(i => i.selected !== false);
+            if (activeReturns.length === 0) return showToast("Please select at least one item to return.", true);
+            if (!ui("reason").value.trim()) return showToast("Please provide a reason.", true);
+
+            const retVal = activeReturns.reduce((s, i) => s + (i.price * i.qty), 0);
+            const excVal = exchangeList.reduce((s, i) => s + (i.price * i.qty), 0);
+            const net = retVal - excVal;
+
+            if (net < -0.01) {
+                ui("modalTotal").innerText = Math.abs(net).toFixed(2);
+                openModal("paymentModal");
+                handlePaymentMode();
+            } else {
+                processFinalTransaction();
+            }
+        }
+
+        async function processFinalTransaction() {
+            const activeReturns = returnList.filter(i => i.selected !== false);
+            const retVal = activeReturns.reduce((s, i) => s + (i.price * i.qty), 0);
+            const excVal = exchangeList.reduce((s, i) => s + (i.price * i.qty), 0);
+            const net = retVal - excVal;
+
+            const mode = ui("paymentMode").value;
+            const inputedRef = ui("referenceNumber").value.trim();
+            const originalCode = ui("txnInput").value.trim();
+
+            if (net < 0 && mode !== "Cash" && !inputedRef) return showToast("Reference number is required.", true);
+
+            const prefix = currentMode === "exchange" ? "UTE" : "UTR";
+            const shortCode = generateAdjCode(prefix);
+            const displayCode = buildDisplayCode(shortCode, originalCode);
+
+            const payload = {
+                mode: currentMode,
+                transactionCode: shortCode,
+                originalTxnCode: originalCode,
+                returns: activeReturns,
+                exchanges: exchangeList,
+                reason: ui("reason").value,
+                paymentMethod: net < 0 ? mode : "Adjustment",
+                cashReceived: parseFloat(ui("cashInput").value) || 0,
+                digitalAmount: parseFloat(ui("digitalAmount").value) || 0,
+                referenceNumber: inputedRef,
+                netBalance: net
+            };
+
+            const res = await fetch('/api/processAdjustment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                closeModal('paymentModal');
+                localStorage.removeItem("pendingAdjustment");
+
+                showToast(
+                    currentMode === "exchange"
+                        ? "Exchange transaction completed successfully!"
+                        : "Refund transaction completed successfully!"
+                );
+                
+                showFinalReceipt(displayCode, shortCode, payload);
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                showToast(errData.error || "Process failed. Check database connection.", true);
+            }
+        }
+
+        // --- 4. RECEIPT & QR GENERATION ---
+        function showFinalReceipt(displayCode, shortCode, data) {
+            const formattedCode = displayCode.replace(" (Orig:", "<br><span class='receipt-ref'>(Orig:");
+            ui("receipt-txn").innerHTML = formattedCode + "</span>";
+            ui("receipt-date").innerText = new Date().toLocaleString();
+            ui("receipt-type-label").innerText = data.mode.toUpperCase() + " RECEIPT";
+            ui("receipt-method").innerText = data.paymentMethod;
+
+            let html = `<tr><td colspan="3" class="label-bold" style="border-bottom: 1px solid #eee;">[RETURNS]</td></tr>`;
+            data.returns.forEach(i => html += `<tr><td>${i.name}</td><td class="text-center">${i.qty}</td><td class="text-right">₱${(i.price * i.qty).toFixed(2)}</td></tr>`);
+
+            if (data.exchanges.length > 0) {
+                html += `<tr><td colspan="3" class="label-bold" style="padding-top:10px; border-bottom: 1px solid #eee;">[EXCHANGES]</td></tr>`;
+                data.exchanges.forEach(i => html += `<tr><td>${i.name}</td><td class="text-center">${i.qty}</td><td class="text-right">₱${(i.price * i.qty).toFixed(2)}</td></tr>`);
+            }
+
+            ui("receipt-items-body").innerHTML = html;
+            ui("receipt-return-total").innerText = `₱${data.returns.reduce((s, i) => s + (i.price * i.qty), 0).toFixed(2)}`;
+            ui("receipt-exchange-total").innerText = `₱${data.exchanges.reduce((s, i) => s + (i.price * i.qty), 0).toFixed(2)}`;
+            ui("receipt-exchange-row").style.display = data.mode === 'exchange' ? 'flex' : 'none';
+            ui("receipt-net-label").innerText = data.netBalance < 0 ? "Amount Collected:" : "Amount Refunded:";
+            ui("receipt-total").innerText = `₱${Math.abs(data.netBalance).toFixed(2)}`;
+
+            if (data.netBalance < 0) {
+                const totalPaid = data.cashReceived + data.digitalAmount;
+                const change = totalPaid - Math.abs(data.netBalance);
+                ui("receipt-payment-section").innerHTML = `
+                <span class="receipt-payment-block">Received: ₱${totalPaid.toFixed(2)}</span>
+                <span class="receipt-payment-block">Change: ₱${Math.max(0, change).toFixed(2)}</span>
+                ${data.referenceNumber ? '<span class="receipt-payment-block mt-5">Ref: ' + data.referenceNumber + '</span>' : ''}
             `;
+            }
+
+            const qrCanvas = ui("qrcode-canvas");
+            qrCanvas.innerHTML = "";
+            const qrData = shortCode; 
+
+            new QRCode(qrCanvas, {
+                text: qrData,
+                width: 60,
+                height: 60,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            openModal("receiptModal");
         }
 
-        const qrCanvas = ui("qrcode-canvas");
-        qrCanvas.innerHTML = ""; 
-        const qrData = code.split(" (")[0];
-        
-        new QRCode(qrCanvas, {
-            text: qrData,
-            width: 60,
-            height: 60,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
-        });
+        function addExchangeItem() {
+            saveCurrentState();
+            localStorage.setItem("selectionMode", "exchange");
+            window.location.href = "sales-product-list.html";
+        }
 
-        openModal("receiptModal");
-    }
-
-    function addExchangeItem() { 
-        saveCurrentState(); 
-        localStorage.setItem("selectionMode", "exchange"); 
-        window.location.href = "sales-product-list.html"; 
-    }
-
-    function removeExchangeItem(i) { exchangeList.splice(i, 1); renderAll(); saveCurrentState(); }
-</script>
+        function removeExchangeItem(i) { exchangeList.splice(i, 1); renderAll(); saveCurrentState(); }
+    </script>
 </body>
 </html>

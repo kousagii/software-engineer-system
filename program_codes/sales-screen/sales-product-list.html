@@ -20,8 +20,8 @@
 
     <main class="dashboard-main">
         <div class="page-header">
-            <h2>Product List</h2>
-            <div class="header-actions">
+            <h2 id="pageTitle">Product List</h2>
+            <div class="header-actions" id="normalActions">
                 <button class="btn-view" onclick="openCartPreview()">
                     🛒 View Cart <span class="cart-badge" id="cartBadge">0</span>
                 </button>
@@ -29,6 +29,16 @@
                     Proceed to Checkout ➔
                 </button>
             </div>
+            <div class="header-actions" id="exchangeActions" style="display:none;">
+                <button class="btn-cancel" onclick="cancelExchangeSelection()" style="margin:0;">
+                    ✕ Cancel
+                </button>
+            </div>
+        </div>
+
+        <div id="exchangeBanner"
+            style="display:none; background:#e8f5e9; border-left:5px solid var(--green-light); padding:12px 16px; border-radius:6px; margin-bottom:15px; font-weight:600; color:var(--green-light);">
+            Exchange Mode — Select a replacement product to add to the exchange list.
         </div>
 
         <div class="form-panel toolbar">
@@ -163,11 +173,22 @@
     <script src="../authGuard.js"></script>
     <script>
         const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
+        const isExchangeMode = localStorage.getItem("selectionMode") === "exchange";
         let products = [];
         let cart = JSON.parse(localStorage.getItem("pendingCart") || "[]");
         let selectedProduct = null;
         let currentPage = 1;
         let currentPrintBarcode = "", currentPrintName = "";
+
+        // Apply exchange mode UI on load
+        if (isExchangeMode) {
+            document.addEventListener('DOMContentLoaded', () => {
+                document.getElementById("pageTitle").innerText = "Select Replacement Product";
+                document.getElementById("normalActions").style.display = "none";
+                document.getElementById("exchangeActions").style.display = "flex";
+                document.getElementById("exchangeBanner").style.display = "block";
+            });
+        }
 
         function showToast(message, isError = false) {
             const toast = document.getElementById("toast");
@@ -242,12 +263,10 @@
                 <td class="center-text"><span class="status-pill ${statusClass}">${statusLabel}</span></td>
                 <td class="center-text">
                     <div class="action-group">
-                        <button class="btn-add" onclick="openQtyModal('${p.barcode}')" ${isOut ? 'disabled' : ''}>
-                            ${isOut ? 'No Stock' : 'Add'}
+                        <button class="${isExchangeMode ? 'btn-proceed' : 'btn-add'}" onclick="openQtyModal('${p.barcode}')" ${isOut ? 'disabled' : ''}>
+                            ${isOut ? 'No Stock' : (isExchangeMode ? 'Select' : 'Add')}
                         </button>
-                        <button class="btn-view" onclick="previewBarcode('${p.barcode}')">
-                            Print
-                        </button>
+                        ${!isExchangeMode ? `<button class="btn-view" onclick="previewBarcode('${p.barcode}')">Print</button>` : ''}
                     </div>
                 </td>
             </tr>`;
@@ -340,6 +359,14 @@
         function confirmAdd() {
             const qty = parseInt(document.getElementById("modalQty").value);
             if (isNaN(qty) || qty < 1) return;
+
+            if (isExchangeMode) {
+                localStorage.setItem("selectedBarcode", selectedProduct.barcode);
+                localStorage.setItem("selectedQty", qty);
+                window.location.href = "sales-refund-or-exchange.html";
+                return;
+            }
+
             let existing = cart.find(i => i.barcode === selectedProduct.barcode);
             let totalRequested = (existing ? existing.qty : 0) + qty;
 
@@ -355,6 +382,13 @@
             updateBadge();
             closeQtyModal();
             showToast("Product added to cart!");
+        }
+
+        function cancelExchangeSelection() {
+            localStorage.removeItem("selectionMode");
+            localStorage.removeItem("selectedBarcode");
+            localStorage.removeItem("selectedQty");
+            window.location.href = "sales-refund-or-exchange.html";
         }
 
         function updateBadge() {
