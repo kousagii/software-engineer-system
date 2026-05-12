@@ -528,6 +528,18 @@ button:hover {
     padding: 20px !important;
 }
 
+.center-text {
+    text-align: center !important;
+}
+
+.text-left {
+    text-align: left !important;
+}
+
+.text-right {
+    text-align: right !important;
+}
+
 .flex {
     display: flex !important;
 }
@@ -563,9 +575,11 @@ button:hover {
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
     display: none;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     z-index: 1000;
+    overflow-y: auto;
+    padding: 20px 15px;
 }
 
 .modal-box {
@@ -938,7 +952,7 @@ button:disabled,
     width: 100%;
     max-width: 320px;
     box-shadow: var(--shadow-light);
-    color: var(--text-dark);
+    color: #000;
     text-align: left;
 }
 
@@ -958,7 +972,7 @@ button:disabled,
 .receipt-header p {
     margin: 4px 0;
     font-size: 12px;
-    color: var(--text-dark);
+    color: #000;
 }
 
 .receipt-items {
@@ -1001,7 +1015,7 @@ button:disabled,
 .receipt-row {
     display: flex;
     justify-content: space-between;
-    padding: 12px 0;
+    padding: 2px 0;
     border-bottom: 1px dashed var(--border-light);
 }
 
@@ -1302,10 +1316,12 @@ input[type="radio"]:checked+.mode-label {
         left: 0;
         top: 0;
         width: 80mm !important;
+        height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
         background: white !important;
         display: block !important;
+        overflow: visible !important;
         align-items: flex-start !important;
         justify-content: flex-start !important;
     }
@@ -1684,13 +1700,13 @@ input[type="radio"]:checked+.mode-label {
     display: flex;
     justify-content: space-between;
     width: 100%;
-    margin-bottom: 4px;
+    margin-bottom: 0px;
 }
 
 .receipt-change {
     font-weight: bold;
-    margin-top: 5px;
-    padding-top: 5px;
+    margin-top: 2px;
+    padding-top: 2px;
     border-top: 1px dotted #000;
 }
 
@@ -1732,9 +1748,93 @@ input[type="radio"]:checked+.mode-label {
     border: 1px solid #bae6fd;
 }
 
+.digital-label-blue {
+    font-size: 13px;
+    font-weight: bold;
+    color: #0369a1;
+    display: block;
+    margin-bottom: 4px;
+    margin-top: 0;
+}
+
+.cash-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.label-bold {
+    font-weight: bold;
+}
+
+.optional-badge {
+    font-size: 11px;
+    background: #f3f4f6;
+    color: #6b7280;
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    font-weight: normal;
+}
+
+.cash-help-text {
+    color: #9ca3af;
+    font-size: 12px;
+    margin-top: 5px;
+    margin-bottom: 0;
+}
+
+.mb-10 {
+    margin-bottom: 10px;
+}
+
 .receipt-payment-info {
     margin-top: 10px;
-    color: #4b5563;
+    color: #000;
+}
+
+.receipt-payment-block {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    color: #000;
+}
+
+.receipt-qr-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    margin-top: 10px;
+    gap: 10px;
+}
+
+.qr-canvas-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-text-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: left;
+}
+
+.qr-scan-label {
+    font-size: 8px;
+    color: #000;
+    text-transform: uppercase;
+    line-height: 1.4;
+}
+
+.qr-thank-you {
+    font-size: 12px;
+    margin-top: 6px;
+    margin-bottom: 0;
+    line-height: 1.4;
 }
 
 /* ===================== DASHBOARD ===================== */

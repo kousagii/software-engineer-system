@@ -108,7 +108,7 @@
                             <th>Description</th>
                             <th>Price</th>
                             <th>Stocks</th>
-                            <th class="center-text">Actions</th>
+                            <th class="center-text">Action</th>
                         </tr>
                     </thead>
                     <tbody id="product-table-body">
@@ -332,7 +332,7 @@
                     <td class="sub-text">${p.productDescription || ''}</td>
                     <td>₱ ${parseFloat(p.price).toFixed(2)}</td>
                     <td>${p.stockQuantity}</td>
-                    <td>
+                    <td class="center-text">
                         <div class="action-group">
                             <button class="btn-edit" onclick="openForm(${p.productID})">Edit</button>
                             <button class="btn-view" onclick="previewBarcode('${p.barcode}')">Print</button>
