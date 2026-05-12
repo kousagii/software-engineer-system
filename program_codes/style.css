@@ -549,6 +549,7 @@ button:hover {
     border-radius: var(--rad-sm);
     font-size: 12px;
     font-weight: bold;
+    white-space: nowrap;
 }
 
 .status-instock {
