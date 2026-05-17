@@ -26,7 +26,7 @@
         </header>
 
         <div class="split">
-            <div class="form-panel-wide">
+            <div class="form-panel-wide" style="display: flex; flex-direction: column; height: 100%;">
                 <div class="input-row">
                     <div class="input-barcode">
                         <label for="barcodeInput">Scan Barcode</label>
@@ -41,7 +41,7 @@
                     </div>
                 </div>
 
-                <div class="cart-container">
+                <div class="cart-container" style="flex: 1;">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -54,8 +54,8 @@
                         </thead>
                         <tbody id="cartTable">
                             <tr>
-                                <td colspan="5" class="empty-cart-msg">Cart is empty. Scan Product or select from the
-                                    Product List.</td>
+                                <td colspan="5" class="empty-cart-msg">Cart is empty. Use Product List or scan an item.
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -97,7 +97,7 @@
         <div class="modal-box modal-accent">
             <h3 class="m-0 text-left">Finalize Payment</h3>
 
-            <div class="total-display dashed-total-box mt-15 text-left">
+            <div class="dashed-total-box mt-15 text-center">
                 <p class="m-0">Total Payable</p>
                 <strong class="f-24">₱ <span id="modalTotal">0.00</span></strong>
             </div>
@@ -136,7 +136,7 @@
                     Digital.</p>
             </div>
 
-            <div id="changeBox" class="change-box text-left" style="background: var(--bg-main);">
+            <div id="changeBox" class="change-box">
                 <p class="change-label">Change</p>
                 <strong class="change-val">₱ <span id="changeAmount">0.00</span></strong>
             </div>
@@ -182,11 +182,9 @@
                 <div id="qrcode-canvas" class="qr-canvas-box"></div>
                 <div class="qr-text-col">
                     <span class="qr-scan-label">Scan for Refund/Exchange</span>
-                    <p class="qr-thank-you">Thank you for choosing Udicon Trading!</p>
+                    <p class="qr-thank-you">Thank you for purchasing at Udicon Trading!</p>
                 </div>
             </div>
-
-            <p class="receipt-footer-msg">Thank you for your purchase!</p>
 
             <div class="no-print flex-col-gap-10 mt-15">
                 <button class="btn-receipt-action" onclick="window.print()">Print Receipt</button>
@@ -304,13 +302,13 @@
         function renderCart() {
             const body = el("cartTable");
             if (cart.length === 0) {
-                body.innerHTML = `<tr><td colspan="5" class="empty-cart-msg">Cart is empty. Use Product List or scan an item.</td></tr>`;
+                body.innerHTML = `<tr><td colspan="5" class="empty-cart-msg" style="text-align:center;">Cart is empty. Use Product List or scan an item.</td></tr>`;
             } else {
                 body.innerHTML = cart.map((item, i) => `
             <tr>
-                <td class="cart-name-cell"><strong>${item.productName}</strong><br><small>Barcode: ${item.barcode}</small></td>
+                <td class="cart-name-cell"><strong>${item.productName}</strong><br><small>BC: ${item.barcode}</small></td>
                 <td class="center-text">₱${item.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td>
+                <td class="center-text">
                     <div class="cart-qty-cell">
                         <button class="qty-btn" onclick="updateQty(${i}, -1)">-</button>
                         <input type="number" 
@@ -324,7 +322,7 @@
                 </td>
                 <td class="center-text cart-subtotal">₱${(item.price * item.qty).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td class="center-text">
-                    <button class="btn-remove-red" onclick="removeItem(${i})" title="Remove Item">X</button>
+                    <button class="btn-remove-item" onclick="removeItem(${i})" title="Remove Item">X</button>
                 </td>
             </tr>`).join("");
             }
@@ -419,7 +417,7 @@
             el("digitalAmount").value = "";
             el("cashInput").value = "";
             el("changeAmount").innerText = "0.00";
-            el("changeBox").style.background = "var(--white)";
+            el("changeBox").style.background = "#e7f3e8";
             el("cashOptionalBadge").style.display = "none";
             el("cashHelpText").style.display = "none";
 
@@ -444,7 +442,7 @@
             const change = totalPaid - total;
 
             el("changeAmount").innerText = Math.max(0, change).toLocaleString(undefined, { minimumFractionDigits: 2 });
-            el("changeBox").style.background = change >= 0 ? "var(--bg-main)" : "var(--white)";
+            el("changeBox").style.background = change >= 0 ? "#e7f3e8" : "#fee2e2";
         }
 
         // Ensure strict limit up to 1,000,000 on inputs
@@ -586,19 +584,16 @@
         </div>`;
             }
 
-            if (data.cashReceived > 0 || data.paymentMethod === 'Cash') {
+            if (data.rawCash > 0 || data.paymentMethod === 'Cash') {
                 paymentDetailsHTML += `<div class="receipt-row">
             <span>Cash Received:</span> 
-            <span>₱${data.cashReceived.toFixed(2)}</span>
+            <span>₱${data.rawCash.toFixed(2)}</span>
         </div>`;
             }
 
-            const totalPaid = (data.cashReceived || 0) + (data.digitalAmount || 0);
-            const change = totalPaid - data.totalAmount;
-
             paymentDetailsHTML += `<div class="receipt-row receipt-change">
         <span>Change:</span> 
-        <span>₱${Math.max(0, change).toFixed(2)}</span>
+        <span>₱${Math.max(0, data.change).toFixed(2)}</span>
     </div>`;
 
             paymentDetailsHTML += '</div>';

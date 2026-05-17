@@ -15,19 +15,18 @@
     <div id="sidebar"></div>
 
     <main class="dashboard-main">
-        <header class="page-header">
+        <div class="page-header">
             <div>
-                <h2 class="dash-page-title">Refund / Exchange Item</h2>
-                <p class="sub-text dash-subtitle">Process customer returns and exchanges of items.</p>
+                <h2>Refund / Exchange Item</h2>
             </div>
-        </header>
+        </div>
 
         <div class="split w-full">
             <div class="left-col">
                 <section class="form-panel-wide">
-                    <div class="flex flex-gap-10">
+                    <div class="flex flex-gap-10 align-end">
                         <div>
-                            <label class="label-bold search-th mt-0">1. Transaction Type</label>
+                            <h3 class="summary-title mt-0">1. Transaction Type</h3>
                             <div class="mode-pill-container mt-5">
                                 <label><input type="radio" name="mode" value="refund" class="hidden-radio" checked
                                         onclick="setMode('refund')"><span class="mode-label">Refund</span></label>
@@ -36,13 +35,16 @@
                             </div>
                         </div>
                         <div class="w-full">
-                            <label class="label-bold search-th mt-0">2. Search Receipt</label>
-                            <div class="flex flex-gap-10 mt-5">
-                                <input id="txnInput" type="text"
-                                    placeholder="Enter Transaction Code"
-                                    class="w-full" onfocus="this.select()" autocomplete="off">
-                                <button class="btn-create" onclick="loadTransaction()">Search</button>
-                                <button class="btn-cancel" onclick="clearAdjustment()">Reset</button>
+                            <h3 class="summary-title mt-0">2. Search Receipt</h3>
+                            <div class="flex flex-gap-10 mt-5" style="align-items: center;">
+                                <input id="txnInput" type="text" placeholder="Enter Transaction Code" class="w-full"
+                                    style="margin-top: 0;" onfocus="this.select()" autocomplete="off">
+                                <button class="btn-create"
+                                    style="margin-top: 0; width: auto; white-space: nowrap; flex-shrink: 0;"
+                                    onclick="loadTransaction()">Search</button>
+                                <button class="btn-cancel"
+                                    style="margin-top: 0; width: auto; white-space: nowrap; flex-shrink: 0;"
+                                    onclick="clearAdjustment()">Reset</button>
                             </div>
                         </div>
                     </div>
@@ -57,21 +59,23 @@
                                 <th>Price</th>
                                 <th class="text-center">Qty</th>
                                 <th>Subtotal</th>
+                                <th class="text-center">Condition</th>
                                 <th class="text-right">Select Return Items</th>
                             </tr>
                         </thead>
                         <tbody id="returnTableBody">
                             <tr>
-                                <td colspan="5" class="text-center empty-cart-msg">No transaction loaded.</td>
+                                <td colspan="6" class="text-center empty-cart-msg">No transaction loaded.</td>
                             </tr>
                         </tbody>
                     </table>
                 </section>
 
                 <section id="exchangeSection" class="form-panel-wide hidden">
-                    <div class="toolbar mb-15">
-                        <h3 class="mt-0 summary-title mb-0">Replacement Items</h3>
-                        <button class="btn-view" onclick="addExchangeItem()">+ Add Replacement Item</button>
+                    <div class="toolbar" style="margin-bottom: 0;">
+                        <h3 class="mt-0 summary-title mb-0" style="flex: 1;">Replacement Items</h3>
+                        <button class="btn-view" style="margin: 0; width: auto; white-space: nowrap;"
+                            onclick="addExchangeItem()">+ Add Replacement Item</button>
                     </div>
                     <table class="data-table" id="exchangeTable">
                         <thead>
@@ -95,7 +99,7 @@
             <aside class="right-col summary-panel">
                 <div>
                     <h3 id="summaryTitle" class="summary-title mt-0">Refund Summary</h3>
-                    
+
                     <div class="receipt-row mt-15">
                         <span class="sub-text">Total Return Amount:</span>
                         <strong id="refundTotalDisplay">₱0.00</strong>
@@ -104,11 +108,13 @@
                         <span class="sub-text">Total Exchange Amount:</span>
                         <strong id="exchangeTotalDisplay">₱0.00</strong>
                     </div>
-                    
+
                     <div class="receipt-total">
                         <span id="balanceLabel" class="label-bold">Refund Amount:</span>
                         <span class="total-val">₱<span id="balanceTotal">0.00</span></span>
                     </div>
+
+
 
                     <div class="mt-15">
                         <label class="label-bold label-sm">Return / Exchange Reason</label>
@@ -125,14 +131,15 @@
 
         <div class="modal-overlay" id="paymentModal">
             <div class="modal-box modal-accent">
-                <h3 class="mt-0">Payment Collection</h3>
-                <div class="dashed-total-box mb-15 text-center">
-                    <p class="total-label mt-0">Outstanding Balance</p>
+                <h3 class="m-0">Payment Collection</h3>
+
+                <div class="dashed-total-box mt-15 text-center">
+                    <p class="m-0">Outstanding Balance</p>
                     <strong class="f-24">₱ <span id="modalTotal">0.00</span></strong>
                 </div>
 
-                <div class="mb-15 section-left">
-                    <label class="label-bold label-sm">Payment Method</label>
+                <div class="section-left my-15">
+                    <label class="d-block mb-5">Payment Method</label>
                     <select id="paymentMode" class="payment-select" onchange="handlePaymentMode()">
                         <option value="Cash">Cash</option>
                         <option value="GCash">GCash</option>
@@ -141,21 +148,28 @@
                 </div>
 
                 <div id="digitalPaymentDetails" class="digital-panel-blue hidden">
-                    <label class="digital-label-blue">Digital Amount Paid</label>
-                    <input type="number" id="digitalAmount" step="0.01" class="digital-input mb-10" oninput="calculateChange()">
-                    <label class="digital-label-blue">Reference / Trace No.</label>
-                    <input type="text" id="referenceNumber" placeholder="Required for digital payments" class="digital-input">
+                    <div class="mb-10">
+                        <label class="digital-label-blue">Digital Amount Paid</label>
+                        <input type="number" id="digitalAmount" step="0.01" placeholder="0.00" class="digital-input"
+                            oninput="calculateChange()">
+                    </div>
+                    <div>
+                        <label class="digital-label-blue">Reference / Trace No.</label>
+                        <input type="text" id="referenceNumber" placeholder="Required for digital payments"
+                            class="digital-input">
+                    </div>
                 </div>
 
-                <div class="mb-15 section-left">
+                <div class="section-left">
                     <div class="cash-label-row">
-                        <label class="label-bold m-0">Cash Received</label>
+                        <label class="m-0 label-bold">Cash Received</label>
                         <span id="cashOptionalBadge" class="optional-badge hidden">Optional</span>
                     </div>
-                    <input type="number" id="cashInput" class="cash-input" oninput="calculateChange()" placeholder="0.00">
+                    <input type="number" id="cashInput" class="cash-input" oninput="calculateChange()"
+                        placeholder="0.00">
                 </div>
 
-                <div id="changeBox" class="change-box mb-15 text-center">
+                <div id="changeBox" class="change-box mb-15">
                     <p class="change-label">Change</p>
                     <strong class="change-val">₱ <span id="changeAmount">0.00</span></strong>
                 </div>
@@ -184,6 +198,7 @@
                     <h2>UDICON TRADING</h2>
                     <p id="receipt-type-label">Transaction Receipt</p>
                     <p class="mt-10">TXN: <strong id="receipt-txn">---</strong></p>
+                    <p>Orig: <strong id="receipt-orig-txn">---</strong></p>
                     <p>Date: <span id="receipt-date">---</span></p>
                     <p>Method: <strong id="receipt-method">---</strong></p>
                 </div>
@@ -200,9 +215,11 @@
                 </table>
 
                 <div class="receipt-totals">
-                    <div class="receipt-row"><span>Returns Total:</span> <span id="receipt-return-total">₱0.00</span></div>
-                    <div id="receipt-exchange-row" class="receipt-row"><span>Exchange Total:</span> <span id="receipt-exchange-total">₱0.00</span></div>
-                    
+                    <div class="receipt-row"><span>Returns Total:</span> <span id="receipt-return-total">₱0.00</span>
+                    </div>
+                    <div id="receipt-exchange-row" class="receipt-row"><span>Exchange Total:</span> <span
+                            id="receipt-exchange-total">₱0.00</span></div>
+
                     <div class="grand-total receipt-row">
                         <span id="receipt-net-label">Refund:</span>
                         <span id="receipt-total">₱0.00</span>
@@ -214,7 +231,7 @@
                     <div id="qrcode-canvas" class="qr-canvas-box"></div>
                     <div class="qr-text-col">
                         <span class="qr-scan-label">Scan for Refund/Exchange</span>
-                        <p class="qr-thank-you"> Thank you for choosing Udicon Trading!</p>
+                        <p class="qr-thank-you">Thank you for purchasing at Udicon Trading!</p>
                     </div>
                 </div>
 
@@ -296,11 +313,11 @@
                 }
                 const res = await fetch(`/api/getProduct?barcode=${encodeURIComponent(barcode)}`);
                 if (!res.ok) return showToast("Product not found.", true);
-                
+
                 const product = await res.json();
                 const selectedQty = parseInt(localStorage.getItem("selectedQty")) || 1;
                 const existing = exchangeList.find(i => i.productID === product.productID);
-                
+
                 if (existing) {
                     existing.qty += selectedQty;
                 } else {
@@ -380,7 +397,7 @@
             const isReturnTable = (id === "originalTable");
 
             if (data.length === 0) {
-                body.innerHTML = `<tr><td colspan="5" class="text-center empty-cart-msg">
+                body.innerHTML = `<tr><td colspan="${isReturnTable ? 6 : 5}" class="text-center empty-cart-msg">
                 ${isReturnTable ? "No transaction loaded." : "No replacement items added."}
             </td></tr>`;
                 return;
@@ -404,10 +421,18 @@
                         </div>
                     </td>
                     <td class="label-bold">₱${(i.price * i.qty).toFixed(2)}</td>
+                    ${isReturnTable ? `<td class="text-center">
+                        <select style="width: auto; margin: 0; padding: 4px 6px; font-size: 12px;" 
+                            ${!isChecked ? 'disabled' : ''}
+                            onchange="setItemCondition(${idx}, this.value)">
+                            <option value="Resellable" ${(i.condition || 'Resellable') === 'Resellable' ? 'selected' : ''}>Resellable</option>
+                            <option value="Defective" ${i.condition === 'Defective' ? 'selected' : ''}>Defective</option>
+                        </select>
+                    </td>` : ''}
                     <td class="text-right">
                         ${isReturnTable ?
                         `<label class="checkbox-label flex-end m-0"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleReturnItem(${idx})"></label>` :
-                        `<button class="btn-remove-red" onclick="removeExchangeItem(${idx})">X</button>`
+                        `<button class="btn-remove-item" onclick="removeExchangeItem(${idx})">X</button>`
                     }
                     </td>
                 </tr>`;
@@ -419,7 +444,7 @@
             const item = list[index];
 
             const currentQty = parseInt(item.qty) || 1;
-            
+
             // Fix: Exchanged items do not carry a maximum quantity bound limits
             const max = (tableId === "originalTable") ? (item.originalQty ?? item.qty) : Infinity;
 
@@ -477,6 +502,11 @@
             renderAll();
         }
 
+        function setItemCondition(index, value) {
+            returnList[index].condition = value;
+            saveCurrentState();
+        }
+
         function saveCurrentState() {
             localStorage.setItem("pendingAdjustment", JSON.stringify({
                 mode: currentMode,
@@ -528,7 +558,6 @@
         function initiateProcess() {
             const activeReturns = returnList.filter(i => i.selected !== false);
             if (activeReturns.length === 0) return showToast("Please select at least one item to return.", true);
-            if (!ui("reason").value.trim()) return showToast("Please provide a reason.", true);
 
             const retVal = activeReturns.reduce((s, i) => s + (i.price * i.qty), 0);
             const excVal = exchangeList.reduce((s, i) => s + (i.price * i.qty), 0);
@@ -563,7 +592,7 @@
                 mode: currentMode,
                 transactionCode: shortCode,
                 originalTxnCode: originalCode,
-                returns: activeReturns,
+                returns: activeReturns.map(i => ({ ...i, condition: i.condition || 'Resellable' })),
                 exchanges: exchangeList,
                 reason: ui("reason").value,
                 paymentMethod: net < 0 ? mode : "Adjustment",
@@ -588,7 +617,7 @@
                         ? "Exchange transaction completed successfully!"
                         : "Refund transaction completed successfully!"
                 );
-                
+
                 showFinalReceipt(displayCode, shortCode, payload);
             } else {
                 const errData = await res.json().catch(() => ({}));
@@ -598,8 +627,8 @@
 
         // --- 4. RECEIPT & QR GENERATION ---
         function showFinalReceipt(displayCode, shortCode, data) {
-            const formattedCode = displayCode.replace(" (Orig:", "<br><span class='receipt-ref'>(Orig:");
-            ui("receipt-txn").innerHTML = formattedCode + "</span>";
+            ui("receipt-txn").innerText = shortCode;
+            ui("receipt-orig-txn").innerText = data.originalTxnCode;
             ui("receipt-date").innerText = new Date().toLocaleString();
             ui("receipt-type-label").innerText = data.mode.toUpperCase() + " RECEIPT";
             ui("receipt-method").innerText = data.paymentMethod;
@@ -631,7 +660,7 @@
 
             const qrCanvas = ui("qrcode-canvas");
             qrCanvas.innerHTML = "";
-            const qrData = shortCode; 
+            const qrData = shortCode;
 
             new QRCode(qrCanvas, {
                 text: qrData,
@@ -654,4 +683,5 @@
         function removeExchangeItem(i) { exchangeList.splice(i, 1); renderAll(); saveCurrentState(); }
     </script>
 </body>
+
 </html>
