@@ -77,9 +77,11 @@ app.post('/api/users', async (req, res) => {
                 return res.status(500).json({ error: "Database error" });
             }
             res.status(201).json({ message: "User created successfully!", userID: result.insertId });
-            const sessionUserID = req.session?.user?.id || result.insertId;
-            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Create User', ?)`,
-                [sessionUserID, `Created user: ${username} (${role})`]);
+            const sessionUserID = req.session?.user?.id;
+            if (sessionUserID) {
+                db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Create User', ?)`,
+                    [sessionUserID, `Created user: ${username} (${role})`]);
+            }
         });
     } catch (error) {
         res.status(500).json({ error: "Hashing error" });
@@ -172,13 +174,13 @@ app.get('/api/products', (req, res) => {
 
 // POST route to add a new product 
 app.post('/api/products', upload.single('productImage'), (req, res) => {
-    const { productName, barcode, category, stockQuantity, price, brand, productDescription } = req.body;
+    const { productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription } = req.body;
     const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
-    const sql = `INSERT INTO product (productName, barcode, category, stockQuantity, price, brand, productDescription, imagePath) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO product (productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, imagePath) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    db.query(sql, [productName, barcode, category, stockQuantity, price, brand, productDescription, imagePath], (err, result) => {
+    db.query(sql, [productName, barcode, category, stockQuantity, price, initialPrice || null, brand, productDescription, imagePath], (err, result) => {
         if (err) {
             console.error(err);
             if (err.code === 'ER_DUP_ENTRY') {
@@ -186,7 +188,9 @@ app.post('/api/products', upload.single('productImage'), (req, res) => {
             }
             return res.status(500).json({ error: "Database error" });
         }
-        const sessionUserID = req.session?.user?.id || 1;
+        const sessionUserID = req.session?.user?.id;
+        if (!sessionUserID) return res.status(401).json({ error: "Unauthorized" });
+
         db.query(`INSERT INTO inventory_record (userID, productID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Add', ?, NOW(), ?)`,
             [sessionUserID, result.insertId, parseInt(stockQuantity) || 0, `Added product: ${productName}`]);
         res.status(201).json({ message: "Success!" });
@@ -196,7 +200,7 @@ app.post('/api/products', upload.single('productImage'), (req, res) => {
 // PUT route to UPDATE an existing product 
 app.put('/api/products/:id', upload.single('productImage'), (req, res) => {
     const { id } = req.params;
-    const { productName, category, stockQuantity, price, brand, productDescription } = req.body;
+    const { productName, category, stockQuantity, price, initialPrice, brand, productDescription } = req.body;
 
     const newImagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
@@ -204,14 +208,14 @@ app.put('/api/products/:id', upload.single('productImage'), (req, res) => {
 
     if (newImagePath) {
         sql = `UPDATE product 
-               SET productName = ?, category = ?, stockQuantity = ?, price = ?, brand = ?, productDescription = ?, imagePath = ? 
+               SET productName = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ?, imagePath = ? 
                WHERE productID = ?`;
-        params = [productName, category, stockQuantity, price, brand, productDescription, newImagePath, id];
+        params = [productName, category, stockQuantity, price, initialPrice || null, brand, productDescription, newImagePath, id];
     } else {
         sql = `UPDATE product 
-               SET productName = ?, category = ?, stockQuantity = ?, price = ?, brand = ?, productDescription = ? 
+               SET productName = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ? 
                WHERE productID = ?`;
-        params = [productName, category, stockQuantity, price, brand, productDescription, id];
+        params = [productName, category, stockQuantity, price, initialPrice || null, brand, productDescription, id];
     }
 
     db.query(sql, params, (err, result) => {
@@ -219,7 +223,9 @@ app.put('/api/products/:id', upload.single('productImage'), (req, res) => {
             console.error(err);
             return res.status(500).json({ error: "Failed to update product" });
         }
-        const sessionUserID = req.session?.user?.id || 1;
+        const sessionUserID = req.session?.user?.id;
+        if (!sessionUserID) return res.status(401).json({ error: "Unauthorized" });
+
         db.query(`INSERT INTO inventory_record (userID, productID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Edit', 0, NOW(), ?)`,
             [sessionUserID, id, `Edited product: ${productName}`]);
         res.status(200).json({ message: "Product updated successfully!" });
@@ -237,7 +243,9 @@ app.delete('/api/products/:id', (req, res) => {
             console.error(err);
             return res.status(500).json({ error: "Failed to remove product from view" });
         }
-        const sessionUserID = req.session?.user?.id || 1;
+        const sessionUserID = req.session?.user?.id;
+        if (!sessionUserID) return res.status(401).json({ error: "Unauthorized" });
+
         db.query(`INSERT INTO inventory_record (userID, productID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Archive', 0, NOW(), ?)`,
             [sessionUserID, id, `Archived product ID: ${id}`]);
         res.status(200).json({ message: "Product removed!" });
@@ -281,9 +289,11 @@ app.post('/api/suppliers', (req, res) => {
         if (err) return res.status(500).json({ error: "Database error" });
 
         const newSupplierId = result.insertId;
-        const sessionUserID = req.session?.user?.id || 1;
-        db.query(`INSERT INTO inventory_record (userID, supplierID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Supplier Add', 0, NOW(), ?)`,
-            [sessionUserID, newSupplierId, `Added supplier: ${supplierName}`]);
+        const sessionUserID = req.session?.user?.id;
+        if (sessionUserID) {
+            db.query(`INSERT INTO inventory_record (userID, supplierID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Supplier Add', 0, NOW(), ?)`,
+                [sessionUserID, newSupplierId, `Added supplier: ${supplierName}`]);
+        }
 
         if (productIDs && productIDs.length > 0) {
             const spSql = `INSERT INTO supplier_products (supplierID, productID) VALUES ?`;
@@ -308,9 +318,11 @@ app.put('/api/suppliers/:id', (req, res) => {
 
     db.query(sql, [supplierName, contactNumber, email, address, id], (err, result) => {
         if (err) return res.status(500).json({ error: "Failed to update supplier" });
-        const sessionUserID = req.session?.user?.id || 1;
-        db.query(`INSERT INTO inventory_record (userID, supplierID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Supplier Edit', 0, NOW(), ?)`,
-            [sessionUserID, id, `Edited supplier: ${supplierName}`]);
+        const sessionUserID = req.session?.user?.id;
+        if (sessionUserID) {
+            db.query(`INSERT INTO inventory_record (userID, supplierID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Supplier Edit', 0, NOW(), ?)`,
+                [sessionUserID, id, `Edited supplier: ${supplierName}`]);
+        }
 
         db.query(`DELETE FROM supplier_products WHERE supplierID = ?`, [id], (delErr) => {
             if (delErr) console.error(delErr);
@@ -338,9 +350,11 @@ app.delete('/api/suppliers/:id', (req, res) => {
             console.error(err);
             return res.status(500).json({ error: "Failed to remove supplier from view" });
         }
-        const sessionUserID = req.session?.user?.id || 1;
-        db.query(`INSERT INTO inventory_record (userID, supplierID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Supplier Archive', 0, NOW(), ?)`,
-            [sessionUserID, id, `Archived supplier ID: ${id}`]);
+        const sessionUserID = req.session?.user?.id;
+        if (sessionUserID) {
+            db.query(`INSERT INTO inventory_record (userID, supplierID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Supplier Archive', 0, NOW(), ?)`,
+                [sessionUserID, id, `Archived supplier ID: ${id}`]);
+        }
         res.status(200).json({ message: "Supplier removed!" });
     });
 });
@@ -404,7 +418,8 @@ app.get('/api/orders', (req, res) => {
 
 // POST create a new order 
 app.post('/api/orders', (req, res) => {
-    const userID = req.session && req.session.user ? req.session.user.id : 1;
+    const userID = req.session && req.session.user ? req.session.user.id : null;
+    if (!userID) return res.status(401).json({ error: "Please log in to create an order" });
     const { supplierID, contact, shipmentInfo, status, items } = req.body;
 
     if (!supplierID) return res.status(400).json({ error: "supplierID is required" });
@@ -455,9 +470,11 @@ app.post('/api/orders', (req, res) => {
                         return res.status(500).json({ error: "Failed to insert order items" });
                     }
                     res.status(201).json({ message: "Order created", orderID });
-                    const sessionUserID = req.session?.user?.id || 1;
-                    db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Create Order', ?)`,
-                        [sessionUserID, `Created PO-${orderID} for supplier ID: ${supplierID}`]);
+                    const sessionUserID = req.session?.user?.id;
+                    if (sessionUserID) {
+                        db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Create Order', ?)`,
+                            [sessionUserID, `Created PO-${orderID} for supplier ID: ${supplierID}`]);
+                    }
                 });
             });
         });
@@ -624,9 +641,11 @@ app.delete('/api/orders/:id', (req, res) => {
                 console.error(err2);
                 return res.status(500).json({ error: "Failed to delete order" });
             }
-            const sessionUserID = req.session?.user?.id || 1;
-            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Delete Order', ?)`,
-                [sessionUserID, `Deleted order ID: ${id}`]);
+            const sessionUserID = req.session?.user?.id;
+            if (sessionUserID) {
+                db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Delete Order', ?)`,
+                    [sessionUserID, `Deleted order ID: ${id}`]);
+            }
             res.json({ message: "Order deleted" });
         });
     });
@@ -686,9 +705,11 @@ app.put('/api/users/:id', async (req, res) => {
             }
 
             res.status(200).json({ message: "User updated successfully!" });
-            const sessionUserID = req.session?.user?.id || 1;
-            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Edit User', ?)`,
-                [sessionUserID, `Updated user: ${username} (${role})`]);
+            const sessionUserID = req.session?.user?.id;
+            if (sessionUserID) {
+                db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Edit User', ?)`,
+                    [sessionUserID, `Updated user: ${username} (${role})`]);
+            }
         });
 
     } catch (error) {
@@ -707,9 +728,11 @@ app.delete('/api/users/:id', (req, res) => {
             console.error(err);
             return res.status(500).json({ error: "Failed to delete user" });
         }
-        const sessionUserID = req.session?.user?.id || 1;
-        db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Delete User', ?)`,
-            [sessionUserID, `Deleted user ID: ${id}`]);
+        const sessionUserID = req.session?.user?.id;
+        if (sessionUserID) {
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Delete User', ?)`,
+                [sessionUserID, `Deleted user ID: ${id}`]);
+        }
         res.status(200).json({ message: "User deleted successfully!" });
     });
 });
@@ -726,9 +749,11 @@ app.get('/api/reports/sales', (req, res) => {
             DATE(st.transDateTime) AS day,
             COUNT(DISTINCT st.transactionID) AS orders,
             COALESCE(SUM(si.quantity), 0) AS productsSold,
-            COALESCE(SUM(st.totalAmount), 0) AS sales
+            COALESCE(SUM(st.totalAmount), 0) AS sales,
+            COALESCE(SUM(COALESCE(p.initialPrice, 0) * si.quantity), 0) AS expenses
         FROM sales_transaction st
         LEFT JOIN sales_item si ON st.transactionID = si.transactionID
+        LEFT JOIN product p ON si.productID = p.productID
         WHERE DATE(st.transDateTime) BETWEEN ? AND ?
           AND st.paymentStatus != 'Refunded'
         GROUP BY DATE(st.transDateTime)
@@ -1042,7 +1067,8 @@ app.post('/api/processAdjustment', async (req, res) => {
         netBalance 
     } = req.body;
     
-    const sessionUserID = req.session?.user?.id || 1; 
+    const sessionUserID = req.session?.user?.id || null; 
+    if (!sessionUserID) return res.status(401).json({ error: "Unauthorized. Please re-login." });
 
     try {
         await db.promise().beginTransaction();
@@ -1178,7 +1204,8 @@ app.post('/api/processAdjustment', async (req, res) => {
 
     // Trigger Manual Backup
     app.post('/api/backups/manual', async (req, res) => {
-        const userID = req.session.user ? req.session.user.id : 1; // Fallback to 1 if testing without auth
+        const userID = req.session.user ? req.session.user.id : null;
+        if (!userID) return res.status(401).json({ error: "Unauthorized" });
 
         try {
             const fileName = await performDatabaseBackup('Manual', userID);

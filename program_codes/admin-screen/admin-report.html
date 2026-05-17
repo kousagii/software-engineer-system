@@ -271,6 +271,7 @@
                     orders: parseInt(r.orders) || 0,
                     productsSold: parseInt(r.productsSold) || 0,
                     salesRaw: parseFloat(r.sales) || 0,
+                    expensesRaw: parseFloat(r.expenses) || 0,
                     sales: `₱ ${parseFloat(r.sales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 }));
             } else if (currentReportType === 'userlogs') {
@@ -368,12 +369,14 @@
             if (currentReportType !== 'sales') return;
 
             const totalSales = reportData.reduce((sum, r) => sum + (r.salesRaw || 0), 0);
+            const totalExpenses = reportData.reduce((sum, r) => sum + (r.expensesRaw || 0), 0);
+            const totalRevenue = totalSales - totalExpenses;
             const totalOrders = reportData.reduce((sum, r) => sum + r.orders, 0);
             const totalProductsSold = reportData.reduce((sum, r) => sum + r.productsSold, 0);
 
             $('summaryTotal').textContent = `₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            $('summaryExpenses').textContent = `₱ ${(totalSales * 0.4).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            $('summaryRevenue').textContent = `₱ ${(totalSales * 0.6).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            $('summaryExpenses').textContent = `₱ ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            $('summaryRevenue').textContent = `₱ ${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             $('summaryOrders').textContent = totalOrders;
             $('summaryProductsSold').textContent = totalProductsSold;
         }

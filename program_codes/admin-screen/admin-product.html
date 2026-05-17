@@ -168,9 +168,17 @@
                             </div>
                         </div>
                         <div>
-                            <label>Price (₱)</label>
+                            <label>Initial Price (₱)</label>
+                            <input type="number" id="prodInitialPrice" placeholder="120" oninput="updatePreview()">
+                        </div>
+                    </div>
+
+                    <div class="split">
+                        <div>
+                            <label>Selling Price (₱)</label>
                             <input type="number" id="prodPrice" placeholder="180" oninput="updatePreview()">
                         </div>
+                        <div></div>
                     </div>
 
                     <label>Description</label>
@@ -199,7 +207,8 @@
                         <p><strong>Brand:</strong> <span id="prevBrand">Stanley</span></p>
                         <p><strong>Category:</strong> <span id="prevCat">Tools</span></p>
                         <p><strong>Stock Quantity:</strong> <span id="prevStock">25</span></p>
-                        <p><strong>Price:</strong> ₱<span id="prevPrice">180</span></p>
+                        <p><strong>Initial Price:</strong> ₱<span id="prevInitialPrice">120</span></p>
+                        <p><strong>Selling Price:</strong> ₱<span id="prevPrice">180</span></p>
                         <p><strong>Description:</strong> <span id="prevDesc">Description</span></p>
 
                         <br>
@@ -447,7 +456,7 @@
         function openForm(id = null) {
             currentEditId = id;
             const p = productList.find(x => x.productID === id) || {
-                productName: '', brand: '', category: 'Tools', stockQuantity: 25, price: '', productDescription: '', barcode: '', imagePath: ''
+                productName: '', brand: '', category: 'Tools', stockQuantity: 25, initialPrice: '', price: '', productDescription: '', barcode: '', imagePath: ''
             };
 
             currentBarcode = p.barcode || "";
@@ -456,6 +465,7 @@
             val('prodBrand', p.brand || '');
             val('prodCategory', p.category || 'Tools');
             val('prodStock', p.stockQuantity || 25);
+            val('prodInitialPrice', p.initialPrice || '');
             val('prodPrice', p.price || '');
             val('prodDescription', p.productDescription || '');
 
@@ -497,6 +507,7 @@
             $('prevBrand').textContent = val('prodBrand') || 'Stanley';
             $('prevCat').textContent = val('prodCategory');
             $('prevStock').textContent = val('prodStock') || '0';
+            $('prevInitialPrice').textContent = val('prodInitialPrice') || '0';
             $('prevPrice').textContent = val('prodPrice') || '0';
             $('prevDesc').textContent = val('prodDescription') || 'Description';
         }
@@ -521,13 +532,15 @@
 
         async function saveProduct() {
             if (!currentBarcode) return showAlert("Please click 'Generate barcode' before saving!");
-            if (!val('prodName') || !val('prodPrice')) return showAlert("Please fill in the Name and Price!");
+            if (!val('prodName') || !val('prodPrice')) return showAlert("Please fill in the Name and Selling Price!");
+            if (!val('prodInitialPrice')) return showAlert("Please fill in the Initial Price (supplier cost)!");
 
             const formData = new FormData();
             formData.append('productName', val('prodName'));
             formData.append('barcode', currentBarcode);
             formData.append('category', val('prodCategory'));
             formData.append('stockQuantity', parseInt(val('prodStock')));
+            formData.append('initialPrice', parseFloat(val('prodInitialPrice')));
             formData.append('price', parseFloat(val('prodPrice')));
             formData.append('brand', val('prodBrand'));
             formData.append('productDescription', val('prodDescription'));
