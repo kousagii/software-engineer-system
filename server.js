@@ -861,8 +861,8 @@ app.get('/api/getProduct', (req, res) => {
 
 // GET recent sales transactions (for dashboard)
 app.get('/api/transactions', (req, res) => {
-        const limit = parseInt(req.query.limit) || 20;
-        const sql = `
+    const limit = parseInt(req.query.limit) || 20;
+    const sql = `
         SELECT st.transactionID, st.transactionCode, st.transDateTime,
                st.totalAmount, st.paymentMethod, st.paymentStatus,
                u.firstName, u.lastName
@@ -871,178 +871,215 @@ app.get('/api/transactions', (req, res) => {
         ORDER BY st.transDateTime DESC
         LIMIT ?
     `;
-        db.query(sql, [limit], (err, results) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({ error: 'Failed to fetch transactions' });
-            }
-            res.json(results);
-        });
-    });
-
-
-    // Optimized Complete Transaction (Handles Sale + Stock in one logic flow)
-    app.post('/api/saveTransaction', (req, res) => {
-        const sessionUserID = req.session?.user?.id || null;
-
-        const {
-            userID,
-            totalAmount,
-            paymentMethod,
-            items,
-            transactionId,
-            referenceNumber,
-            discountAmount,
-            paymentStatus,
-            cashReceived,
-            digitalAmount
-        } = req.body;
-
-        const finalUserID = userID || sessionUserID;
-
-        if (!finalUserID) {
-            return res.status(400).json({ error: "No valid User ID found. Please re-login." });
-        }
-
-        if (!items || items.length === 0) {
-            return res.status(400).json({ error: "Cannot process an empty cart." });
-        }
-
-        db.beginTransaction(err => {
-            if (err) return res.status(500).json({ error: "Transaction initiation failed" });
-
-            const sqlTxn = `
-            INSERT INTO sales_transaction 
-            (transactionCode, userID, transDateTime, totalAmount, paymentMethod, referenceNumber, discountAmount, paymentStatus, cashReceived, digitalAmount) 
-            VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?)
-        `;
-
-            const txnParams = [
-                transactionId,
-                finalUserID,
-                totalAmount,
-                paymentMethod || 'Cash',
-                referenceNumber || null,
-                discountAmount || 0.00,
-                paymentStatus || 'Paid',
-                cashReceived || 0.00,
-                digitalAmount || 0.00
-            ];
-
-            db.query(sqlTxn, txnParams, (err, result) => {
-                if (err) {
-                    console.error("❌ DB ERROR (Header):", err.message);
-                    return db.rollback(() => res.status(500).json({ error: "Failed to save header: " + err.message }));
-                }
-
-                const dbAutoId = result.insertId;
-
-                const itemValues = items.map(item => [
-                    dbAutoId,
-                    item.productID,
-                    item.qty,
-                    parseFloat((item.price * item.qty).toFixed(2))
-                ]);
-
-                const sqlItems = `INSERT INTO sales_item (transactionID, productID, quantity, subtotal) VALUES ?`;
-
-                db.query(sqlItems, [itemValues], (itemErr) => {
-                    if (itemErr) {
-                        console.error("❌ DB ERROR (Items):", itemErr.message);
-                        return db.rollback(() => res.status(500).json({ error: "Failed to save items: " + itemErr.message }));
-                    }
-
-                    const updatePromises = items.map(item => {
-                        return new Promise((resolve, reject) => {
-                            db.query(`UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`,
-                                [item.qty, item.productID], (sErr, sRes) => {
-                                    if (sErr) reject(sErr); else resolve(sRes);
-                                });
-                        });
-                    });
-
-                    Promise.all(updatePromises)
-                        .then(() => {
-                            db.commit(cErr => {
-                                if (cErr) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
-                                db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Sale', ?)`,
-                                    [finalUserID, `Transaction ${transactionId} - Amount: ₱${parseFloat(totalAmount).toFixed(2)} - ${paymentMethod}`]);
-                                res.status(201).json({ message: "Transaction completed successfully.", transactionCode: transactionId });
-                            });
-                        })
-                        .catch(pErr => {
-                            console.error("❌ STOCK ERROR:", pErr.message);
-                            db.rollback(() => res.status(500).json({ error: "Stock update failed" }));
-                        });
-                });
-            });
-        });
-    });
-
-    // Keep reduceStock as a standalone helper if needed for other features
-    app.post('/api/reduceStock', (req, res) => {
-        const { items } = req.body;
-        const updatePromises = items.map(item => {
-            return new Promise((resolve, reject) => {
-                const sql = `UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`;
-                db.query(sql, [item.qty, item.productID], (err, result) => {
-                    if (err) reject(err);
-                    else resolve(result);
-                });
-            });
-        });
-
-        Promise.all(updatePromises)
-            .then(() => res.json({ message: "Inventory updated" }))
-            .catch(err => res.status(500).json({ error: "Stock update failed" }));
-});
-
-//REFUND and CHANGE
-
-// 1. GET TRANSACTION DETAILS BY CODE
-app.get('/api/getTransactionForRefund', (req, res) => {
-    // We use transactionCode (e.g., "TXN-12345") instead of the internal ID
-    const txnCode = req.query.code;
-    
-    const sql = `
-        SELECT 
-            i.productID, 
-            p.productName, 
-            p.price, 
-            i.quantity 
-        FROM sales_transaction t
-        JOIN sales_item i ON t.transactionID = i.transactionID
-        JOIN product p ON i.productID = p.productID
-        WHERE t.transactionCode = ?`;
-
-    db.query(sql, [txnCode], (err, results) => {
+    db.query(sql, [limit], (err, results) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: "Database error" });
-        }
-        if (results.length === 0) {
-            return res.status(404).json({ error: "No transaction found with that code." });
+            return res.status(500).json({ error: 'Failed to fetch transactions' });
         }
         res.json(results);
     });
 });
 
+
+// Optimized Complete Transaction (Handles Sale + Stock in one logic flow)
+app.post('/api/saveTransaction', (req, res) => {
+    const sessionUserID = req.session?.user?.id || null;
+
+    const {
+        userID,
+        totalAmount,
+        paymentMethod,
+        items,
+        transactionId,
+        referenceNumber,
+        discountAmount,
+        paymentStatus,
+        cashReceived,
+        digitalAmount
+    } = req.body;
+
+    const finalUserID = userID || sessionUserID;
+
+    if (!finalUserID) {
+        return res.status(400).json({ error: "No valid User ID found. Please re-login." });
+    }
+
+    if (!items || items.length === 0) {
+        return res.status(400).json({ error: "Cannot process an empty cart." });
+    }
+
+    db.beginTransaction(err => {
+        if (err) return res.status(500).json({ error: "Transaction initiation failed" });
+
+        const sqlTxn = `
+            INSERT INTO sales_transaction 
+            (transactionCode, userID, transDateTime, totalAmount, paymentMethod, referenceNumber, discountAmount, paymentStatus, cashReceived, digitalAmount) 
+            VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        const txnParams = [
+            transactionId,
+            finalUserID,
+            totalAmount,
+            paymentMethod || 'Cash',
+            referenceNumber || null,
+            discountAmount || 0.00,
+            paymentStatus || 'Paid',
+            cashReceived || 0.00,
+            digitalAmount || 0.00
+        ];
+
+        db.query(sqlTxn, txnParams, (err, result) => {
+            if (err) {
+                console.error("❌ DB ERROR (Header):", err.message);
+                return db.rollback(() => res.status(500).json({ error: "Failed to save header: " + err.message }));
+            }
+
+            const dbAutoId = result.insertId;
+
+            const itemValues = items.map(item => [
+                dbAutoId,
+                item.productID,
+                item.qty,
+                parseFloat((item.price * item.qty).toFixed(2))
+            ]);
+
+            const sqlItems = `INSERT INTO sales_item (transactionID, productID, quantity, subtotal) VALUES ?`;
+
+            db.query(sqlItems, [itemValues], (itemErr) => {
+                if (itemErr) {
+                    console.error("❌ DB ERROR (Items):", itemErr.message);
+                    return db.rollback(() => res.status(500).json({ error: "Failed to save items: " + itemErr.message }));
+                }
+
+                const updatePromises = items.map(item => {
+                    return new Promise((resolve, reject) => {
+                        db.query(`UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`,
+                            [item.qty, item.productID], (sErr, sRes) => {
+                                if (sErr) reject(sErr); else resolve(sRes);
+                            });
+                    });
+                });
+
+                Promise.all(updatePromises)
+                    .then(() => {
+                        db.commit(cErr => {
+                            if (cErr) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
+                            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Sale', ?)`,
+                                [finalUserID, `Transaction ${transactionId} - Amount: ₱${parseFloat(totalAmount).toFixed(2)} - ${paymentMethod}`]);
+                            res.status(201).json({ message: "Transaction completed successfully.", transactionCode: transactionId });
+                        });
+                    })
+                    .catch(pErr => {
+                        console.error("❌ STOCK ERROR:", pErr.message);
+                        db.rollback(() => res.status(500).json({ error: "Stock update failed" }));
+                    });
+            });
+        });
+    });
+});
+
+// Keep reduceStock as a standalone helper if needed for other features
+app.post('/api/reduceStock', (req, res) => {
+    const { items } = req.body;
+    const updatePromises = items.map(item => {
+        return new Promise((resolve, reject) => {
+            const sql = `UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`;
+            db.query(sql, [item.qty, item.productID], (err, result) => {
+                if (err) reject(err);
+                else resolve(result);
+            });
+        });
+    });
+
+    Promise.all(updatePromises)
+        .then(() => res.json({ message: "Inventory updated" }))
+        .catch(err => res.status(500).json({ error: "Stock update failed" }));
+});
+
+//REFUND and CHANGE
+
+// 1. GET TRANSACTION DETAILS BY CODE (with per-item refund tracking)
+app.get('/api/getTransactionForRefund', (req, res) => {
+    const txnCode = req.query.code;
+
+    // Step 1: Get original items from the transaction
+    const originalSql = `
+        SELECT 
+            i.productID, p.productName, p.price, i.quantity,
+            t.transactionID
+        FROM sales_transaction t
+        JOIN sales_item i ON t.transactionID = i.transactionID
+        JOIN product p ON i.productID = p.productID
+        WHERE t.transactionCode = ? AND i.quantity > 0`;
+
+    db.query(originalSql, [txnCode], (err, origItems) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Database error" });
+        }
+        if (origItems.length === 0) {
+            return res.status(404).json({ error: "No transaction found with that code." });
+        }
+
+        // Step 2: Check how many of each product have already been refunded/exchanged
+        // by looking at refund transactions (UTR/UTE) that reference the same original transaction
+        const refundSql = `
+            SELECT si.productID, SUM(ABS(si.quantity)) AS refundedQty
+            FROM sales_item si
+            JOIN sales_transaction st ON si.transactionID = st.transactionID
+            WHERE (st.transactionCode LIKE 'UTR-%' OR st.transactionCode LIKE 'UTE-%')
+            AND si.quantity < 0
+            AND si.productID IN (?)
+            GROUP BY si.productID`;
+
+        const productIDs = origItems.map(i => i.productID);
+
+        db.query(refundSql, [productIDs], (err2, refundedItems) => {
+            if (err2) {
+                console.error(err2);
+                return res.status(500).json({ error: "Database error" });
+            }
+
+            // Build a map of already-refunded quantities
+            const refundMap = {};
+            refundedItems.forEach(r => { refundMap[r.productID] = r.refundedQty; });
+
+            // Calculate remaining returnable qty per item
+            const remaining = origItems
+                .map(item => ({
+                    productID: item.productID,
+                    productName: item.productName,
+                    price: item.price,
+                    quantity: item.quantity - (refundMap[item.productID] || 0)
+                }))
+                .filter(item => item.quantity > 0);
+
+            if (remaining.length === 0) {
+                return res.status(400).json({ error: "All items in this transaction have already been refunded or exchanged." });
+            }
+
+            res.json(remaining);
+        });
+    });
+});
+
 // 2. PROCESS ADJUSTMENT (Refund or Exchange)
 app.post('/api/processAdjustment', async (req, res) => {
-    const { 
-        mode, 
+    const {
+        mode,
         transactionCode,  // Format: UTE-20260510-041943 (Orig: UT-...)
-        originalTxnCode,  
-        returns,          
-        exchanges,        
-        paymentMethod, 
-        cashReceived, 
-        digitalAmount, 
-        referenceNumber,  
-        netBalance 
+        originalTxnCode,
+        returns,          // Each item has .condition = 'Resellable' | 'Defective'
+        exchanges,
+        paymentMethod,
+        cashReceived,
+        digitalAmount,
+        referenceNumber,
+        netBalance
     } = req.body;
-    
-    const sessionUserID = req.session?.user?.id || 1; 
+
+    const sessionUserID = req.session?.user?.id || 1;
 
     try {
         await db.promise().beginTransaction();
@@ -1062,25 +1099,27 @@ app.post('/api/processAdjustment', async (req, res) => {
         `;
 
         const [txnResult] = await db.promise().query(logSql, [
-            transactionCode,   
-            sessionUserID, 
-            -netBalance,        
+            transactionCode,
+            sessionUserID,
+            -netBalance,
             paymentMethod,
             finalStatus,
-            referenceNumber || null, 
+            referenceNumber || null,
             cashReceived || 0,
             digitalAmount || 0
         ]);
 
         const dbAutoId = txnResult.insertId;
 
-        // --- 1. HANDLE RETURNS (RESTOCK) ---
+        // --- 1. HANDLE RETURNS ---
         for (const item of returns) {
-            // Add back to inventory
-            await db.promise().query(
-                `UPDATE product SET stockQuantity = stockQuantity + ? WHERE productID = ?`, 
-                [item.qty, item.productID]
-            );
+            // Only add back to inventory if the item is resellable (not defective)
+            if (item.condition !== 'Defective') {
+                await db.promise().query(
+                    `UPDATE product SET stockQuantity = stockQuantity + ? WHERE productID = ?`,
+                    [item.qty, item.productID]
+                );
+            }
 
             // Record in sales_item with negative quantity for reporting clarity
             await db.promise().query(
@@ -1093,7 +1132,7 @@ app.post('/api/processAdjustment', async (req, res) => {
         for (const item of exchanges) {
             // Subtract from inventory
             await db.promise().query(
-                `UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`, 
+                `UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`,
                 [item.qty, item.productID]
             );
 
@@ -1105,11 +1144,11 @@ app.post('/api/processAdjustment', async (req, res) => {
         }
 
         await db.promise().commit();
-        
-        res.json({ 
-            success: true, 
-            message: "Adjustment processed successfully", 
-            transactionCode: transactionCode 
+
+        res.json({
+            success: true,
+            message: "Adjustment processed successfully",
+            transactionCode: transactionCode
         });
 
     } catch (error) {
@@ -1121,169 +1160,169 @@ app.post('/api/processAdjustment', async (req, res) => {
 
 // BACK UP FUNCTIONS & SCHEDULES
 
-    let fullBackupJob;
-    let incBackupJob;
+let fullBackupJob;
+let incBackupJob;
 
-    function performDatabaseBackup(backupType, userID) {
-        return new Promise((resolve, reject) => {
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const fileName = `backup_${timestamp}.sql`;
-            const filePath = path.join(backupDir, fileName);
+function performDatabaseBackup(backupType, userID) {
+    return new Promise((resolve, reject) => {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const fileName = `backup_${timestamp}.sql`;
+        const filePath = path.join(backupDir, fileName);
 
-            const dbUser = process.env.DB_USER;
-            const dbPass = process.env.DB_PASSWORD;
-            const dbName = process.env.DB_NAME;
-            const dbHost = process.env.DB_HOST || 'localhost';
+        const dbUser = process.env.DB_USER;
+        const dbPass = process.env.DB_PASSWORD;
+        const dbName = process.env.DB_NAME;
+        const dbHost = process.env.DB_HOST || 'localhost';
 
-            const dumpCommand = `mysqldump -u ${dbUser} --password="${dbPass}" -h ${dbHost} ${dbName} --ignore-table=${dbName}.backup > "${filePath}"`;
+        const dumpCommand = `mysqldump -u ${dbUser} --password="${dbPass}" -h ${dbHost} ${dbName} --ignore-table=${dbName}.backup > "${filePath}"`;
 
-            exec(dumpCommand, (error, stdout, stderr) => {
-                if (error) {
-                    console.error(`❌ Backup failed: ${error.message}`);
-                    return reject(error);
-                }
-
-                const sql = `INSERT INTO backup (userID, backupDate, fileName, backupType) VALUES (?, NOW(), ?, ?)`;
-                db.query(sql, [userID, fileName, backupType], (dbErr) => {
-                    if (dbErr) {
-                        console.error('❌ Failed to log backup in DB:', dbErr);
-                        return reject(dbErr);
-                    }
-                    console.log(`✅ ${backupType} Backup completed successfully: ${fileName}`);
-                    resolve(fileName);
-                });
-            });
-        });
-    }
-
-    // Dynamically Initialize Schedules
-    function initializeSchedules(fullCronStr = '0 0 * * *', incCronStr = '30 * * * *') {
-        if (fullBackupJob) fullBackupJob.stop();
-        if (incBackupJob) incBackupJob.stop();
-
-        fullBackupJob = cron.schedule(fullCronStr, () => {
-            console.log(`⏳ Running scheduled FULL database backup... (${fullCronStr})`);
-            performDatabaseBackup('Scheduled', 1).catch(err => console.error(err));
-        });
-
-        incBackupJob = cron.schedule(incCronStr, () => {
-            console.log(`⏳ Running scheduled INCREMENTAL database backup... (${incCronStr})`);
-            performIncrementalBackup(1).catch(err => console.error(err));
-        });
-
-        console.log(`✅ Backup schedules updated: Full [${fullCronStr}], Incremental [${incCronStr}]`);
-    }
-
-    initializeSchedules();
-
-    // Trigger Manual Backup
-    app.post('/api/backups/manual', async (req, res) => {
-        const userID = req.session.user ? req.session.user.id : 1; // Fallback to 1 if testing without auth
-
-        try {
-            const fileName = await performDatabaseBackup('Manual', userID);
-            res.status(201).json({ message: "Manual backup created successfully!", fileName });
-        } catch (error) {
-            res.status(500).json({ error: "Failed to generate backup." });
-        }
-    });
-
-    // Get List of Backups
-    app.get('/api/backups', (req, res) => {
-        const sql = `SELECT * FROM backup ORDER BY backupDate DESC`;
-        db.query(sql, (err, results) => {
-            if (err) return res.status(500).json({ error: "Failed to fetch backups" });
-            res.json(results);
-        });
-    });
-
-    // Delete a Backup (Database Record + Actual File)
-    app.delete('/api/backups/:id', (req, res) => {
-        const { id } = req.params;
-
-        db.query(`SELECT fileName FROM backup WHERE backupID = ?`, [id], (err, results) => {
-            if (err || results.length === 0) return res.status(404).json({ error: "Backup not found" });
-
-            const fileName = results[0].fileName;
-            const filePath = path.join(backupDir, fileName);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
+        exec(dumpCommand, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`❌ Backup failed: ${error.message}`);
+                return reject(error);
             }
-            db.query(`DELETE FROM backup WHERE backupID = ?`, [id], (delErr) => {
-                if (delErr) return res.status(500).json({ error: "Failed to delete backup record" });
-                res.json({ message: "Backup deleted successfully" });
+
+            const sql = `INSERT INTO backup (userID, backupDate, fileName, backupType) VALUES (?, NOW(), ?, ?)`;
+            db.query(sql, [userID, fileName, backupType], (dbErr) => {
+                if (dbErr) {
+                    console.error('❌ Failed to log backup in DB:', dbErr);
+                    return reject(dbErr);
+                }
+                console.log(`✅ ${backupType} Backup completed successfully: ${fileName}`);
+                resolve(fileName);
             });
         });
     });
+}
 
-    // Update Backup Schedule Settings
-    app.post('/api/backups/schedule', (req, res) => {
-        const { fullSchedule, incSchedule } = req.body;
+// Dynamically Initialize Schedules
+function initializeSchedules(fullCronStr = '0 0 * * *', incCronStr = '30 * * * *') {
+    if (fullBackupJob) fullBackupJob.stop();
+    if (incBackupJob) incBackupJob.stop();
 
-        if (!fullSchedule || !incSchedule) {
-            return res.status(400).json({ error: 'Missing schedule parameters' });
-        }
-
-        if (!cron.validate(fullSchedule) || !cron.validate(incSchedule)) {
-            return res.status(400).json({ error: "Invalid cron expression format" });
-        }
-
-        try {
-            initializeSchedules(fullSchedule, incSchedule);
-
-            res.json({ message: 'Schedules updated successfully' });
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ error: 'Failed to update cron schedules' });
-        }
+    fullBackupJob = cron.schedule(fullCronStr, () => {
+        console.log(`⏳ Running scheduled FULL database backup... (${fullCronStr})`);
+        performDatabaseBackup('Scheduled', 1).catch(err => console.error(err));
     });
 
-    // --- INCREMENTAL BACKUP FUNCTION ---
-    function performIncrementalBackup(userID) {
-        return new Promise((resolve, reject) => {
-            db.query('SHOW MASTER STATUS', (err, results) => {
-                if (err) {
-                    console.error('❌ Failed to get master status. Does this DB user have SUPER or REPLICATION CLIENT privileges?', err);
-                    return reject(err);
+    incBackupJob = cron.schedule(incCronStr, () => {
+        console.log(`⏳ Running scheduled INCREMENTAL database backup... (${incCronStr})`);
+        performIncrementalBackup(1).catch(err => console.error(err));
+    });
+
+    console.log(`✅ Backup schedules updated: Full [${fullCronStr}], Incremental [${incCronStr}]`);
+}
+
+initializeSchedules();
+
+// Trigger Manual Backup
+app.post('/api/backups/manual', async (req, res) => {
+    const userID = req.session.user ? req.session.user.id : 1; // Fallback to 1 if testing without auth
+
+    try {
+        const fileName = await performDatabaseBackup('Manual', userID);
+        res.status(201).json({ message: "Manual backup created successfully!", fileName });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to generate backup." });
+    }
+});
+
+// Get List of Backups
+app.get('/api/backups', (req, res) => {
+    const sql = `SELECT * FROM backup ORDER BY backupDate DESC`;
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json({ error: "Failed to fetch backups" });
+        res.json(results);
+    });
+});
+
+// Delete a Backup (Database Record + Actual File)
+app.delete('/api/backups/:id', (req, res) => {
+    const { id } = req.params;
+
+    db.query(`SELECT fileName FROM backup WHERE backupID = ?`, [id], (err, results) => {
+        if (err || results.length === 0) return res.status(404).json({ error: "Backup not found" });
+
+        const fileName = results[0].fileName;
+        const filePath = path.join(backupDir, fileName);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+        db.query(`DELETE FROM backup WHERE backupID = ?`, [id], (delErr) => {
+            if (delErr) return res.status(500).json({ error: "Failed to delete backup record" });
+            res.json({ message: "Backup deleted successfully" });
+        });
+    });
+});
+
+// Update Backup Schedule Settings
+app.post('/api/backups/schedule', (req, res) => {
+    const { fullSchedule, incSchedule } = req.body;
+
+    if (!fullSchedule || !incSchedule) {
+        return res.status(400).json({ error: 'Missing schedule parameters' });
+    }
+
+    if (!cron.validate(fullSchedule) || !cron.validate(incSchedule)) {
+        return res.status(400).json({ error: "Invalid cron expression format" });
+    }
+
+    try {
+        initializeSchedules(fullSchedule, incSchedule);
+
+        res.json({ message: 'Schedules updated successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to update cron schedules' });
+    }
+});
+
+// --- INCREMENTAL BACKUP FUNCTION ---
+function performIncrementalBackup(userID) {
+    return new Promise((resolve, reject) => {
+        db.query('SHOW MASTER STATUS', (err, results) => {
+            if (err) {
+                console.error('❌ Failed to get master status. Does this DB user have SUPER or REPLICATION CLIENT privileges?', err);
+                return reject(err);
+            }
+
+            if (!results || results.length === 0) {
+                return reject(new Error('Binary logging is not enabled on the MySQL server.'));
+            }
+
+            const activeLogFile = results[0].File;
+
+            db.query('FLUSH LOGS', (flushErr) => {
+                if (flushErr) {
+                    console.error('❌ Failed to flush logs:', flushErr);
+                    return reject(flushErr);
                 }
 
-                if (!results || results.length === 0) {
-                    return reject(new Error('Binary logging is not enabled on the MySQL server.'));
-                }
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const fileName = `incremental_${timestamp}.sql`;
+                const filePath = path.join(backupDir, fileName);
 
-                const activeLogFile = results[0].File;
+                const dbUser = process.env.DB_USER;
+                const dbPass = process.env.DB_PASSWORD;
+                const dbHost = process.env.DB_HOST || 'localhost';
 
-                db.query('FLUSH LOGS', (flushErr) => {
-                    if (flushErr) {
-                        console.error('❌ Failed to flush logs:', flushErr);
-                        return reject(flushErr);
+                const binlogCmd = `mysqlbinlog --read-from-remote-server --host=${dbHost} --user=${dbUser} --password="${dbPass}" ${activeLogFile} > "${filePath}"`;
+
+                exec(binlogCmd, (execErr) => {
+                    if (execErr) {
+                        console.error(`❌ Incremental backup failed: ${execErr.message}`);
+                        return reject(execErr);
                     }
 
-                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                    const fileName = `incremental_${timestamp}.sql`;
-                    const filePath = path.join(backupDir, fileName);
+                    const sql = `INSERT INTO backup (userID, backupDate, fileName, backupType) VALUES (?, NOW(), ?, 'Incremental')`;
+                    db.query(sql, [userID, fileName], (dbErr) => {
+                        if (dbErr) return reject(dbErr);
 
-                    const dbUser = process.env.DB_USER;
-                    const dbPass = process.env.DB_PASSWORD;
-                    const dbHost = process.env.DB_HOST || 'localhost';
-
-                    const binlogCmd = `mysqlbinlog --read-from-remote-server --host=${dbHost} --user=${dbUser} --password="${dbPass}" ${activeLogFile} > "${filePath}"`;
-
-                    exec(binlogCmd, (execErr) => {
-                        if (execErr) {
-                            console.error(`❌ Incremental backup failed: ${execErr.message}`);
-                            return reject(execErr);
-                        }
-
-                        const sql = `INSERT INTO backup (userID, backupDate, fileName, backupType) VALUES (?, NOW(), ?, 'Incremental')`;
-                        db.query(sql, [userID, fileName], (dbErr) => {
-                            if (dbErr) return reject(dbErr);
-
-                            console.log(`✅ Incremental Backup completed successfully: ${fileName}`);
-                            resolve(fileName);
-                        });
+                        console.log(`✅ Incremental Backup completed successfully: ${fileName}`);
+                        resolve(fileName);
                     });
                 });
             });
         });
-    }
+    });
+}
