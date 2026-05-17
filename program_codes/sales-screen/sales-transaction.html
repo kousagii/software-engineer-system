@@ -21,7 +21,7 @@
                 <h2>Sales Transaction</h2>
             </div>
             <button class="btn-view" onclick="goToProductList()">
-                📋 See Product List</button>
+                📋 See Product List
             </button>
         </header>
 
@@ -231,6 +231,20 @@
             }
         });
 
+        let qtyFreshFocus = false;
+        el("qtyInput").addEventListener("focus", () => { qtyFreshFocus = true; });
+        el("qtyInput").addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                addProduct();
+                return;
+            }
+            if (qtyFreshFocus && e.key >= '0' && e.key <= '9') {
+                el("qtyInput").value = '';
+                qtyFreshFocus = false;
+            }
+        });
+
         async function addProduct(manualBarcode = null, manualQty = null) {
             const searchBarcode = String(manualBarcode || el("barcodeInput").value.trim());
             let qtyToAdd = manualQty || parseInt(el("qtyInput").value) || 1;
@@ -302,7 +316,7 @@
         function renderCart() {
             const body = el("cartTable");
             if (cart.length === 0) {
-                body.innerHTML = `<tr><td colspan="5" class="empty-cart-msg" style="text-align:center;">Cart is empty. Use Product List or scan an item.</td></tr>`;
+                body.innerHTML = `<tr><td colspan="5" class="empty-cart-msg">Cart is empty. Use Product List or scan an item.</td></tr>`;
             } else {
                 body.innerHTML = cart.map((item, i) => `
             <tr>
@@ -666,6 +680,39 @@
         });
 
         document.addEventListener('keydown', function (e) {
+            // Escape key closes any open modal
+            if (e.key === 'Escape') {
+                ['paymentModal', 'receiptModal', 'clearCartModal'].forEach(id => {
+                    const modal = el(id);
+                    if (modal && modal.style.display !== 'none') {
+                        closeModal(id);
+                    }
+                });
+                return;
+            }
+
+            // Enter key confirms active modal
+            if (e.key === 'Enter') {
+                const receiptModal = el('receiptModal');
+                if (receiptModal && receiptModal.style.display !== 'none') {
+                    e.preventDefault();
+                    window.print();
+                    return;
+                }
+                const clearModal = el('clearCartModal');
+                if (clearModal && clearModal.style.display !== 'none') {
+                    e.preventDefault();
+                    executeClearCart();
+                    return;
+                }
+                const payModal = el('paymentModal');
+                if (payModal && payModal.style.display !== 'none') {
+                    e.preventDefault();
+                    confirmPayment();
+                    return;
+                }
+            }
+
             if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 const activeTag = document.activeElement.tagName.toLowerCase();
                 if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {

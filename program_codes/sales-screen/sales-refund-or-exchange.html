@@ -24,7 +24,7 @@
         <div class="split w-full">
             <div class="left-col">
                 <section class="form-panel-wide">
-                    <div class="flex flex-gap-10 align-end">
+                    <div class="flex flex-gap-10 align-end" style="gap: 25px;">
                         <div>
                             <h3 class="summary-title mt-0">1. Transaction Type</h3>
                             <div class="mode-pill-container mt-5">
@@ -252,6 +252,37 @@
 
         // --- 1. SCANNER & AUTO-FOCUS LOGIC ---
         document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                ['paymentModal', 'receiptModal', 'clearCartModal'].forEach(id => {
+                    const modal = ui(id);
+                    if (modal && modal.style.display !== 'none') {
+                        closeModal(id);
+                    }
+                });
+                return;
+            }
+
+            if (e.key === 'Enter') {
+                const receiptModal = ui('receiptModal');
+                if (receiptModal && receiptModal.style.display !== 'none') {
+                    e.preventDefault();
+                    window.print();
+                    return;
+                }
+                const clearModal = ui('clearCartModal');
+                if (clearModal && clearModal.style.display !== 'none') {
+                    e.preventDefault();
+                    executeClearCart();
+                    return;
+                }
+                const payModal = ui('paymentModal');
+                if (payModal && payModal.style.display !== 'none') {
+                    e.preventDefault();
+                    confirmPayment();
+                    return;
+                }
+            }
+
             if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 const activeTag = document.activeElement.tagName.toLowerCase();
                 if (activeTag !== 'input' && activeTag !== 'textarea') {
@@ -445,7 +476,6 @@
 
             const currentQty = parseInt(item.qty) || 1;
 
-            // Fix: Exchanged items do not carry a maximum quantity bound limits
             const max = (tableId === "originalTable") ? (item.originalQty ?? item.qty) : Infinity;
 
             if (tableId === "originalTable" && delta > 0 && currentQty >= max) {
@@ -518,7 +548,13 @@
         }
 
         function closeModal(id) { ui(id).style.display = 'none'; }
-        function openModal(id) { ui(id).style.display = 'flex'; }
+        function openModal(id) {
+            ui(id).style.display = 'flex';
+            setTimeout(() => {
+                const firstInput = ui(id).querySelector('input, select, textarea');
+                if (firstInput) firstInput.focus();
+            }, 150);
+        }
         function clearAdjustment() { openModal('clearCartModal'); }
         function executeClearCart() { localStorage.removeItem("pendingAdjustment"); location.reload(); }
 

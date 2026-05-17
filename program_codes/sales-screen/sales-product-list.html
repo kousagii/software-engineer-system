@@ -146,7 +146,7 @@
         <div class="modal-box" style="max-width: 500px; width: 100%; padding: 0; overflow: hidden;">
             <div style="padding: 25px 30px 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 class="m-0">Your Cart</h3>
+                    <h3 class="m-0">Cart</h3>
                     <button onclick="clearCart()" class="btn-delete"
                         style="width: auto; margin: 0; padding: 5px 12px; font-size: 11px;">CLEAR ALL</button>
                 </div>
@@ -357,7 +357,17 @@
             document.getElementById("modalStockInfo").innerText = `Stock available: ${selectedProduct.stockQuantity}`;
             document.getElementById("modalQty").value = 1;
             document.getElementById("qtyModal").style.display = "flex";
+            qtyModalFresh = true;
+            setTimeout(() => document.getElementById("modalQty").focus(), 150);
         }
+
+        let qtyModalFresh = false;
+        document.getElementById("modalQty").addEventListener("keydown", (e) => {
+            if (qtyModalFresh && e.key >= '0' && e.key <= '9') {
+                document.getElementById("modalQty").value = '';
+                qtyModalFresh = false;
+            }
+        });
 
         function closeQtyModal() {
             document.getElementById("qtyModal").style.display = "none";
@@ -464,6 +474,47 @@
 
         ["searchInput", "categoryFilter", "sortMode", "showLimit"].forEach(id => {
             document.getElementById(id).addEventListener(id === "searchInput" ? "input" : "change", resetAndRender);
+        });
+
+        // Auto-focus search input on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById("searchInput").focus();
+        });
+
+        // Auto-focus search input when user starts typing anywhere
+        document.addEventListener('keydown', function (e) {
+            // Escape key closes any open modal
+            if (e.key === 'Escape') {
+                const modals = ['qtyModal', 'barcodeModal', 'cartModal'];
+                modals.forEach(id => {
+                    const modal = document.getElementById(id);
+                    if (modal && modal.style.display !== 'none') {
+                        if (id === 'qtyModal') closeQtyModal();
+                        else if (id === 'barcodeModal') closeBarcodeModal();
+                        else if (id === 'cartModal') closeCart();
+                    }
+                });
+                return;
+            }
+
+            // Enter key confirms qty modal if open
+            if (e.key === 'Enter') {
+                const qtyModal = document.getElementById('qtyModal');
+                if (qtyModal && qtyModal.style.display !== 'none') {
+                    e.preventDefault();
+                    confirmAdd();
+                    return;
+                }
+            }
+
+            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                const activeTag = document.activeElement.tagName.toLowerCase();
+                if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
+                    return;
+                }
+                const searchInput = document.getElementById("searchInput");
+                if (searchInput) searchInput.focus();
+            }
         });
     </script>
 </body>
