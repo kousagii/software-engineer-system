@@ -947,6 +947,8 @@ button:disabled,
     border-radius: var(--rad-md);
     width: 100%;
     max-width: 320px;
+    max-height: 90vh;
+    overflow-y: auto;
     box-shadow: var(--shadow-light);
     color: #000;
     text-align: left;
@@ -1332,6 +1334,8 @@ input[type="radio"]:checked+.mode-label {
     #receiptModal .receipt-container {
         width: 76mm !important;
         max-width: 76mm !important;
+        max-height: none !important;
+        overflow: visible !important;
         margin: 0 !important;
         padding: 2mm !important;
         box-sizing: border-box !important;

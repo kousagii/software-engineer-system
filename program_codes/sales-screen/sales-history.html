@@ -77,8 +77,7 @@
                         style="margin:0; font-size:13px; font-weight:600; white-space:nowrap;">Search:</label>
                     <input type="text" id="searchInput" placeholder="Search transaction code..." class="search-input"
                         style="margin:0; max-width:280px;" oninput="applyFilters()">
-                    <button class="btn-create" onclick="applyFilters()" style="white-space:nowrap; margin:0;">🔍
-                        Search</button>
+                    <button class="btn-create" onclick="applyFilters()" style="margin:0;">Search</button>
                 </div>
                 <div class="toolbar-right">
                     <div class="toolbar-group">
@@ -93,7 +92,7 @@
                     <div class="toolbar-group">
                         <label for="filterDate" style="margin:0; font-size:13px; white-space:nowrap;">Date:</label>
                         <input type="date" id="filterDate" onchange="applyFilters()" style="margin:0; width:auto;">
-                        <button class="btn-view" onclick="clearDateFilter()" style="margin:0;">All</button>
+                        <button class="btn-create" onclick="clearDateFilter()" style="margin:0;">All</button>
                     </div>
                     <div class="toolbar-group">
                         <label for="sortAmount" style="margin:0; font-size:13px; white-space:nowrap;">Sort:</label>
@@ -190,8 +189,51 @@
                 <h2 class="m-0" style="color:var(--green-light);">₱ <span id="detail-total">0.00</span></h2>
             </div>
 
-            <button class="btn-cancel-large" onclick="closeModal('detailModal')"
-                style="width:100%; margin:0;">Close</button>
+            <div style="margin-top:10px; text-align:center;">
+                <button class="btn-cancel-large" onclick="el('detailModal').style.display='none'"
+                    style="width:100%; margin:0;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipt Modal (same design as sales-transaction) -->
+    <div class="modal-overlay" id="receiptModal" style="display: none;">
+        <div class="receipt-container" id="printableReceipt">
+            <div class="receipt-header">
+                <h2>UDICON TRADING</h2>
+                <p id="hist-receipt-type">Transaction Receipt</p>
+                <p class="mt-10">TXN: <strong id="hist-receipt-txn">---</strong></p>
+                <p id="hist-receipt-orig-row" style="display:none;">Orig: <strong id="hist-receipt-orig">---</strong>
+                </p>
+                <p>Date: <span id="hist-receipt-date">---</span></p>
+                <p>Method: <strong id="hist-receipt-method">---</strong></p>
+            </div>
+
+            <table class="receipt-items w-full">
+                <thead>
+                    <tr>
+                        <th class="text-left">Item</th>
+                        <th class="center-text">Qty</th>
+                        <th class="text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="hist-receipt-items"></tbody>
+            </table>
+
+            <div class="receipt-totals">
+                <div class="grand-total"><span>Total:</span> <span id="hist-receipt-total">₱0.00</span></div>
+            </div>
+
+            <div class="receipt-qr-row">
+                <div class="qr-text-col" style="width:100%; text-align:center;">
+                    <p class="qr-thank-you">Thank you for purchasing at Udicon Trading!</p>
+                </div>
+            </div>
+
+            <div class="no-print flex-col-gap-10 mt-15">
+                <button class="btn-receipt-action" onclick="window.print()">Print Receipt</button>
+                <button class="btn-receipt-cancel" onclick="el('receiptModal').style.display='none'">Close</button>
+            </div>
         </div>
     </div>
 
@@ -351,7 +393,8 @@
                             <span class="status-pill ${statusClass}">${txn.paymentStatus || '—'}</span>
                         </td>
                         <td class="center-text">
-                            <button class="btn-view" onclick="viewDetail(${txn.transactionID})">View</button>
+                            <button class="btn-add" onclick="viewDetail(${txn.transactionID})" style="margin:0 2px;">View</button>
+                            <button class="btn-view" onclick="showReceipt(${txn.transactionID})" style="margin:0 2px;">Print</button>
                         </td>
                     </tr>`;
                 }).join('');
@@ -375,25 +418,30 @@
             const txn = allTransactions.find(t => t.transactionID === transactionID);
             if (!txn) return;
 
-            // Fill header info
-            el("detail-txnCode").textContent = txn.transactionCode || '—';
+            // Parse the stored code: may be "UTE-xxx (Orig: UT-xxx)" or just "UT-xxx"
+            const fullCode = txn.transactionCode || '—';
+            const origMatch = fullCode.match(/^(.+?)\s*\(Orig:\s*(.+?)\)$/);
+
+            if (origMatch) {
+                // Has original reference embedded
+                el("detail-txnCode").textContent = origMatch[1].trim();
+                el("detail-origCode").textContent = origMatch[2].trim();
+                el("detail-origRow").style.display = 'flex';
+            } else if (txn.paymentStatus === 'Refunded' || txn.paymentStatus === 'Exchanged') {
+                // Old format without embedded orig - try to derive
+                el("detail-txnCode").textContent = fullCode;
+                let origCode = fullCode.replace(/^UTR-/, 'UT-').replace(/^UTE-/, 'UT-');
+                if (origCode === fullCode) origCode = '—';
+                el("detail-origCode").textContent = origCode;
+                el("detail-origRow").style.display = 'flex';
+            } else {
+                el("detail-txnCode").textContent = fullCode;
+                el("detail-origRow").style.display = 'none';
+            }
+
             el("detail-date").textContent = new Date(txn.transDateTime).toLocaleString('en-PH');
             el("detail-method").textContent = txn.paymentMethod || '—';
             el("detail-status").textContent = txn.paymentStatus || '—';
-
-            // Show original transaction code for refunds/exchanges
-            const origRow = el("detail-origRow");
-            if (txn.paymentStatus === 'Refunded' || txn.paymentStatus === 'Exchanged') {
-                // Derive original code: UTR-xxx or UTE-xxx -> UT-xxx
-                const code = txn.transactionCode || '';
-                let origCode = code.replace(/^UTR-/, 'UT-').replace(/^UTE-/, 'UT-');
-                if (origCode === code) origCode = '—'; // couldn't derive
-                el("detail-origCode").textContent = origCode;
-                origRow.style.display = 'flex';
-            } else {
-                origRow.style.display = 'none';
-            }
-
             el("detail-total").textContent = parseFloat(txn.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
             // Fetch items
@@ -455,6 +503,58 @@
                 performSearch();
             }
         });
+
+        function showReceipt(transactionID) {
+            const txn = allTransactions.find(t => t.transactionID === transactionID);
+            if (!txn) return;
+
+            // Parse code
+            const fullCode = txn.transactionCode || '—';
+            const origMatch = fullCode.match(/^(.+?)\s*\(Orig:\s*(.+?)\)$/);
+            const shortCode = origMatch ? origMatch[1].trim() : fullCode;
+            const origCode = origMatch ? origMatch[2].trim() : null;
+
+            // Determine receipt type label
+            let typeLabel = 'Official Sales Receipt';
+            if (txn.paymentStatus === 'Refunded') typeLabel = 'REFUND RECEIPT';
+            else if (txn.paymentStatus === 'Exchanged') typeLabel = 'EXCHANGE RECEIPT';
+
+            el('hist-receipt-type').textContent = typeLabel;
+            el('hist-receipt-txn').textContent = shortCode;
+            el('hist-receipt-date').textContent = new Date(txn.transDateTime).toLocaleString('en-PH');
+            el('hist-receipt-method').textContent = txn.paymentMethod || '—';
+
+            // Show/hide original transaction
+            if (origCode) {
+                el('hist-receipt-orig').textContent = origCode;
+                el('hist-receipt-orig-row').style.display = '';
+            } else {
+                el('hist-receipt-orig-row').style.display = 'none';
+            }
+
+            el('hist-receipt-total').textContent = '₱' + Math.abs(parseFloat(txn.totalAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+            // Fetch and render items
+            el('hist-receipt-items').innerHTML = '<tr><td colspan="3" style="text-align:center;">Loading...</td></tr>';
+            el('receiptModal').style.display = 'flex';
+
+            fetch(`/api/transactions/${transactionID}/items`)
+                .then(res => res.json())
+                .then(items => {
+                    el('hist-receipt-items').innerHTML = items.map(item => {
+                        const qty = item.quantity;
+                        const subtotal = parseFloat(item.subtotal || 0);
+                        return `<tr>
+                            <td>${item.productName || 'Unknown'}</td>
+                            <td class="center-text">${qty}</td>
+                            <td class="text-right">₱${Math.abs(subtotal).toFixed(2)}</td>
+                        </tr>`;
+                    }).join('');
+                })
+                .catch(() => {
+                    el('hist-receipt-items').innerHTML = '<tr><td colspan="3" style="text-align:center;">Failed to load items.</td></tr>';
+                });
+        }
 
         window.addEventListener('DOMContentLoaded', () => {
             // Display date/time in header

@@ -37,8 +37,8 @@
                         <div class="w-full">
                             <h3 class="summary-title mt-0">2. Search Receipt</h3>
                             <div class="flex flex-gap-10 mt-5" style="align-items: center;">
-                                <input id="txnInput" type="text" placeholder="Enter Transaction Code" class="w-full"
-                                    style="margin-top: 0;" onfocus="this.select()" autocomplete="off">
+                                <input id="txnInput" type="text" placeholder="Enter Transaction Code/ Scan QR"
+                                    class="w-full" style="margin-top: 0;" onfocus="this.select()" autocomplete="off">
                                 <button class="btn-create"
                                     style="margin-top: 0; width: auto; white-space: nowrap; flex-shrink: 0;"
                                     onclick="loadTransaction()">Search</button>
@@ -237,7 +237,7 @@
 
                 <div class="no-print flex-col-gap-10 mt-15">
                     <button class="btn-receipt-action" onclick="window.print()">Print Receipt</button>
-                    <button class="btn-receipt-cancel" onclick="location.reload()">Close & Reset</button>
+                    <button class="btn-receipt-cancel" onclick="location.reload()">Close</button>
                 </div>
             </div>
         </div>

@@ -910,11 +910,16 @@ app.get('/api/transactions', (req, res) => {
 app.get('/api/transactions/:id/items', (req, res) => {
     const { id } = req.params;
     const sql = `
-        SELECT si.productID, p.productName, p.barcode, si.quantity, si.subtotal, p.price
+        SELECT si.productID, 
+               COALESCE(si.productName, p.productName) AS productName, 
+               p.barcode, 
+               si.quantity, 
+               si.subtotal, 
+               COALESCE(si.unitPrice, p.price) AS price
         FROM sales_item si
         LEFT JOIN product p ON si.productID = p.productID
         WHERE si.transactionID = ?
-        ORDER BY si.productID
+        ORDER BY si.salesItemID
     `;
     db.query(sql, [id], (err, results) => {
         if (err) {
@@ -985,11 +990,13 @@ app.post('/api/saveTransaction', (req, res) => {
             const itemValues = items.map(item => [
                 dbAutoId,
                 item.productID,
+                item.name || item.productName || null,
+                parseFloat(item.price) || 0,
                 item.qty,
                 parseFloat((item.price * item.qty).toFixed(2))
             ]);
 
-            const sqlItems = `INSERT INTO sales_item (transactionID, productID, quantity, subtotal) VALUES ?`;
+            const sqlItems = `INSERT INTO sales_item (transactionID, productID, productName, unitPrice, quantity, subtotal) VALUES ?`;
 
             db.query(sqlItems, [itemValues], (itemErr) => {
                 if (itemErr) {
@@ -1169,8 +1176,8 @@ app.post('/api/processAdjustment', async (req, res) => {
 
             // Record in sales_item with negative quantity for reporting clarity
             await db.promise().query(
-                `INSERT INTO sales_item (transactionID, productID, quantity, subtotal) VALUES (?, ?, ?, ?)`,
-                [dbAutoId, item.productID, -item.qty, -(item.price * item.qty)]
+                `INSERT INTO sales_item (transactionID, productID, productName, unitPrice, quantity, subtotal) VALUES (?, ?, ?, ?, ?, ?)`,
+                [dbAutoId, item.productID, item.name || null, item.price || 0, -item.qty, -(item.price * item.qty)]
             );
         }
 
@@ -1184,8 +1191,8 @@ app.post('/api/processAdjustment', async (req, res) => {
 
             // Record in sales_item as a normal sale entry
             await db.promise().query(
-                `INSERT INTO sales_item (transactionID, productID, quantity, subtotal) VALUES (?, ?, ?, ?)`,
-                [dbAutoId, item.productID, item.qty, (item.price * item.qty)]
+                `INSERT INTO sales_item (transactionID, productID, productName, unitPrice, quantity, subtotal) VALUES (?, ?, ?, ?, ?, ?)`,
+                [dbAutoId, item.productID, item.name || null, item.price || 0, item.qty, (item.price * item.qty)]
             );
         }
 
