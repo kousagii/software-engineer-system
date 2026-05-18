@@ -626,7 +626,7 @@
 
             const payload = {
                 mode: currentMode,
-                transactionCode: shortCode,
+                transactionCode: displayCode,
                 originalTxnCode: originalCode,
                 returns: activeReturns.map(i => ({ ...i, condition: i.condition || 'Resellable' })),
                 exchanges: exchangeList,

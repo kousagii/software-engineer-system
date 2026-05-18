@@ -906,6 +906,26 @@ app.get('/api/transactions', (req, res) => {
 });
 
 
+// GET transaction items detail by transaction ID
+app.get('/api/transactions/:id/items', (req, res) => {
+    const { id } = req.params;
+    const sql = `
+        SELECT si.productID, p.productName, p.barcode, si.quantity, si.subtotal, p.price
+        FROM sales_item si
+        LEFT JOIN product p ON si.productID = p.productID
+        WHERE si.transactionID = ?
+        ORDER BY si.productID
+    `;
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Failed to fetch transaction items' });
+        }
+        res.json(results);
+    });
+});
+
+
 // Optimized Complete Transaction (Handles Sale + Stock in one logic flow)
 app.post('/api/saveTransaction', (req, res) => {
     const sessionUserID = req.session?.user?.id || null;

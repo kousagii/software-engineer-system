@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales History | Udicon Trading</title>
+    <link rel="stylesheet" href="../style.css" />
+</head>
+
+<body>
+
+    <div id="sidebar"></div>
+
+    <div id="toast">Message</div>
+
+    <main class="dashboard-main">
+        <header class="page-header">
+            <div>
+                <h2 id="pageTitle">Sales History</h2>
+            </div>
+            <div class="toolbar-right">
+                <span class="sub-text" id="header-datetime"></span>
+            </div>
+        </header>
+
+        <!-- SUMMARY STAT CARDS -->
+        <div class="split dash-cards-row">
+            <div class="form-panel dash-stat-card">
+                <div class="dash-stat-icon dash-icon-blue">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="8" r="4" stroke="#356ac3" stroke-width="1.8" />
+                        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#356ac3" stroke-width="1.8"
+                            stroke-linecap="round" />
+                    </svg>
+                </div>
+                <div class="dash-stat-info">
+                    <div class="sub-text">Total Transactions</div>
+                    <h3 class="mt-0" id="stat-count">—</h3>
+                </div>
+            </div>
+
+            <div class="form-panel dash-stat-card">
+                <div class="dash-stat-icon dash-icon-dark">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="9" stroke="#264027" stroke-width="1.8" />
+                        <path d="M12 7v5l3 3" stroke="#264027" stroke-width="1.8" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M8.5 15.5c.8 1.2 2 2 3.5 2s2.7-.8 3.5-2" stroke="#264027" stroke-width="1.5"
+                            stroke-linecap="round" />
+                    </svg>
+                </div>
+                <div class="dash-stat-info">
+                    <div class="sub-text">Today's Sales</div>
+                    <h3 class="mt-0" id="stat-sales">—</h3>
+                </div>
+            </div>
+
+            <div class="form-panel dash-stat-card">
+                <div class="dash-stat-icon" style="background:#fde2e2;">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 10h18M3 14h18" stroke="#c63939" stroke-width="1.8" stroke-linecap="round" />
+                        <rect x="5" y="6" width="14" height="12" rx="2" stroke="#c63939" stroke-width="1.8" />
+                    </svg>
+                </div>
+                <div class="dash-stat-info">
+                    <div class="sub-text">Refunds / Exchanges</div>
+                    <h3 class="mt-0" id="stat-refunds" style="color:var(--red-main);">—</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="toolbar">
+                <div class="toolbar-left search-bar-extended" style="align-items:center;">
+                    <label for="searchInput"
+                        style="margin:0; font-size:13px; font-weight:600; white-space:nowrap;">Search:</label>
+                    <input type="text" id="searchInput" placeholder="Search transaction code..." class="search-input"
+                        style="margin:0; max-width:280px;" oninput="applyFilters()">
+                    <button class="btn-create" onclick="applyFilters()" style="white-space:nowrap; margin:0;">🔍
+                        Search</button>
+                </div>
+                <div class="toolbar-right">
+                    <div class="toolbar-group">
+                        <label for="filterStatus" style="margin:0; font-size:13px; white-space:nowrap;">Status:</label>
+                        <select id="filterStatus" onchange="applyFilters()" style="margin:0; width:auto;">
+                            <option value="all">All</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Refunded">Refunded</option>
+                            <option value="Exchanged">Exchanged</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="filterDate" style="margin:0; font-size:13px; white-space:nowrap;">Date:</label>
+                        <input type="date" id="filterDate" onchange="applyFilters()" style="margin:0; width:auto;">
+                        <button class="btn-view" onclick="clearDateFilter()" style="margin:0;">All</button>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="sortAmount" style="margin:0; font-size:13px; white-space:nowrap;">Sort:</label>
+                        <select id="sortAmount" onchange="applyFilters()" style="margin:0; width:auto;">
+                            <option value="date-desc">Newest First</option>
+                            <option value="date-asc">Oldest First</option>
+                            <option value="amount-desc">Amount: High → Low</option>
+                            <option value="amount-asc">Amount: Low → High</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <table class="data-table" id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Transaction Code</th>
+                        <th>Date & Time</th>
+                        <th class="center-text">Amount</th>
+                        <th class="center-text">Method</th>
+                        <th class="center-text">Status</th>
+                        <th class="center-text">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody">
+                    <tr>
+                        <td colspan="6" class="empty-cart-msg">Loading transactions...</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="pagination-container">
+                <button id="prevBtn" onclick="changePage(-1)" disabled>← Prev</button>
+                <span id="page-info">Page 1</span>
+                <button id="nextBtn" onclick="changePage(1)">Next →</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Transaction Detail Modal -->
+    <div class="modal-overlay" id="detailModal" style="display: none;">
+        <div class="modal-box"
+            style="max-width:520px; text-align:left; padding:25px 30px; max-height:85vh; overflow-y:auto;">
+            <h3 class="m-0"
+                style="margin-bottom:18px; padding-bottom:12px; border-bottom:2px solid var(--border-light);">
+                Transaction Details</h3>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="color:#777; font-size:13px;">Transaction Code</span>
+                <strong id="detail-txnCode" style="font-size:14px;">---</strong>
+            </div>
+            <div id="detail-origRow"
+                style="display:none; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="color:#777; font-size:13px;">Original Transaction</span>
+                <span id="detail-origCode" style="font-size:13px; color:var(--green-light); font-weight:600;">---</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="color:#777; font-size:13px;">Date & Time</span>
+                <span id="detail-date" style="font-size:13px;">---</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="color:#777; font-size:13px;">Payment Method</span>
+                <span id="detail-method" style="font-size:13px;">---</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="color:#777; font-size:13px;">Status</span>
+                <span id="detail-status">---</span>
+            </div>
+
+            <div style="margin:18px 0 10px; padding-top:12px; border-top:1px solid var(--border-light);">
+                <strong
+                    style="font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--green-light);">Items</strong>
+            </div>
+
+            <div class="cart-container" style="max-height:220px; min-height:auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th class="center-text">Qty</th>
+                            <th class="center-text">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detail-items">
+                        <tr>
+                            <td colspan="3" class="empty-cart-msg">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="total-display" style="margin:15px 0 10px; padding:12px;">
+                <p class="m-0" style="font-size:13px; color:#777;">Total Amount</p>
+                <h2 class="m-0" style="color:var(--green-light);">₱ <span id="detail-total">0.00</span></h2>
+            </div>
+
+            <button class="btn-cancel-large" onclick="closeModal('detailModal')"
+                style="width:100%; margin:0;">Close</button>
+        </div>
+    </div>
+
+    <script src="../authGuard.js"></script>
+    <script>
+        const el = (id) => document.getElementById(id);
+
+        let allTransactions = [];
+        let filteredTransactions = [];
+        let currentPage = 1;
+        const perPage = 15;
+
+        function showToast(message, isError = false) {
+            const toast = el("toast");
+            toast.innerText = message;
+            toast.className = isError ? "show error" : "show";
+            setTimeout(() => { toast.className = toast.className.replace("show", "").replace("error", "").trim(); }, 3000);
+        }
+
+        async function loadTransactions() {
+            try {
+                const res = await fetch('/api/transactions?limit=500');
+                if (!res.ok) throw new Error('Failed to fetch');
+                allTransactions = await res.json();
+                applyFilters();
+            } catch (err) {
+                console.error(err);
+                el("historyBody").innerHTML = `<tr><td colspan="6" class="empty-cart-msg">Failed to load transactions.</td></tr>`;
+            }
+        }
+
+        function applyFilters() {
+            const statusFilter = el("filterStatus").value;
+            const dateFilter = el("filterDate").value;
+            const searchTerm = el("searchInput").value.trim().toLowerCase();
+
+            filteredTransactions = allTransactions.filter(txn => {
+                // Status filter
+                if (statusFilter !== 'all' && txn.paymentStatus !== statusFilter) return false;
+
+                // Date filter
+                if (dateFilter) {
+                    const txnDate = new Date(txn.transDateTime).toLocaleDateString('en-CA');
+                    if (txnDate !== dateFilter) return false;
+                }
+
+                // Search filter
+                if (searchTerm) {
+                    const code = (txn.transactionCode || '').toLowerCase();
+                    if (!code.includes(searchTerm)) return false;
+                }
+
+                return true;
+            });
+
+            currentPage = 1;
+
+            // Apply sort
+            const sortVal = el("sortAmount").value;
+            if (sortVal === 'amount-desc') {
+                filteredTransactions.sort((a, b) => parseFloat(b.totalAmount || 0) - parseFloat(a.totalAmount || 0));
+            } else if (sortVal === 'amount-asc') {
+                filteredTransactions.sort((a, b) => parseFloat(a.totalAmount || 0) - parseFloat(b.totalAmount || 0));
+            } else if (sortVal === 'date-asc') {
+                filteredTransactions.sort((a, b) => new Date(a.transDateTime) - new Date(b.transDateTime));
+            } else {
+                // date-desc (default)
+                filteredTransactions.sort((a, b) => new Date(b.transDateTime) - new Date(a.transDateTime));
+            }
+
+            updateSummaryCards();
+            renderTable();
+        }
+
+        function fmtPeso(val) {
+            return '₱ ' + Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function updateSummaryCards() {
+            const totalCount = filteredTransactions.length;
+            const todayStr = new Date().toLocaleDateString('en-CA');
+
+            // Sales for selected date (or today if no date selected)
+            const selectedDate = el("filterDate").value || todayStr;
+            const dateSales = allTransactions
+                .filter(t => {
+                    const txnDate = new Date(t.transDateTime).toLocaleDateString('en-CA');
+                    return txnDate === selectedDate && parseFloat(t.totalAmount || 0) > 0;
+                })
+                .reduce((sum, t) => sum + parseFloat(t.totalAmount || 0), 0);
+
+            // Refunds / Exchanges = sum of absolute amounts for Refunded or Exchanged statuses (from filtered)
+            const totalRefunds = filteredTransactions
+                .filter(t => t.paymentStatus === 'Refunded' || t.paymentStatus === 'Exchanged')
+                .reduce((sum, t) => sum + Math.abs(parseFloat(t.totalAmount || 0)), 0);
+
+            // Dynamic page title based on selected date
+            const salesLabel = document.querySelector('#stat-sales').closest('.dash-stat-info').querySelector('.sub-text');
+            if (selectedDate === todayStr) {
+                el("pageTitle").textContent = 'Sales History';
+                salesLabel.textContent = "Today's Sales";
+            } else {
+                const d = new Date(selectedDate + 'T00:00:00');
+                const formatted = d.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+                el("pageTitle").textContent = 'Sales History \u2014 ' + formatted;
+                salesLabel.textContent = 'Total Sales';
+            }
+
+            el("stat-count").textContent = totalCount;
+            el("stat-sales").textContent = fmtPeso(dateSales);
+            el("stat-refunds").textContent = fmtPeso(totalRefunds);
+        }
+
+        function performSearch() {
+            applyFilters();
+        }
+
+        function clearDateFilter() {
+            el("filterDate").value = '';
+            applyFilters();
+        }
+
+        function renderTable() {
+            const tbody = el("historyBody");
+            const start = (currentPage - 1) * perPage;
+            const pageData = filteredTransactions.slice(start, start + perPage);
+            const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / perPage));
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-cart-msg">No transactions found.</td></tr>`;
+            } else {
+                tbody.innerHTML = pageData.map(txn => {
+                    const date = new Date(txn.transDateTime);
+                    const dateStr = date.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+                    const timeStr = date.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+                    const amount = parseFloat(txn.totalAmount || 0);
+                    const isNegative = amount < 0;
+
+                    let statusClass = 'status-instock';
+                    if (txn.paymentStatus === 'Refunded') statusClass = 'status-outstock';
+                    else if (txn.paymentStatus === 'Exchanged') statusClass = 'status-lowstock';
+
+                    return `
+                    <tr>
+                        <td><strong>${txn.transactionCode || '—'}</strong></td>
+                        <td>
+                            <div class="datetime-cell">
+                                <span class="date-label">${dateStr}</span>
+                                <span class="time-label">${timeStr}</span>
+                            </div>
+                        </td>
+                        <td class="center-text" style="${isNegative ? 'color:var(--red-main);' : ''}">
+                            ${isNegative ? '-' : ''}₱${Math.abs(amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                        <td class="center-text">${txn.paymentMethod || '—'}</td>
+                        <td class="center-text">
+                            <span class="status-pill ${statusClass}">${txn.paymentStatus || '—'}</span>
+                        </td>
+                        <td class="center-text">
+                            <button class="btn-view" onclick="viewDetail(${txn.transactionID})">View</button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+
+            el("page-info").textContent = `Page ${currentPage} of ${totalPages}`;
+            el("prevBtn").disabled = currentPage <= 1;
+            el("nextBtn").disabled = currentPage >= totalPages;
+        }
+
+        function changePage(delta) {
+            const totalPages = Math.ceil(filteredTransactions.length / perPage);
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderTable();
+            }
+        }
+
+        async function viewDetail(transactionID) {
+            const txn = allTransactions.find(t => t.transactionID === transactionID);
+            if (!txn) return;
+
+            // Fill header info
+            el("detail-txnCode").textContent = txn.transactionCode || '—';
+            el("detail-date").textContent = new Date(txn.transDateTime).toLocaleString('en-PH');
+            el("detail-method").textContent = txn.paymentMethod || '—';
+            el("detail-status").textContent = txn.paymentStatus || '—';
+
+            // Show original transaction code for refunds/exchanges
+            const origRow = el("detail-origRow");
+            if (txn.paymentStatus === 'Refunded' || txn.paymentStatus === 'Exchanged') {
+                // Derive original code: UTR-xxx or UTE-xxx -> UT-xxx
+                const code = txn.transactionCode || '';
+                let origCode = code.replace(/^UTR-/, 'UT-').replace(/^UTE-/, 'UT-');
+                if (origCode === code) origCode = '—'; // couldn't derive
+                el("detail-origCode").textContent = origCode;
+                origRow.style.display = 'flex';
+            } else {
+                origRow.style.display = 'none';
+            }
+
+            el("detail-total").textContent = parseFloat(txn.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+            // Fetch items
+            el("detail-items").innerHTML = `<tr><td colspan="3" class="empty-cart-msg">Loading items...</td></tr>`;
+            el("detailModal").style.display = "flex";
+
+            try {
+                const res = await fetch(`/api/transactions/${transactionID}/items`);
+                if (!res.ok) throw new Error('Failed to fetch items');
+                const items = await res.json();
+
+                if (items.length === 0) {
+                    el("detail-items").innerHTML = `<tr><td colspan="3" class="empty-cart-msg">No items found.</td></tr>`;
+                } else {
+                    el("detail-items").innerHTML = items.map(item => {
+                        const qty = item.quantity;
+                        const subtotal = parseFloat(item.subtotal || 0);
+                        const isReturn = qty < 0;
+                        return `
+                        <tr>
+                            <td>
+                                <strong>${item.productName || 'Unknown'}</strong><br>
+                                <small style="color:#777;">BC: ${item.barcode || '—'}</small>
+                            </td>
+                            <td class="center-text" style="${isReturn ? 'color:var(--red-main);' : ''}">${qty}</td>
+                            <td class="center-text" style="${isReturn ? 'color:var(--red-main);' : ''}">
+                                ₱${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                        </tr>`;
+                    }).join('');
+                }
+            } catch (err) {
+                console.error(err);
+                el("detail-items").innerHTML = `<tr><td colspan="3" class="empty-cart-msg">Failed to load items.</td></tr>`;
+            }
+        }
+
+        function closeModal(modalId) {
+            el(modalId).style.display = "none";
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeModal('detailModal');
+                return;
+            }
+
+            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                const activeTag = document.activeElement.tagName.toLowerCase();
+                if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+                el("searchInput").focus();
+            }
+        });
+
+        el("searchInput").addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                performSearch();
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // Display date/time in header
+            const now = new Date();
+            el("header-datetime").textContent =
+                now.toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
+                '\u2002\u2014\u2002' +
+                now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+
+            // Default date filter to today
+            el("filterDate").value = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+            loadTransactions();
+            el("searchInput").focus();
+        });
+    </script>
+</body>
+
+</html>
