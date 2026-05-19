@@ -7,8 +7,22 @@ const session = require('express-session');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
+const os = require('os');
 const { exec } = require('child_process');
 const cron = require('node-cron');
+
+// Helper: get local LAN IPv4 address
+function getLanIP() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return 'localhost';
+}
 
 const backupDir = path.join(__dirname, 'backups');
 if (!fs.existsSync(backupDir)) {
@@ -158,9 +172,14 @@ app.get('/api/setup-test-admin', async (req, res) => {
     }
 });
 
-const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`✅ Server is successfully running on http://localhost:${PORT}/log-in.html`);
+const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+    const lanIP = getLanIP();
+    console.log(`✅ Server is running!`);
+    console.log(`   Local:   http://localhost:${PORT}/log-in.html`);
+    console.log(`   Network: http://${lanIP}:${PORT}/log-in.html`);
 });
 
 // GET route to fetch products for the inventory product list page
@@ -1271,7 +1290,7 @@ initializeSchedules();
 // Trigger Manual Backup
 app.post('/api/backups/manual', async (req, res) => {
     const userID = req.session.user ? req.session.user.id : null;
-        if (!userID) return res.status(401).json({ error: "Unauthorized" });
+    if (!userID) return res.status(401).json({ error: "Unauthorized" });
 
     try {
         const fileName = await performDatabaseBackup('Manual', userID);
