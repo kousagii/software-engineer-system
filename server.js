@@ -400,7 +400,7 @@ app.get('/api/orders', (req, res) => {
 
         const ids = orders.map(o => o.orderID);
         const itemsSql = `
-            SELECT pi.orderID, pi.productID, pi.quantity, pi.unitCost, p.productName
+            SELECT pi.orderID, pi.productID, pi.quantity, pi.receivedQty, pi.defectiveQty, pi.unitCost, p.productName
             FROM purchase_item pi
             LEFT JOIN product p ON pi.productID = p.productID
             WHERE pi.orderID IN (?);
@@ -415,7 +415,7 @@ app.get('/api/orders', (req, res) => {
             const itemsByOrder = {};
             (items || []).forEach(it => {
                 if (!itemsByOrder[it.orderID]) itemsByOrder[it.orderID] = [];
-                itemsByOrder[it.orderID].push({ productID: it.productID, productName: it.productName, qty: it.quantity, unitCost: it.unitCost });
+                itemsByOrder[it.orderID].push({ productID: it.productID, productName: it.productName, qty: it.quantity, receivedQty: it.receivedQty, defectiveQty: it.defectiveQty, unitCost: it.unitCost });
             });
 
             const result = orders.map(o => ({
@@ -520,9 +520,9 @@ app.put('/api/orders/:id', async (req, res) => {
 
         const oldStatus = existingOrders[0].status;
 
-        if (oldStatus === 'Completed') {
+        if (oldStatus === 'Completed' || oldStatus === 'Partially Completed') {
             return res.status(400).json({
-                error: "Completed orders cannot be modified."
+                error: "Orders that are completed or partially completed cannot be edited directly. Please use the receiving module."
             });
         }
 
@@ -617,22 +617,7 @@ app.put('/api/orders/:id', async (req, res) => {
 
             await db.promise().query(insertItemsSql, [values]);
 
-            if (oldStatus !== 'Completed' && status === 'Completed') {
-
-                for (const item of items) {
-
-                    const updateStockSql = `
-                        UPDATE product
-                        SET stockQuantity = stockQuantity + ?
-                        WHERE productID = ?
-                    `;
-
-                    await db.promise().query(updateStockSql, [
-                        item.qty || item.quantity || 0,
-                        item.productID
-                    ]);
-                }
-            }
+            // We don't update stock here anymore because stock is updated via the receiving endpoint.
         }
         await db.promise().query('COMMIT');
         res.json({
@@ -644,6 +629,61 @@ app.put('/api/orders/:id', async (req, res) => {
         res.status(500).json({
             error: "Failed to update order."
         });
+    }
+});
+
+// PUT receive/complete an order
+app.put('/api/orders/:id/receive', async (req, res) => {
+    const { id } = req.params;
+    const { status, items } = req.body; 
+
+    try {
+        const [existingOrders] = await db.promise().query(
+            `SELECT status FROM purchase_order WHERE orderID = ?`,
+            [id]
+        );
+
+        if (existingOrders.length === 0) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        const oldStatus = existingOrders[0].status;
+        if (oldStatus === 'Completed') {
+            return res.status(400).json({ error: "Completed orders cannot be modified." });
+        }
+
+        await db.promise().query('START TRANSACTION');
+
+        await db.promise().query(`UPDATE purchase_order SET status = ? WHERE orderID = ?`, [status, id]);
+
+        for (const item of items) {
+            const [oldItems] = await db.promise().query(`SELECT receivedQty FROM purchase_item WHERE orderID = ? AND productID = ?`, [id, item.productID]);
+            const oldReceived = oldItems.length > 0 ? oldItems[0].receivedQty : 0;
+            const newReceived = parseInt(item.receivedQty) || 0;
+            const defective = parseInt(item.defectiveQty) || 0;
+
+            await db.promise().query(`UPDATE purchase_item SET receivedQty = ?, defectiveQty = ? WHERE orderID = ? AND productID = ?`, [newReceived, defective, id, item.productID]);
+
+            const stockDiff = newReceived - oldReceived;
+            if (stockDiff > 0) {
+                await db.promise().query(`UPDATE product SET stockQuantity = stockQuantity + ? WHERE productID = ?`, [stockDiff, item.productID]);
+            } else if (stockDiff < 0) {
+                await db.promise().query(`UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`, [-stockDiff, item.productID]);
+            }
+        }
+        
+        const sessionUserID = req.session?.user?.id;
+        if (sessionUserID) {
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Receive Order', ?)`,
+                [sessionUserID, `Received/Updated PO-${id} (Status: ${status})`]);
+        }
+
+        await db.promise().query('COMMIT');
+        res.json({ message: "Order receiving updated successfully." });
+    } catch (error) {
+        await db.promise().query('ROLLBACK');
+        console.error('RECEIVE ORDER ERROR:', error);
+        res.status(500).json({ error: "Failed to receive order." });
     }
 });
 

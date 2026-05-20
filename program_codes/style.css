@@ -227,11 +227,11 @@ button:hover {
 .btn-view,
 .btn-add,
 .btn-edit,
-.btn-delete {
+.btn-delete,
+.btn-success {
     width: auto;
 }
 
-.btn-proceed,
 .btn-create,
 .btn-create-supplier.active {
     background: var(--green-light);
@@ -239,12 +239,18 @@ button:hover {
     font-weight: bold;
     padding: 10px 20px;
     flex-wrap: nowrap;
+    margin: 0;
+    font-size: 14px;
 }
 
 .btn-back {
     background: var(--btn-gray);
     color: var(--text-dark);
     padding: 10px 20px;
+}
+
+.btn-secondary {
+    margin-bottom: 15px;
 }
 
 .btn-create-supplier {
@@ -258,9 +264,10 @@ button:hover {
 .btn-view,
 .btn-edit,
 .btn-delete,
-.btn-add {
-    padding: 12px 12px;
-    margin: 0 5px 0 0;
+.btn-add,
+.btn-success {
+    padding: 12px;
+    margin: 0;
     font-size: 13px;
     border-radius: var(--rad-sm);
 }
@@ -297,6 +304,23 @@ button:hover {
 
 .btn-delete:hover {
     background: var(--red-hover);
+}
+
+.btn-success {
+    background: #2b8a4e;
+    color: var(--white);
+}
+
+.btn-success:hover {
+    background: #1e6b3b;
+}
+
+.action-btns {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
 }
 
 .qty-btn {
@@ -542,6 +566,124 @@ button:hover {
 
 .flex {
     display: flex !important;
+}
+
+.flex-gap-10 {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.w-70 {
+    width: 70px !important;
+}
+
+.w-80 {
+    width: 80px !important;
+}
+
+.w-150 {
+    width: 150px !important;
+}
+
+.w-200 {
+    width: 200px !important;
+}
+
+.text-sm {
+    font-size: 14px;
+}
+
+/* ===================== ORDER MANAGEMENT ===================== */
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: var(--rad-sm);
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-completed {
+    background: #ccf0d8;
+    color: #2b8a4e;
+}
+
+.status-cancelled {
+    background: #fad2d2;
+    color: var(--red-hover);
+}
+
+.status-partially.completed,
+.status-partially-completed {
+    background: #d0e8ff;
+    color: var(--blue-hover);
+}
+
+/* Order items list */
+.order-product-item {
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.order-product-item .sub-text {
+    font-size: 12px;
+}
+
+.order-products-col {
+    max-width: 220px;
+}
+
+/* Items container in create/edit form */
+.items-container-box {
+    max-height: 350px;
+    overflow: auto;
+    padding: 10px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-main);
+    border-radius: var(--rad-md);
+    margin-bottom: 15px;
+}
+
+/* A row for add-item inputs */
+.item-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.item-row select {
+    flex: 1;
+}
+
+.item-row input {
+    width: 80px;
+}
+
+.form-actions-end {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.form-actions-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-gray {
+    background: var(--btn-gray);
+    color: var(--text-dark);
 }
 
 .status-pill {

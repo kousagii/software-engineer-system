@@ -23,7 +23,12 @@
         <div id="order-list-view" class="w-full">
             <div class="page-header">
                 <h2>Order Management</h2>
-                <button class="btn-create" onclick="openForm()">+ Create Purchase Order</button>
+                <div class="flex-gap-10">
+                    <button class="btn-view"
+                        style="padding: 10px 20px; margin: 0; font-weight: bold; border-radius: var(--rad-md); font-size: 14px;"
+                        onclick="toggleView('defective-items-view')">View Defective / Pending</button>
+                    <button class="btn-create" onclick="openForm()">+ Create Purchase Order</button>
+                </div>
             </div>
 
             <div class="form-panel toolbar">
@@ -37,20 +42,21 @@
                         <select id="statusFilter">
                             <option value="All">All</option>
                             <option value="Pending">Pending</option>
+                            <option value="Partially Completed">Partially Completed</option>
                             <option value="Completed">Completed</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>
                     </div>
                     <div class="sort-group">
                         <label>Show</label>
-                        <select id="showLimit" style="width: 70px;">
+                        <select id="showLimit" class="w-70">
                             <option value="5">5</option>
                             <option value="10" selected>10</option>
                             <option value="20">20</option>
                             <option value="all">All</option>
                         </select>
                         <label>Sort</label>
-                        <select id="sortMode" style="width:150px;">
+                        <select id="sortMode" class="w-150">
                             <option value="dateDesc">Date: Newest</option>
                             <option value="dateAsc">Date: Oldest</option>
                             <option value="status">Status</option>
@@ -81,7 +87,7 @@
 
                 <div id="pagination-controls" class="pagination-container hidden">
                     <button id="btn-prev" onclick="changePage(-1)">Previous</button>
-                    <span id="page-info" style="font-size:14px;">Page 1 of 1</span>
+                    <span id="page-info" class="text-sm">Page 1 of 1</span>
                     <button id="btn-next" onclick="changePage(1)">Next</button>
                 </div>
             </div>
@@ -106,30 +112,77 @@
                     <textarea id="shipmentInfo" rows="4" placeholder="Address, ETA, courier details"
                         class="w-full"></textarea>
 
-                    <label class="mt-15">Order Status</label>
-                    <select id="orderStatus" class="w-full">
-                        <option value="Pending">Pending</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
-                    </select>
+                    <input type="hidden" id="orderStatus" value="Pending">
                 </div>
 
                 <div class="form-panel">
                     <h3>Order Items</h3>
-                    <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Select a supplier first to view
+                    <p class="form-hint">Select a supplier first to view
                         available products.</p>
 
-                    <div id="itemsContainer" class="items-list"
-                        style="max-height:350px; overflow:auto; padding:10px; border:1px solid #eee; background:#fafafa; border-radius:6px; margin-bottom: 15px;">
+                    <div id="itemsContainer" class="items-list items-container-box">
                     </div>
 
-                    <div style="display:flex; justify-content: space-between; align-items: center;">
-                        <button class="btn-create" onclick="addItemRow()" style="background: #e0e0e0; color: #333;">+
+                    <div class="flex-between-center">
+                        <button class="btn-create btn-secondary" onclick="addItemRow()">+
                             Add Item</button>
-                        <button class="btn-create" id="btn-save-order" onclick="saveOrder()" style="width: 200px;">Save
+                        <button class="btn-create w-200" id="btn-save-order" onclick="saveOrder()">Save
                             Order</button>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div id="receive-order-view" class="hidden w-full">
+            <div class="page-header">
+                <button class="btn-back" onclick="toggleView('order-list-view')">← Back to List</button>
+            </div>
+            <div class="form-panel">
+                <h3 id="receive-form-title">Receive Order</h3>
+                <div class="table-container mt-15">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Ordered Qty</th>
+                                <th>Previously Received</th>
+                                <th>New Received Qty</th>
+                                <th>Defective Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receive-items-body">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="flex-end-gap">
+                    <button class="btn-edit" onclick="saveReceiveOrder('Partially Completed')">Save Progress
+                        (Partial)</button>
+                    <button class="btn-create" onclick="saveReceiveOrder('Completed')">Complete Order</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="defective-items-view" class="hidden w-full">
+            <div class="page-header">
+                <h2>Defective / Pending Items</h2>
+                <button class="btn-back" onclick="toggleView('order-list-view')">← Back to Orders</button>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Supplier</th>
+                            <th>Product</th>
+                            <th>Ordered Qty</th>
+                            <th>Received Qty</th>
+                            <th>Defective Qty</th>
+                            <th>Pending Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody id="defective-items-body">
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -159,8 +212,12 @@
         function toggleView(view) {
             $('order-list-view').classList.toggle('hidden', view !== 'order-list-view');
             $('create-order-view').classList.toggle('hidden', view !== 'create-order-view');
+            $('receive-order-view').classList.toggle('hidden', view !== 'receive-order-view');
+            $('defective-items-view').classList.toggle('hidden', view !== 'defective-items-view');
             if (view === 'order-list-view') {
                 loadOrders();
+            } else if (view === 'defective-items-view') {
+                renderDefectiveItems();
             }
         }
 
@@ -170,7 +227,7 @@
             clearItems();
 
             const order = id ? orders.find(x => x.orderID == id) : null;
-            const isCompleted = order && order.status === 'Completed';
+            const isCompleted = order && (order.status === 'Completed' || order.status === 'Partially Completed');
 
             toggleInputs(!isCompleted);
 
@@ -206,7 +263,6 @@
             $('supplierSelect').disabled = !enabled;
             $('supplierContact').disabled = !enabled;
             $('shipmentInfo').disabled = !enabled;
-            $('orderStatus').disabled = !enabled;
             $('btn-save-order').style.display = enabled ? 'block' : 'none';
             const addBtn = document.querySelector('.btn-create[onclick="addItemRow()"]');
             if (addBtn) {
@@ -218,12 +274,9 @@
         function addItemRow(selectedProductId = null, qty = 1, disabled = false) {
             const row = document.createElement('div');
             row.className = 'item-row';
-            row.style.display = 'flex';
-            row.style.gap = '10px';
-            row.style.marginBottom = '10px';
 
             const sel = document.createElement('select');
-            sel.style.flex = '1';
+            sel.className = 'flex-1';
             sel.disabled = disabled; // Lock product selection
 
             const allowedProducts = getAllowedProductsForCurrentSupplier();
@@ -234,7 +287,7 @@
             qin.type = 'number';
             qin.min = 1;
             qin.value = qty;
-            qin.style.width = '80px';
+            qin.className = 'w-80';
             qin.disabled = disabled;
 
             row.appendChild(sel);
@@ -342,7 +395,7 @@
                 supplierID: supplierID,
                 contact: val('supplierContact'),
                 shipmentInfo: val('shipmentInfo'),
-                status: val('orderStatus'),
+                status: 'Pending',
                 items: getItemsFromUI()
             };
 
@@ -422,15 +475,24 @@
         function renderTable(data) {
             $('orders-table-body').innerHTML = data.map(o => {
                 const totalQty = (o.items || []).reduce((s, it) => s + (parseInt(it.qty) || 0), 0);
-                const productsHtml = (o.items || []).map(it => `<div class="order-product-item">${it.productName} <span style="color:#666;">x${it.qty}</span></div>`).join('');
-                const statusClass = 'status-' + (o.status || 'Pending').toLowerCase();
+                const productsHtml = (o.items || []).map(it => `<div class="order-product-item">${it.productName} <span class="text-muted">x${it.qty}</span></div>`).join('');
+                const statusClass = 'status-' + (o.status || 'Pending').toLowerCase().replace(' ', '-');
 
                 const isComp = o.status === 'Completed';
-                const actionButtons = isComp
-                    ? `<button class="btn-edit" style="background:#2c3e50" onclick="openForm(${o.orderID})">View</button>
-       <button class="btn-delete" onclick="confirmDelete(${o.orderID})">Delete</button>`
-                    : `<button class="btn-edit" onclick="openForm(${o.orderID})">Edit</button>
-       <button class="btn-delete" onclick="confirmDelete(${o.orderID})">Delete</button>`;
+                const canEdit = o.status === 'Pending';
+
+                let actionButtons = '';
+                if (canEdit) {
+                    actionButtons += `<button class="btn-edit" onclick="openForm(${o.orderID})">Edit</button>`;
+                } else {
+                    actionButtons += `<button class="btn-view" onclick="openForm(${o.orderID})">View</button>`;
+                }
+
+                if (o.status === 'Pending' || o.status === 'Partially Completed') {
+                    actionButtons += ` <button class="btn-success" onclick="openReceiveForm(${o.orderID})">Receive</button>`;
+                }
+
+                actionButtons += ` <button class="btn-delete" onclick="confirmDelete(${o.orderID})">Delete</button>`;
 
                 return `
       <tr>
@@ -440,12 +502,128 @@
         <td><div class="order-products-col">${productsHtml}</div></td>
         <td>${totalQty}</td>
         <td><span class="status-badge ${statusClass}">${o.status || 'Pending'}</span></td>
-        <td>
-          ${actionButtons} 
-        </td>
+        <td><div class="action-btns">${actionButtons}</div></td>
       </tr>
     `;
             }).join('') || '<tr><td colspan="7" class="center-text">No orders found.</td></tr>';
+        }
+
+        // --- Receiving Logic ---
+        function openReceiveForm(id) {
+            currentEditId = id;
+            const order = orders.find(x => x.orderID == id);
+            if (!order) return showAlert('Order not found');
+
+            $('receive-form-title').innerText = 'Receive Order #' + id;
+
+            const tbody = $('receive-items-body');
+            tbody.innerHTML = '';
+
+            order.items.forEach(it => {
+                const ordered = parseInt(it.qty) || 0;
+                const received = parseInt(it.receivedQty) || 0;
+                const defective = parseInt(it.defectiveQty) || 0;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${it.productName}</td>
+                    <td>${ordered}</td>
+                    <td>${received}</td>
+                    <td>
+                        <input type="number" class="receive-qty-input w-80" data-pid="${it.productID}" value="${received}" min="0" max="${ordered}">
+                    </td>
+                    <td>
+                        <input type="number" class="defective-qty-input w-80" data-pid="${it.productID}" value="${defective}" min="0" max="${ordered}">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            toggleView('receive-order-view');
+        }
+
+        async function saveReceiveOrder(status) {
+            const items = [];
+            const rows = document.querySelectorAll('#receive-items-body tr');
+            let invalid = false;
+
+            rows.forEach(tr => {
+                const recInput = tr.querySelector('.receive-qty-input');
+                const defInput = tr.querySelector('.defective-qty-input');
+                let recVal = parseInt(recInput.value) || 0;
+                let defVal = parseInt(defInput.value) || 0;
+                const ordered = parseInt(tr.children[1].innerText) || 0;
+
+                if (recVal + defVal > ordered) {
+                    invalid = true;
+                    showAlert(`Total quantity (received + defective) for ${tr.children[0].innerText} cannot exceed ordered quantity (${ordered}).`);
+                    return;
+                }
+
+                if (status === 'Completed') {
+                    // Auto-fill received quantity to maximum possible if completing the order
+                    const maxRec = ordered - defVal;
+                    if (recVal < maxRec) {
+                        recVal = maxRec;
+                        recInput.value = recVal; // update UI just in case
+                    }
+                }
+
+                items.push({
+                    productID: recInput.getAttribute('data-pid'),
+                    receivedQty: recVal,
+                    defectiveQty: defVal
+                });
+            });
+
+            if (invalid) return;
+
+            try {
+                const res = await fetch(`/api/orders/${currentEditId}/receive`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status, items })
+                });
+
+                if (res.ok) {
+                    showAlert('Order receiving updated successfully');
+                    toggleView('order-list-view');
+                } else {
+                    const r = await res.json();
+                    showAlert('Error: ' + (r.error || 'Failed to update'));
+                }
+            } catch {
+                showAlert('Failed to connect to server');
+            }
+        }
+
+        function renderDefectiveItems() {
+            const rows = [];
+            orders.forEach(o => {
+                if (o.status === 'Cancelled' || o.status === 'Completed') return;
+
+                (o.items || []).forEach(it => {
+                    const ordered = parseInt(it.qty) || 0;
+                    const received = parseInt(it.receivedQty) || 0;
+                    const defective = parseInt(it.defectiveQty) || 0;
+                    const pending = Math.max(0, ordered - (received + defective));
+
+                    if (defective > 0 || pending > 0) {
+                        rows.push(`
+                            <tr>
+                                <td>#${o.orderID}</td>
+                                <td>${o.supplierName || ''}</td>
+                                <td>${it.productName}</td>
+                                <td>${ordered}</td>
+                                <td>${received}</td>
+                                <td class="${defective > 0 ? 'text-danger' : ''}">${defective}</td>
+                                <td class="${pending > 0 ? 'text-warning' : ''}">${pending}</td>
+                            </tr>
+                        `);
+                    }
+                });
+            });
+            $('defective-items-body').innerHTML = rows.join('') || '<tr><td colspan="7" class="center-text">No defective or pending items found.</td></tr>';
         }
 
         // --- Initialization ---
