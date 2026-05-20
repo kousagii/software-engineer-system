@@ -96,8 +96,18 @@
         fetchBackups();
 
         // --- MODAL EVENTS ---
-        btnSettings.addEventListener('click', () => {
-            settingsModal.style.display = 'flex'; // Uses flex to center overlay
+        btnSettings.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/backups/schedule');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.fullSchedule) document.getElementById('full-schedule').value = data.fullSchedule;
+                    if (data.incSchedule) document.getElementById('inc-schedule').value = data.incSchedule;
+                }
+            } catch (error) {
+                console.error("Failed to fetch current schedule settings:", error);
+            }
+            settingsModal.style.display = 'flex'; 
         });
 
         cancelSettingsBtn.addEventListener('click', () => {
@@ -119,7 +129,6 @@
             }
         }
 
-        // --- SUBMIT NEW SETTINGS ---
         settingsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             

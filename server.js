@@ -283,6 +283,7 @@ app.get('/api/suppliers', (req, res) => {
             s.contactNumber,
             s.email,
             s.address,
+            s.termsOfPayment,
             GROUP_CONCAT(sp.productID) AS productIDs,
             GROUP_CONCAT(p.productName) AS productNames
         FROM supplier s
@@ -300,11 +301,11 @@ app.get('/api/suppliers', (req, res) => {
 
 // POST route to add a new supplier
 app.post('/api/suppliers', (req, res) => {
-    const { supplierName, contactNumber, email, address, productIDs } = req.body;
+    const { supplierName, contactNumber, email, address, termsOfPayment, productIDs } = req.body;
 
-    const sql = `INSERT INTO supplier (supplierName, contactNumber, email, address) VALUES (?, ?, ?, ?)`;
+    const sql = `INSERT INTO supplier (supplierName, contactNumber, email, address, termsOfPayment) VALUES (?, ?, ?, ?, ?)`;
 
-    db.query(sql, [supplierName, contactNumber, email, address], (err, result) => {
+    db.query(sql, [supplierName, contactNumber, email, address, termsOfPayment || 'COD'], (err, result) => {
         if (err) return res.status(500).json({ error: "Database error" });
 
         const newSupplierId = result.insertId;
@@ -331,11 +332,11 @@ app.post('/api/suppliers', (req, res) => {
 // PUT route to UPDATE an existing supplier
 app.put('/api/suppliers/:id', (req, res) => {
     const { id } = req.params;
-    const { supplierName, contactNumber, email, address, productIDs } = req.body;
+    const { supplierName, contactNumber, email, address, termsOfPayment, productIDs } = req.body;
 
-    const sql = `UPDATE supplier SET supplierName = ?, contactNumber = ?, email = ?, address = ? WHERE supplierID = ?`;
+    const sql = `UPDATE supplier SET supplierName = ?, contactNumber = ?, email = ?, address = ?, termsOfPayment = ? WHERE supplierID = ?`;
 
-    db.query(sql, [supplierName, contactNumber, email, address, id], (err, result) => {
+    db.query(sql, [supplierName, contactNumber, email, address, termsOfPayment || 'COD', id], (err, result) => {
         if (err) return res.status(500).json({ error: "Failed to update supplier" });
         const sessionUserID = req.session?.user?.id;
         if (sessionUserID) {
@@ -1308,8 +1309,29 @@ function performDatabaseBackup(backupType, userID) {
     });
 }
 
+const backupConfigPath = path.join(__dirname, 'backup-config.json');
+
 // Dynamically Initialize Schedules
-function initializeSchedules(fullCronStr = '0 0 * * *', incCronStr = '30 * * * *') {
+function initializeSchedules(fullCronStr = null, incCronStr = null) {
+    if (fullCronStr && incCronStr) {
+        fs.writeFileSync(backupConfigPath, JSON.stringify({ fullSchedule: fullCronStr, incSchedule: incCronStr }, null, 2), 'utf8');
+    } else {
+        if (fs.existsSync(backupConfigPath)) {
+            try {
+                const config = JSON.parse(fs.readFileSync(backupConfigPath, 'utf8'));
+                fullCronStr = config.fullSchedule || '0 0 * * *';
+                incCronStr = config.incSchedule || '30 * * * *';
+            } catch (e) {
+                console.error("Error reading backup config:", e);
+                fullCronStr = '0 0 * * *';
+                incCronStr = '30 * * * *';
+            }
+        } else {
+            fullCronStr = '0 0 * * *';
+            incCronStr = '30 * * * *';
+        }
+    }
+
     if (fullBackupJob) fullBackupJob.stop();
     if (incBackupJob) incBackupJob.stop();
 
@@ -1389,6 +1411,19 @@ app.post('/api/backups/schedule', (req, res) => {
         console.error(err);
         res.status(500).json({ error: 'Failed to update cron schedules' });
     }
+});
+
+// Get current backup schedule
+app.get('/api/backups/schedule', (req, res) => {
+    let config = { fullSchedule: '0 0 * * *', incSchedule: '30 * * * *' };
+    if (fs.existsSync(backupConfigPath)) {
+        try {
+            const parsed = JSON.parse(fs.readFileSync(backupConfigPath, 'utf8'));
+            if (parsed.fullSchedule) config.fullSchedule = parsed.fullSchedule;
+            if (parsed.incSchedule) config.incSchedule = parsed.incSchedule;
+        } catch (e) {}
+    }
+    res.json(config);
 });
 
 // --- INCREMENTAL BACKUP FUNCTION ---

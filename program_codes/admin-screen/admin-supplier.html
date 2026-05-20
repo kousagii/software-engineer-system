@@ -53,11 +53,11 @@
                     <thead>
                         <tr>
                             <th>Supplier</th><th>Contact Number</th><th>Email</th>
-                            <th>Address</th><th>Product List</th><th>Action</th>
+                            <th>Address</th><th>Terms of Payment</th><th>Product List</th><th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="supplier-table-body">
-                        <tr><td colspan="6" class="center-text">Loading...</td></tr>
+                        <tr><td colspan="7" class="center-text">Loading...</td></tr>
                     </tbody>
                 </table>
 
@@ -92,6 +92,9 @@
                         
                         <label>Address</label>
                         <textarea id="supAddress" rows="3" placeholder="Address"></textarea>
+                        
+                        <label>Terms of Payment</label>
+                        <input type="text" id="supTerms" placeholder="e.g., COD, 30 Days, 90 Days" value="COD">
                     </div>
 
                     <div style="flex: 1;">
@@ -222,6 +225,7 @@
                 const count = s.productIDs ? s.productIDs.toString().split(',').length : 0;
                 const safeName = s.supplierName.replace(/'/g, "\\'");
                 const safeProds = (s.productNames || '').replace(/'/g, "\\'");
+                const terms = s.termsOfPayment || 'COD';
 
                 return `
                     <tr>
@@ -229,7 +233,8 @@
                         <td class="sub-text">${s.contactNumber || 'N/A'}</td>
                         <td class="sub-text">${s.email || 'N/A'}</td>
                         <td class="sub-text address-cell">${addr}</td>
-                        <td><button class="btn-view" onclick="viewProducts('${safeName}', '${safeProds}')">↗ View (${count})</button></td>
+                        <td class="sub-text">${terms}</td>
+                        <td><button class="btn-view" onclick="viewProducts('${safeName}', '${safeProds}')">View (${count})</button></td>
                         <td>
                             <div style="display: flex; gap: 5px;">
                                 <button class="btn-edit" onclick="openForm(${s.supplierID})">Edit</button>
@@ -238,18 +243,19 @@
                         </td>
                     </tr>
                 `;            
-            }).join('') || '<tr><td colspan="6" class="center-text">No results found.</td></tr>';
+            }).join('') || '<tr><td colspan="7" class="center-text">No results found.</td></tr>';
         }
 
         // --- Form Logic ---
         function openForm(id = null) {
             currentEditId = id;
-            const s = supplierList.find(x => x.supplierID === id) || { supplierName:'', contactNumber:'', email:'', address:'', productIDs:'' };
+            const s = supplierList.find(x => x.supplierID === id) || { supplierName:'', contactNumber:'', email:'', address:'', termsOfPayment:'', productIDs:'' };
 
             val('supName', s.supplierName || '');
             val('supContact', s.contactNumber || '');
             val('supEmail', s.email || '');
             val('supAddress', s.address || '');
+            val('supTerms', s.termsOfPayment || 'COD');
 
             const selectedIDs = (s.productIDs || '').toString().split(',');
             document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = selectedIDs.includes(cb.value));
@@ -280,7 +286,7 @@
                 supplierList = await res.json();
                 currentPage = 1;
                 processData();
-            } catch { $('supplier-table-body').innerHTML = '<tr><td colspan="6" class="center-text">Error loading data.</td></tr>'; }
+            } catch { $('supplier-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error loading data.</td></tr>'; }
         }
 
         async function saveSupplier() {
@@ -289,6 +295,7 @@
                 contactNumber: val('supContact'),
                 email: val('supEmail'),
                 address: val('supAddress'),
+                termsOfPayment: val('supTerms'),
                 productIDs: Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => parseInt(cb.value))
             };
 
