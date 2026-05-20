@@ -75,9 +75,16 @@
                 </div>
 
                 <div class="mt-15">
-                    <label for="discount" class="d-block mb-5">Discount (%)</label>
-                    <input type="number" id="discount" value="0" min="0" max="100" oninput="updateTotal()"
-                        class="discount-input">
+                    <label class="d-block mb-5">Discount</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <select id="discountType" class="discount-input"
+                            style="flex: 0 0 auto; width: auto; min-width: 110px;" onchange="updateTotal()">
+                            <option value="fixed">Fixed (₱)</option>
+                            <option value="percent">Percent (%)</option>
+                        </select>
+                        <input type="number" id="discount" value="0" min="0" oninput="updateTotal()"
+                            class="discount-input" style="flex: 1;">
+                    </div>
                 </div>
 
                 <div class="summary-item discount-amt-row">
@@ -375,11 +382,20 @@
 
         function updateTotal() {
             const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-            let discPercent = parseFloat(el("discount").value) || 0;
-            if (discPercent < 0) { discPercent = 0; el("discount").value = 0; }
-            if (discPercent > 100) { discPercent = 100; el("discount").value = 100; }
+            const discType = el("discountType").value;
+            let discVal = parseFloat(el("discount").value) || 0;
+            let discountAmt = 0;
 
-            const discountAmt = subtotal * (discPercent / 100);
+            if (discVal < 0) { discVal = 0; el("discount").value = 0; }
+
+            if (discType === "percent") {
+                if (discVal > 100) { discVal = 100; el("discount").value = 100; }
+                discountAmt = subtotal * (discVal / 100);
+            } else {
+                if (discVal > subtotal) { discVal = subtotal; el("discount").value = subtotal; }
+                discountAmt = discVal;
+            }
+
             const total = subtotal - discountAmt;
 
             el("itemCount").innerText = cart.reduce((s, i) => s + i.qty, 0);
@@ -540,6 +556,7 @@
 
                     cart = [];
                     el("discount").value = 0;
+                    el("discountType").value = "fixed";
                     renderCart();
 
                     setTimeout(() => el("barcodeInput").focus(), 500);
@@ -665,6 +682,7 @@
         function executeClearCart() {
             cart = [];
             el("discount").value = "0";
+            el("discountType").value = "fixed";
             renderCart();
             closeModal('clearCartModal');
             el("barcodeInput").focus();

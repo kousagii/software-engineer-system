@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product List - UDICON Trading</title>
     <link rel="stylesheet" href="../style.css" />
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
 </head>
 
 <body>
@@ -15,8 +15,7 @@
 
     <div id="toast"></div>
 
-    <!-- Hidden print-only barcode container -->
-    <div id="barcodePrintContainer"></div>
+
 
     <main class="dashboard-main">
         <div class="page-header">
@@ -119,28 +118,7 @@
         </div>
     </div>
 
-    <div id="barcodeModal" class="modal-overlay" style="display: none;">
-        <div class="modal-box">
-            <div class="text-left filter-heading">
-                <h3 class="m-0">Print Label</h3>
-                <span class="sub-text">Generate 30x20mm thermal barcode labels</span>
-            </div>
-            <div class="barcode-preview-container">
-                <div id="barcodePreviewArea" class="barcode-label">
-                    <div id="barcodeProdName" class="barcode-prod-name">Product Name</div>
-                    <svg id="barcodeTarget" class="barcode-target"></svg>
-                </div>
-            </div>
-            <div class="print-setup-row">
-                <label class="m-0">Print Copies:</label>
-                <input type="number" id="printCopies" value="1" min="1" max="100" class="input-qty center-text m-0">
-            </div>
-            <div class="split">
-                <button class="btn-proceed w-full m-0" onclick="triggerPrint()">Print Now</button>
-                <button class="btn-cancel w-full m-0" onclick="closeBarcodeModal()">Close</button>
-            </div>
-        </div>
-    </div>
+
 
     <div id="cartModal" class="modal-overlay" style="display: none;">
         <div class="modal-box" style="max-width: 500px; width: 100%; padding: 0; overflow: hidden;">
@@ -185,7 +163,7 @@
         let cart = JSON.parse(localStorage.getItem("pendingCart") || "[]");
         let selectedProduct = null;
         let currentPage = 1;
-        let currentPrintBarcode = "", currentPrintName = "";
+
 
         // Apply exchange mode UI on load
         if (isExchangeMode) {
@@ -273,7 +251,7 @@
                         <button class="${isExchangeMode ? 'btn-proceed' : 'btn-add'}" onclick="openQtyModal('${p.barcode}')" ${isOut ? 'disabled' : ''}>
                             ${isOut ? 'No Stock' : (isExchangeMode ? 'Select' : 'Add')}
                         </button>
-                        ${!isExchangeMode ? `<button class="btn-view" onclick="previewBarcode('${p.barcode}')">Print</button>` : ''}
+
                     </div>
                 </td>
             </tr>`;
@@ -299,56 +277,7 @@
             document.getElementById("btn-next").disabled = currentPage === totalPages;
         }
 
-        // Modal Toggling fixed to use style.display
-        function renderPrintBarcodes(barcode, name, copies) {
-            const area = document.getElementById("barcodePrintContainer");
-            area.innerHTML = "";
-            for (let i = 0; i < copies; i++) {
-                const label = document.createElement("div");
-                label.className = "barcode-label";
 
-                const nameDiv = document.createElement("div");
-                nameDiv.className = "barcode-prod-name";
-                nameDiv.innerText = name;
-
-                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                svg.className = "barcode-target";
-
-                label.appendChild(nameDiv);
-                label.appendChild(svg);
-                area.appendChild(label);
-
-                JsBarcode(svg, barcode, {
-                    format: "CODE128", width: 1.2, fontSize: 12, height: 45, margin: 10, displayValue: true, background: "white"
-                });
-            }
-        }
-
-        function previewBarcode(barcode) {
-            const prod = products.find(p => p.barcode === barcode);
-            if (!prod) return;
-            currentPrintBarcode = barcode;
-            currentPrintName = prod.productName;
-
-            document.getElementById("barcodeProdName").innerText = prod.productName;
-            JsBarcode("#barcodeTarget", barcode, {
-                format: "CODE128", width: 1.2, fontSize: 12, height: 45, margin: 10, displayValue: true, background: "white"
-            });
-
-            document.getElementById("printCopies").value = 1;
-            document.getElementById("barcodeModal").style.display = "flex";
-        }
-
-        function closeBarcodeModal() {
-            document.getElementById("barcodeModal").style.display = "none";
-        }
-
-        function triggerPrint() {
-            let copies = parseInt(document.getElementById("printCopies").value);
-            if (isNaN(copies) || copies < 1) copies = 1;
-            renderPrintBarcodes(currentPrintBarcode, currentPrintName, copies);
-            window.print();
-        }
 
         function openQtyModal(barcode) {
             selectedProduct = products.find(p => p.barcode === barcode);
@@ -485,12 +414,12 @@
         document.addEventListener('keydown', function (e) {
             // Escape key closes any open modal
             if (e.key === 'Escape') {
-                const modals = ['qtyModal', 'barcodeModal', 'cartModal'];
+                const modals = ['qtyModal', 'cartModal'];
                 modals.forEach(id => {
                     const modal = document.getElementById(id);
                     if (modal && modal.style.display !== 'none') {
                         if (id === 'qtyModal') closeQtyModal();
-                        else if (id === 'barcodeModal') closeBarcodeModal();
+
                         else if (id === 'cartModal') closeCart();
                     }
                 });
