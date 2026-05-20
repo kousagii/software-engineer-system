@@ -78,6 +78,10 @@
                             <option value="Bricks">Bricks</option>
                             <option value="Paints">Paints</option>
                             <option value="Electrical">Electrical</option>
+                            <option value="Plumbing">Plumbing</option>
+                            <option value="Steel">Steel</option>
+                            <option value="Safety & PPE">Safety & PPE</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
                     <div class="sort-group toolbar-group">
@@ -136,7 +140,7 @@
                     <h3 id="form-title">Create Product</h3>
 
                     <label>Name</label>
-                    <input type="text" id="prodName" placeholder="e.g. Pliers" oninput="updatePreview()">
+                    <input type="text" id="prodName" placeholder="e.g. Pliers" oninput="autoCapitalize(this); updatePreview()">
 
                     <div class="split">
                         <div>
@@ -149,6 +153,10 @@
                                 <option value="Bricks">Bricks</option>
                                 <option value="Paints">Paints</option>
                                 <option value="Electrical">Electrical</option>
+                                <option value="Plumbing">Plumbing</option>
+                                <option value="Steel">Steel</option>
+                                <option value="Safety & PPE">Safety & PPE</option>
+                                <option value="Other">Other</option>
                             </select>
                         </div>
                         <div>
@@ -168,7 +176,7 @@
                             </div>
                         </div>
                         <div>
-                            <label>Initial Price (₱)</label>
+                            <label>Purchase Price (₱)</label>
                             <input type="number" id="prodInitialPrice" placeholder="120" oninput="updatePreview()">
                         </div>
                     </div>
@@ -178,7 +186,10 @@
                             <label>Selling Price (₱)</label>
                             <input type="number" id="prodPrice" placeholder="180" oninput="updatePreview()">
                         </div>
-                        <div></div>
+                        <div>
+                            <label>Low Stock Threshold</label>
+                            <input type="number" id="prodLowStock" placeholder="10" value="10" oninput="updatePreview()">
+                        </div>
                     </div>
 
                     <label>Description</label>
@@ -207,8 +218,9 @@
                         <p><strong>Brand:</strong> <span id="prevBrand">Stanley</span></p>
                         <p><strong>Category:</strong> <span id="prevCat">Tools</span></p>
                         <p><strong>Stock Quantity:</strong> <span id="prevStock">25</span></p>
-                        <p><strong>Initial Price:</strong> ₱<span id="prevInitialPrice">120</span></p>
+                        <p><strong>Purchase Price:</strong> ₱<span id="prevInitialPrice">120</span></p>
                         <p><strong>Selling Price:</strong> ₱<span id="prevPrice">180</span></p>
+                        <p><strong>Low Stock At:</strong> <span id="prevLowStock">10</span> units</p>
                         <p><strong>Description:</strong> <span id="prevDesc">Description</span></p>
 
                         <br>
@@ -240,6 +252,13 @@
 
         const $ = id => document.getElementById(id);
         const val = (id, v) => v !== undefined ? $(id).value = v : $(id).value;
+
+        function autoCapitalize(input) {
+            const v = input.value;
+            if (v.length > 0) {
+                input.value = v.charAt(0).toUpperCase() + v.slice(1);
+            }
+        }
 
         function toggleView(view) {
             $('product-list-view').style.display = view === 'product-list-view' ? 'block' : 'none';
@@ -339,7 +358,7 @@
                         </div>
                     </td>
                     <td class="sub-text">${p.productDescription || ''}</td>
-                    <td>₱ ${parseFloat(p.price).toFixed(2)}</td>
+                    <td>₱${parseFloat(p.price).toFixed(2)}</td>
                     <td>${p.stockQuantity}</td>
                     <td class="center-text">
                         <div class="action-group">
@@ -468,6 +487,7 @@
             val('prodInitialPrice', p.initialPrice || '');
             val('prodPrice', p.price || '');
             val('prodDescription', p.productDescription || '');
+            val('prodLowStock', p.lowStockThreshold !== undefined && p.lowStockThreshold !== null ? p.lowStockThreshold : 10);
 
             $('prodImage').value = '';
             $('img-preview').src = p.imagePath ? p.imagePath : placeholderImg;
@@ -503,12 +523,13 @@
         }
 
         function updatePreview() {
-            $('prevName').textContent = val('prodName') || 'Pliers';
-            $('prevBrand').textContent = val('prodBrand') || 'Stanley';
+            $('prevName').textContent = val('prodName') || 'Product Name';
+            $('prevBrand').textContent = val('prodBrand') || 'Brand';
             $('prevCat').textContent = val('prodCategory');
             $('prevStock').textContent = val('prodStock') || '0';
             $('prevInitialPrice').textContent = val('prodInitialPrice') || '0';
             $('prevPrice').textContent = val('prodPrice') || '0';
+            $('prevLowStock').textContent = val('prodLowStock') || '10';
             $('prevDesc').textContent = val('prodDescription') || 'Description';
         }
 
@@ -533,7 +554,7 @@
         async function saveProduct() {
             if (!currentBarcode) return showAlert("Please click 'Generate barcode' before saving!");
             if (!val('prodName') || !val('prodPrice')) return showAlert("Please fill in the Name and Selling Price!");
-            if (!val('prodInitialPrice')) return showAlert("Please fill in the Initial Price (supplier cost)!");
+            if (!val('prodInitialPrice')) return showAlert("Please fill in the Purchase Price (supplier cost)!");
 
             const formData = new FormData();
             formData.append('productName', val('prodName'));
@@ -544,6 +565,7 @@
             formData.append('price', parseFloat(val('prodPrice')));
             formData.append('brand', val('prodBrand'));
             formData.append('productDescription', val('prodDescription'));
+            formData.append('lowStockThreshold', parseInt(val('prodLowStock')) || 10);
 
             const imageFile = $('prodImage').files[0];
             if (imageFile) {

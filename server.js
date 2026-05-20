@@ -193,13 +193,13 @@ app.get('/api/products', (req, res) => {
 
 // POST route to add a new product 
 app.post('/api/products', upload.single('productImage'), (req, res) => {
-    const { productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription } = req.body;
+    const { productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, lowStockThreshold } = req.body;
     const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
-    const sql = `INSERT INTO product (productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, imagePath) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO product (productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, imagePath, lowStockThreshold) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    db.query(sql, [productName, barcode, category, stockQuantity, price, initialPrice || null, brand, productDescription, imagePath], (err, result) => {
+    db.query(sql, [productName, barcode, category, stockQuantity, price, initialPrice || null, brand, productDescription, imagePath, parseInt(lowStockThreshold) || 10], (err, result) => {
         if (err) {
             console.error(err);
             if (err.code === 'ER_DUP_ENTRY') {
@@ -219,7 +219,7 @@ app.post('/api/products', upload.single('productImage'), (req, res) => {
 // PUT route to UPDATE an existing product 
 app.put('/api/products/:id', upload.single('productImage'), (req, res) => {
     const { id } = req.params;
-    const { productName, category, stockQuantity, price, initialPrice, brand, productDescription } = req.body;
+    const { productName, category, stockQuantity, price, initialPrice, brand, productDescription, lowStockThreshold } = req.body;
 
     const newImagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
@@ -227,14 +227,14 @@ app.put('/api/products/:id', upload.single('productImage'), (req, res) => {
 
     if (newImagePath) {
         sql = `UPDATE product 
-               SET productName = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ?, imagePath = ? 
+               SET productName = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ?, imagePath = ?, lowStockThreshold = ? 
                WHERE productID = ?`;
-        params = [productName, category, stockQuantity, price, initialPrice || null, brand, productDescription, newImagePath, id];
+        params = [productName, category, stockQuantity, price, initialPrice || null, brand, productDescription, newImagePath, parseInt(lowStockThreshold) || 10, id];
     } else {
         sql = `UPDATE product 
-               SET productName = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ? 
+               SET productName = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ?, lowStockThreshold = ? 
                WHERE productID = ?`;
-        params = [productName, category, stockQuantity, price, initialPrice || null, brand, productDescription, id];
+        params = [productName, category, stockQuantity, price, initialPrice || null, brand, productDescription, parseInt(lowStockThreshold) || 10, id];
     }
 
     db.query(sql, params, (err, result) => {
@@ -889,7 +889,7 @@ app.get('/api/reports/userlogs', (req, res) => {
 app.get('/api/reports/stocks', (req, res) => {
     const { status } = req.query;
 
-    let stockFilter = 'WHERE p.isActive = 1 AND p.stockQuantity <= 10';
+    let stockFilter = 'WHERE p.isActive = 1 AND p.stockQuantity <= p.lowStockThreshold';
     if (status === 'low') stockFilter += ' AND p.stockQuantity > 0';
     else if (status === 'out') stockFilter += ' AND p.stockQuantity = 0';
 
@@ -899,6 +899,7 @@ app.get('/api/reports/stocks', (req, res) => {
             p.productName AS product,
             p.category,
             p.stockQuantity AS stocks,
+            p.lowStockThreshold AS threshold,
             CASE 
                 WHEN p.stockQuantity = 0 THEN 'Out of Stock'
                 ELSE 'Low Stock'

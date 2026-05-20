@@ -49,15 +49,8 @@
                     <h4 class="filter-heading">Filters</h4>
                     
                     <label class="sub-text filter-label">Category</label>
-                    <div class="filter-options">
-                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Cement"> Cement</label>
-                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Wood"> Wood</label>
-                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Steel"> Steel</label>
-                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Roofing"> Roofing</label>
-                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Bricks"> Bricks</label>
-                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Tools"> Tools</label>
-                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Paints"> Paints</label>
-                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="Electrical"> Electrical</label>
+                    <div class="filter-options" id="categoryFilterOptions">
+                        <!-- Loaded dynamically -->
                     </div>
 
                     <label class="sub-text filter-label-spaced">Price Range</label>
@@ -130,15 +123,17 @@
         }
 
         function viewProducts(supplierName, productsStr) {
-            const listItems = productsStr ? productsStr.split(', ').map(p => `<li class="modal-list-item">${p}</li>`).join('') : '<li>No products assigned.</li>';
+            const listItems = productsStr ? productsStr.split(',').map(p => p.trim()).filter(Boolean).map(p => `<li class="modal-list-item">${p}</li>`).join('') : '<li class="modal-list-item">No products assigned.</li>';
             document.getElementById('modal-message').innerHTML = `
-                <p style="margin-bottom: 10px;"><strong>Products for ${supplierName}:</strong></p>
+                <h3 style="color: var(--bg-dark); margin-bottom: 20px; text-align: center;">Products for ${supplierName}:</h3>
                 <ul class="modal-product-list">
                     ${listItems}
                 </ul>
             `;
             document.getElementById('modal-actions').innerHTML = `
-                <button class="modal-btn btn-ok" onclick="closeModal()">Close</button>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="modal-btn btn-ok" onclick="closeModal()">OK</button>
+                </div>
             `;
             customModal.style.display = 'flex';
         }
@@ -151,7 +146,19 @@
                     fetch('/api/suppliers')
                 ]);
                 
-                if (prodRes.ok) allProducts = await prodRes.json();
+                if (prodRes.ok) {
+                    allProducts = await prodRes.json();
+                    
+                    const uniqueCategories = [...new Set(allProducts.map(p => p.category).filter(Boolean))].sort();
+                    const container = document.getElementById('categoryFilterOptions');
+                    container.innerHTML = uniqueCategories.map(c => `
+                        <label class="checkbox-label"><input type="checkbox" class="cat-filter" value="${c}"> ${c}</label>
+                    `).join('');
+                    
+                    container.querySelectorAll('.cat-filter').forEach(el => {
+                        el.addEventListener('change', processDataAndRender);
+                    });
+                }
                 if (suppRes.ok) allSuppliers = await suppRes.json();
 
                 document.getElementById('countProducts').innerText = allProducts.length;
