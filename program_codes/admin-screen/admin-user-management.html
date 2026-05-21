@@ -40,21 +40,26 @@
             <input type="hidden" id="form-userid">
 
             <label>Username</label>
-            <input type="text" id="form-username" placeholder="Username">
+            <input type="text" id="form-username" placeholder="Username" maxlength="30"
+                oninput="this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '')">
+            <small id="username-hint" style="color:#888; font-size:11px;">Only letters, numbers, and underscores allowed.</small>
 
             <div id="password-container">
                 <label>Password</label>
-                <input type="password" id="form-password" placeholder="Password">
+                <input type="password" id="form-password" placeholder="Password" minlength="6">
+                <small style="color:#888; font-size:11px;">Minimum 6 characters.</small>
             </div>
 
             <div class="split">
                 <div>
                     <label>First Name</label>
-                    <input type="text" id="form-firstname" placeholder="First Name">
+                    <input type="text" id="form-firstname" placeholder="First Name" maxlength="50"
+                        oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
                 </div>
                 <div>
                     <label>Last Name</label>
-                    <input type="text" id="form-lastname" placeholder="Last Name">
+                    <input type="text" id="form-lastname" placeholder="Last Name" maxlength="50"
+                        oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
                 </div>
             </div>
 
@@ -65,7 +70,8 @@
             </select>
 
             <label>Contact Information</label>
-            <input type="text" id="form-contact" placeholder="09xxxxxxxxx">
+            <input type="tel" id="form-contact" placeholder="09xxxxxxxxx" maxlength="11"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
 
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
                 <button class="modal-btn btn-cancel" onclick="closeUserModal()">Cancel</button>
@@ -164,9 +170,27 @@
                 return;
             }
 
+            // Username: only letters, numbers, underscores
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                showAlert("Username can only contain letters, numbers, and underscores.");
+                return;
+            }
+
+            // Contact: must be exactly 11 digits and start with 09
+            if (!/^09\d{9}$/.test(contactInfo)) {
+                showAlert("Contact number must be 11 digits and start with 09 (e.g., 09135513434).");
+                return;
+            }
+
             // If creating a new user, password is strictly required
             if (!userID && !rawPassword) {
                 showAlert("Password is required for new users.");
+                return;
+            }
+
+            // Password min length check
+            if (rawPassword && rawPassword.length < 6) {
+                showAlert("Password must be at least 6 characters long.");
                 return;
             }
 

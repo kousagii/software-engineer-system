@@ -82,19 +82,20 @@
                 <div class="split" style="gap: 40px;">
                     <div style="flex: 1;">
                         <label>Name</label>
-                        <input type="text" id="supName" placeholder="Supplier Name">
+                        <input type="text" id="supName" placeholder="Supplier Name" maxlength="100">
                         
                         <label>Contact Number</label>
-                        <input type="text" id="supContact" placeholder="09135513434">
+                        <input type="tel" id="supContact" placeholder="09135513434" maxlength="11"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
                         
                         <label>Email</label>
-                        <input type="email" id="supEmail" placeholder="@gmail.com">
+                        <input type="email" id="supEmail" placeholder="supplier@gmail.com">
                         
                         <label>Address</label>
                         <textarea id="supAddress" rows="3" placeholder="Address"></textarea>
                         
                         <label>Terms of Payment</label>
-                        <input type="text" id="supTerms" placeholder="e.g., COD, 30 Days, 90 Days" value="COD">
+                        <input type="text" id="supTerms" placeholder="e.g., COD, 30 Days, 90 Days" value="COD" maxlength="50">
                     </div>
 
                     <div style="flex: 1;">
@@ -300,6 +301,16 @@
             };
 
             if (!payload.supplierName) return showAlert("Please fill in the Supplier Name!");
+
+            // Validate contact number: must be 11 digits starting with 09
+            if (payload.contactNumber && !/^09\d{9}$/.test(payload.contactNumber)) {
+                return showAlert("Contact number must be 11 digits and start with 09 (e.g., 09135513434).");
+            }
+
+            // Validate email format if provided
+            if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+                return showAlert("Please enter a valid email address.");
+            }
 
             try {
                 const res = await fetch(currentEditId ? `/api/suppliers/${currentEditId}` : '/api/suppliers', {

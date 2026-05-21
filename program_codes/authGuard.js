@@ -187,3 +187,45 @@ function setupLogoutButton() {
         });
     }
 }
+
+// --- Global Input Validation ---
+document.addEventListener("DOMContentLoaded", () => {
+    // 1. Prevent non-numeric keys in type="number"
+    document.body.addEventListener('keydown', (e) => {
+        if (e.target && e.target.tagName === 'INPUT') {
+            if (e.target.type === 'number') {
+                // Prevent e, E, +, -
+                const invalidChars = ['e', 'E', '+', '-'];
+                if (invalidChars.includes(e.key)) {
+                    e.preventDefault();
+                }
+            }
+        }
+    });
+
+    // 2. Real-time scrubbing for specific fields (like contact numbers typed as text)
+    document.body.addEventListener('input', (e) => {
+        if (e.target && e.target.tagName === 'INPUT') {
+            const id = e.target.id ? e.target.id.toLowerCase() : '';
+            const placeholder = e.target.placeholder ? e.target.placeholder.toLowerCase() : '';
+            
+            // If it's a contact field and not explicitly allowing email
+            if (id.includes('contact') && !placeholder.includes('email')) {
+                // Keep only digits
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+            }
+        }
+    });
+
+    // 3. Validate email on change
+    document.body.addEventListener('change', (e) => {
+        if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'email') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (e.target.value && !emailRegex.test(e.target.value)) {
+                alert("Please enter a valid email address.");
+                e.target.value = ""; // Clear the invalid input
+                e.target.focus();
+            }
+        }
+    });
+});

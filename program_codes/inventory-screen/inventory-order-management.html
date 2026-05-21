@@ -106,7 +106,7 @@
                     <select id="supplierSelect" onchange="handleSupplierChange()" class="w-full"></select>
 
                     <label class="mt-15">Contact Information</label>
-                    <input type="text" id="supplierContact" placeholder="Contact number or email" class="w-full">
+                    <input type="text" id="supplierContact" placeholder="09xxxxxxxxx or email@example.com" class="w-full" maxlength="100">
 
                     <label class="mt-15">Shipment Information</label>
                     <textarea id="shipmentInfo" rows="4" placeholder="Address, ETA, courier details"
@@ -391,9 +391,18 @@
             const supplierID = val('supplierSelect');
             if (!supplierID) return showAlert('Please select a supplier first.');
 
+            const contact = val('supplierContact').trim();
+            if (contact) {
+                const isPhone = /^09\d{9}$/.test(contact);
+                const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact);
+                if (!isPhone && !isEmail) {
+                    return showAlert('Contact must be a valid 11-digit phone number (e.g., 09135513434) or a valid email address.');
+                }
+            }
+
             const payload = {
                 supplierID: supplierID,
-                contact: val('supplierContact'),
+                contact: contact,
                 shipmentInfo: val('shipmentInfo'),
                 status: 'Pending',
                 items: getItemsFromUI()
