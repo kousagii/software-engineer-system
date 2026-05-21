@@ -680,7 +680,7 @@ app.put('/api/orders/:id', async (req, res) => {
 // PUT receive/complete an order
 app.put('/api/orders/:id/receive', async (req, res) => {
     const { id } = req.params;
-    const { status, items } = req.body; 
+    const { status, items } = req.body;
 
     try {
         const [existingOrders] = await db.promise().query(
@@ -716,7 +716,7 @@ app.put('/api/orders/:id/receive', async (req, res) => {
                 await db.promise().query(`UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`, [-stockDiff, item.productID]);
             }
         }
-        
+
         const sessionUserID = req.session?.user?.id;
         if (sessionUserID) {
             db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Receive Order', ?)`,
@@ -986,6 +986,30 @@ app.get('/api/getProduct', (req, res) => {
         }
 
         res.json(results[0]);
+    });
+});
+
+// Search products by name, brand, or barcode
+app.get('/api/searchProducts', (req, res) => {
+    const q = req.query.q ? req.query.q.trim() : "";
+    if (!q) return res.json([]);
+
+    const sql = `SELECT productID, barcode, productName, price, stockQuantity, category, brand, imagePath
+                FROM product 
+                WHERE isActive = 1 
+                AND (productName LIKE ? OR barcode LIKE ? OR brand LIKE ?)
+                ORDER BY 
+                CASE WHEN TRIM(barcode) = ? THEN 0 ELSE 1 END,
+                productName ASC
+                LIMIT 10`;
+
+    const wildcard = `%${q}%`;
+    db.query(sql, [wildcard, wildcard, wildcard, q], (err, results) => {
+        if (err) {
+            console.error("Search Error:", err);
+            return res.status(500).json({ error: "Search failed" });
+        }
+        res.json(results);
     });
 });
 
@@ -1466,7 +1490,7 @@ app.get('/api/backups/schedule', (req, res) => {
             const parsed = JSON.parse(fs.readFileSync(backupConfigPath, 'utf8'));
             if (parsed.fullSchedule) config.fullSchedule = parsed.fullSchedule;
             if (parsed.incSchedule) config.incSchedule = parsed.incSchedule;
-        } catch (e) {}
+        } catch (e) { }
     }
     res.json(config);
 });
