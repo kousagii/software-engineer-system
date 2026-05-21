@@ -116,29 +116,73 @@ app.post('/api/login', (req, res) => {
 
         const match = await bcrypt.compare(password, user.userPassword);
 
-        if (match) {
-            req.session.user = {
-                id: user.userID,
-                username: user.username,
-                role: user.role,
-                name: user.firstName
-            };
-            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Login', ?)`,
-                [user.userID, `${user.firstName} ${user.lastName} (${user.role}) logged in`]);
-            res.json({ message: "Login successful", role: user.role });
-        } else {
-            res.status(401).json({ error: "Incorrect password" });
+        if (!match) {
+            return res.status(401).json({ error: "Incorrect password" });
         }
+
+        // Determine session role based on user's DB role
+        // Admin gets 'Admin' view initially. All others get 'Staff'.
+        const initialRole = user.role === 'Admin' ? 'Admin' : 'Staff';
+
+        // Store selected role in session; dbRole preserves the true DB role for switching
+        req.session.user = {
+            id: user.userID,
+            username: user.username,
+            role: initialRole,    // 'Admin' or 'Staff' — what they are acting as
+            dbRole: user.role,    // true DB role for permission checks & switching
+            name: user.firstName
+        };
+
+        db.query(
+            `INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Login', ?)`,
+            [user.userID, `${user.firstName} ${user.lastName} logged in as ${initialRole}`]
+        );
+
+        res.json({ message: "Login successful", role: initialRole });
     });
 });
 
 // Route to check current session status
 app.get('/api/auth-status', (req, res) => {
     if (req.session.user) {
-        res.json({ loggedIn: true, role: req.session.user.role });
+        res.json({
+            loggedIn: true,
+            role: req.session.user.role,
+            dbRole: req.session.user.dbRole || req.session.user.role
+        });
     } else {
         res.json({ loggedIn: false });
     }
+});
+
+// Switch role without logging out (Admin only can switch to/from Admin)
+app.post('/api/switch-role', (req, res) => {
+    if (!req.session || !req.session.user) {
+        return res.status(401).json({ error: "Not logged in." });
+    }
+
+    const { role: newRole } = req.body;
+    const { id, name, dbRole, role: oldRole } = req.session.user;
+
+    const validRoles = ['Admin', 'Staff'];
+    if (!validRoles.includes(newRole)) {
+        return res.status(400).json({ error: "Invalid role." });
+    }
+
+    // Only an Admin DB account can switch to the Admin role
+    if (newRole === 'Admin' && dbRole !== 'Admin') {
+        return res.status(403).json({ error: "Access denied. Only Admin accounts can switch to Admin view." });
+    }
+
+    // Update the session role
+    req.session.user.role = newRole;
+
+    db.query(
+        `INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Login', ?)`,
+        [id, `${name} switched from ${oldRole} view to ${newRole} view`]
+    );
+
+    res.json({ message: "Role switched successfully.", role: newRole });
 });
 
 app.post('/api/logout', (req, res) => {
@@ -1141,14 +1185,15 @@ app.get('/api/getTransactionForRefund', (req, res) => {
             SELECT si.productID, SUM(ABS(si.quantity)) AS refundedQty
             FROM sales_item si
             JOIN sales_transaction st ON si.transactionID = st.transactionID
-            WHERE (st.transactionCode LIKE 'UTR-%' OR st.transactionCode LIKE 'UTE-%')
+            WHERE st.transactionCode LIKE ?
             AND si.quantity < 0
             AND si.productID IN (?)
             GROUP BY si.productID`;
 
         const productIDs = origItems.map(i => i.productID);
+        const origTxnPattern = `%Orig: ${txnCode}%`;
 
-        db.query(refundSql, [productIDs], (err2, refundedItems) => {
+        db.query(refundSql, [origTxnPattern, productIDs], (err2, refundedItems) => {
             if (err2) {
                 console.error(err2);
                 return res.status(500).json({ error: "Database error" });

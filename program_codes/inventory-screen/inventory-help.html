@@ -14,7 +14,7 @@
 
     <main class="dashboard-main">
         <div class="page-header">
-            <h2>Help Desk</h2>
+            <h2>Inventory Help Desk</h2>
             <div class="toolbar-right">
                 <button class="btn-create" id="contact-support">Contact Support</button>
             </div>
@@ -227,6 +227,21 @@
                 const contact = guides['contact-support'];
                 openModal(contact.title, contact.content);
             });
+
+            // Auto-focus search input on load
+            searchInput.focus();
+        });
+
+        // Auto-focus search input when user starts typing anywhere
+        document.addEventListener('keydown', function (e) {
+            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                const activeTag = document.activeElement.tagName.toLowerCase();
+                if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
+                    return;
+                }
+                const searchInput = document.querySelector('.search-input');
+                if (searchInput) searchInput.focus();
+            }
         });
     </script>
 </body>

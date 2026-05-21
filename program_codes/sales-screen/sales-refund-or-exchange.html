@@ -401,7 +401,10 @@
             if (!code) return showToast("Please enter a valid transaction code.", true);
 
             const res = await fetch(`/api/getTransactionForRefund?code=${code}`);
-            if (!res.ok) return showToast("Transaction not found.", true);
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                return showToast(errData.error || "Transaction not found.", true);
+            }
 
             const data = await res.json();
             returnList = data.map(i => ({

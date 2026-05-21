@@ -61,7 +61,7 @@
                         </div>
                         <div id="userRoleFilterDiv">
                             <label>User Role</label>
-                            <select id="userRole" onchange="renderReport()">
+                            <select id="userRole" onchange="generateReport()">
                                 <option value="">All Roles</option>
                                 <option value="admin">Admin</option>
                                 <option value="sales">Sales</option>
@@ -278,12 +278,15 @@
             } else if (currentReportType === 'userlogs') {
                 reportData = reportData.map(r => {
                     const dt = new Date(r.dateTime);
-                    const roleLabelMap = { 'Admin': 'Admin', 'SalesStaff': 'Sales Staff', 'InventoryStaff': 'Inventory Staff' };
+                    let roleLabel = r.userType || '—';
+                    if (r.userType === 'Admin') roleLabel = 'Admin';
+                    else if (r.userType === 'SalesStaff') roleLabel = 'Sales';
+                    else if (r.userType === 'InventoryStaff') roleLabel = 'Inventory';
                     return {
                         date: dt.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric', year: 'numeric' }),
                         time: dt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true }),
                         userName: r.userName || '—',
-                        userType: roleLabelMap[r.userType] || r.userType || '—',
+                        userType: roleLabel,
                         action: r.action || '—'
                     };
                 });
@@ -304,9 +307,9 @@
                 const roleFilter = val('userRole');
                 if (roleFilter) {
                     filteredData = filteredData.filter(log => {
-                        if (roleFilter === 'admin') return log.userType.toLowerCase().includes('admin');
-                        if (roleFilter === 'inventory') return log.userType.toLowerCase().includes('inventory');
-                        if (roleFilter === 'sales') return log.userType.toLowerCase().includes('sales');
+                        if (roleFilter === 'admin') return log.userType === 'Admin';
+                        if (roleFilter === 'sales') return log.userType === 'Sales';
+                        if (roleFilter === 'inventory') return log.userType === 'Inventory';
                         return true;
                     });
                 }
@@ -600,10 +603,19 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             const today = new Date();
-            const from = new Date(today.setDate(today.getDate() - 7));
+            const from = new Date(today);
+            from.setDate(today.getDate() - 7);
 
-            $('dateFrom').valueAsDate = from;
-            $('dateTo').valueAsDate = new Date();
+            // Format dates as YYYY-MM-DD in local time
+            const formatDate = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            $('dateFrom').value = formatDate(from);
+            $('dateTo').value = formatDate(today);
 
             updateReportUI();
             generateReport();

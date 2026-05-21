@@ -61,8 +61,7 @@
             <label>Role</label>
             <select id="form-role">
                 <option value="Admin">Admin</option>
-                <option value="SalesStaff">Sales Staff</option>
-                <option value="InventoryStaff">Inventory Staff</option>
+                <option value="SalesStaff">Staff</option>
             </select>
 
             <label>Contact Information</label>
@@ -100,7 +99,7 @@
                     row.innerHTML = `
                         <td><strong>${user.username}</strong></td>
                         <td>${user.firstName} ${user.lastName}</td>
-                        <td><span class="sub-text">${user.role}</span></td>
+                        <td><span class="sub-text">${user.role === 'Admin' ? 'Admin' : 'Staff'}</span></td>
                         <td>${user.contactInfo}</td>
                         <td>
                             <button class="btn-edit" onclick="openEditModal('${userDataStr}')">Edit</button>
