@@ -2479,3 +2479,9 @@ input[type="radio"]:checked+.mode-label {
         font-size: 12px;
         font-style: italic;
     }
+/* ===================== ROLE CHIPS ===================== */
+.role-chip { display: inline-flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
+.role-chip input[type='checkbox'] { position: absolute; opacity: 0; width: 0; height: 0; }
+.role-chip span { padding: 8px 18px; border: 1.5px solid var(--border-color); border-radius: 20px; font-weight: 500; font-size: 13px; color: var(--text-muted); transition: all 0.2s ease; background: var(--white); user-select: none; }
+.role-chip input[type='checkbox']:checked + span { background: var(--primary-color); color: var(--white); border-color: var(--primary-color); }
+.role-chip:hover span { border-color: var(--primary-color); }

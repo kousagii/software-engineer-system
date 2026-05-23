@@ -9,42 +9,37 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const currentPath = window.location.pathname;
-            const userRole = data.role;
-            const dbRole = data.dbRole || userRole; // true DB role
+            const userRole = data.role; // e.g., Admin, Sales, or Inventory
+            const availableRoles = data.availableRoles || [];
 
-            // 'Staff' covers all operational screens (sales + inventory)
-            const isStaff = userRole === 'Staff';
-
-            if (currentPath.includes('admin-screen') && userRole !== 'Admin') {
-                const sharedPages = ['admin-product', 'admin-supplier', 'admin-search', 'admin-report'];
-                const isSharedPage = sharedPages.some(page => currentPath.includes(page));
-
-                // Staff can access shared admin pages (product, supplier, search, reports)
-                if (!(isStaff && isSharedPage)) {
-                    alert("Access Denied: Admins Only");
-                    window.location.href = '../log-in.html';
-                    return;
+            // Access Control Logic
+            let isAllowed = false;
+            
+            if (userRole === 'Admin') {
+                isAllowed = true; // Admin can access everything
+            } else if (userRole === 'Inventory') {
+                const inventoryPages = [
+                    'inventory-screen', 'admin-product', 'admin-supplier', 'admin-search', 'admin-report'
+                ];
+                if (inventoryPages.some(p => currentPath.includes(p))) {
+                    isAllowed = true;
+                }
+            } else if (userRole === 'Sales') {
+                if (currentPath.includes('sales-screen')) {
+                    isAllowed = true;
                 }
             }
 
-            // Staff can access sales-screen
-            if (currentPath.includes('sales-screen') && !isStaff && userRole !== 'Admin') {
-                alert("Access Denied: Staff Only");
-                window.location.href = '../log-in.html';
-                return;
-            }
-
-            // Staff can access inventory-screen
-            if (currentPath.includes('inventory-screen') && !isStaff && userRole !== 'Admin') {
-                alert("Access Denied: Staff Only");
+            if (!isAllowed) {
+                alert("Access Denied: Your current role does not have permission for this page.");
                 window.location.href = '../log-in.html';
                 return;
             }
 
             window.currentUserRole = userRole;
-            window.currentDbRole = dbRole;
+            window.availableRoles = availableRoles;
 
-            renderSidebar(userRole, dbRole);
+            renderSidebar(userRole, availableRoles);
             setupLogoutButton();
 
             if (typeof window.onAuthReady === 'function') {
@@ -53,9 +48,22 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 });
 
-function renderSidebar(role, dbRole) {
+function renderSidebar(role, availableRoles) {
     const sidebarContainer = document.getElementById("sidebar");
     if (!sidebarContainer) return;
+
+    let switchButtonsHTML = '';
+    if (availableRoles.length > 1) {
+        if (role !== 'Admin' && availableRoles.includes('Admin')) {
+            switchButtonsHTML += `<button class="btn-switch-role" onclick="switchRole('Admin')">⇄ Switch to Admin View</button>`;
+        }
+        if (role !== 'Inventory' && availableRoles.includes('Inventory')) {
+            switchButtonsHTML += `<button class="btn-switch-role" onclick="switchRole('Inventory')">⇄ Switch to Inventory View</button>`;
+        }
+        if (role !== 'Sales' && availableRoles.includes('Sales')) {
+            switchButtonsHTML += `<button class="btn-switch-role" onclick="switchRole('Sales')">⇄ Switch to Sales View</button>`;
+        }
+    }
 
     let sidebarHTML = '';
 
@@ -78,73 +86,54 @@ function renderSidebar(role, dbRole) {
                     <a href="../admin-screen/admin-user-management.html">User Management</a>
                     <a href="../admin-screen/admin-backup.html">Back-up</a>
                     <a href="../admin-screen/admin-help.html">Help</a>
-                    <button class="btn-switch-role" id="switchRoleBtn" onclick="switchRole('Staff')">
-                        ⇄ Switch to Staff View
-                    </button>
+                    ${switchButtonsHTML}
                 </div>
                 <button class="logout" id="logoutBtn">Logout</button>
             </div>
         </nav>`;
 
-    } else if (role === 'Staff') {
-        const currentPath = window.location.pathname;
-        const isInventoryView = currentPath.includes('inventory-screen') || currentPath.includes('admin-screen');
-
-        // Show "Switch to Admin View" only if user is actually an Admin in the DB
-        const adminSwitchBtn = dbRole === 'Admin'
-            ? `<button class="btn-switch-role" id="switchRoleBtn" onclick="switchRole('Admin')">⇄ Switch to Admin View</button>`
-            : '';
-
-        if (isInventoryView) {
-            sidebarHTML = `
-              <nav class="sidebar">
-                <div>
-                    <img id="logo" src="../assets/uc_logo.png" />
-                    <div class="menu">
-                        <p class="sidebar-section-label">Inventory</p>
-                        <a href="../admin-screen/admin-search.html">Search</a>
-                        <a href="../admin-screen/admin-product.html">Product</a>
-                        <a href="../admin-screen/admin-supplier.html">Supplier</a>
-                        <a href="../inventory-screen/inventory-order-management.html">Order Management</a>
-                        <a href="../admin-screen/admin-report.html">Reports</a>
-                    </div>
+    } else if (role === 'Inventory') {
+        sidebarHTML = `
+          <nav class="sidebar">
+            <div>
+                <img id="logo" src="../assets/uc_logo.png" />
+                <div class="menu">
+                    <p class="sidebar-section-label">Inventory</p>
+                    <a href="../admin-screen/admin-search.html">Search</a>
+                    <a href="../admin-screen/admin-product.html">Product</a>
+                    <a href="../admin-screen/admin-supplier.html">Supplier</a>
+                    <a href="../inventory-screen/inventory-order-management.html">Order Management</a>
+                    <a href="../admin-screen/admin-report.html">Reports</a>
                 </div>
-                <div class="bottom-menu">
-                    <div class="menu">
-                        <a href="../inventory-screen/inventory-help.html">Help</a>
-                        <button class="btn-switch-role" onclick="window.location.href='../sales-screen/sales-transaction.html'">
-                            ⇄ Switch to Sales View
-                        </button>
-                        ${adminSwitchBtn}
-                    </div>
-                    <button class="logout" id="logoutBtn">Logout</button>
+            </div>
+            <div class="bottom-menu">
+                <div class="menu">
+                    <a href="../inventory-screen/inventory-help.html">Help</a>
+                    ${switchButtonsHTML}
                 </div>
-            </nav>`;
-        } else {
-            // Sales View
-            sidebarHTML = `
-              <nav class="sidebar">
-                <div>
-                    <img id="logo" src="../assets/uc_logo.png" />
-                    <div class="menu">
-                        <p class="sidebar-section-label">Sales</p>
-                        <a href="../sales-screen/sales-transaction.html">Sales Transaction</a>
-                        <a href="../sales-screen/sales-refund-or-exchange.html">Refund / Exchange</a>
-                        <a href="../sales-screen/sales-history.html">History</a>
-                    </div>
+                <button class="logout" id="logoutBtn">Logout</button>
+            </div>
+        </nav>`;
+    } else if (role === 'Sales') {
+        sidebarHTML = `
+          <nav class="sidebar">
+            <div>
+                <img id="logo" src="../assets/uc_logo.png" />
+                <div class="menu">
+                    <p class="sidebar-section-label">Sales</p>
+                    <a href="../sales-screen/sales-transaction.html">Sales Transaction</a>
+                    <a href="../sales-screen/sales-refund-or-exchange.html">Refund / Exchange</a>
+                    <a href="../sales-screen/sales-history.html">History</a>
                 </div>
-                <div class="bottom-menu">
-                    <div class="menu">
-                        <a href="../sales-screen/sales-help.html">Help</a>
-                        <button class="btn-switch-role" onclick="window.location.href='../admin-screen/admin-search.html'">
-                            ⇄ Switch to Inventory View
-                        </button>
-                        ${adminSwitchBtn}
-                    </div>
-                    <button class="logout" id="logoutBtn">Logout</button>
+            </div>
+            <div class="bottom-menu">
+                <div class="menu">
+                    <a href="../sales-screen/sales-help.html">Help</a>
+                    ${switchButtonsHTML}
                 </div>
-            </nav>`;
-        }
+                <button class="logout" id="logoutBtn">Logout</button>
+            </div>
+        </nav>`;
     }
 
     sidebarContainer.innerHTML = sidebarHTML;
@@ -155,7 +144,6 @@ function renderSidebar(role, dbRole) {
     links.forEach(link => {
         const href = link.getAttribute('href');
         if (href) {
-            // Normalize path by stripping directory nesting '../' and checking if it's in the current pathname
             const cleanHref = href.replace(/^\.\.\//, '');
             if (currentPath.includes(cleanHref)) {
                 link.classList.add('active');
@@ -164,8 +152,7 @@ function renderSidebar(role, dbRole) {
     });
 }
 
-// Switch role without logging out
-// Admin can switch to Staff view and back to Admin view
+// Switch role via API
 function switchRole(newRole) {
     fetch('/api/switch-role', {
         method: 'POST',
@@ -176,8 +163,10 @@ function switchRole(newRole) {
         .then(data => {
             if (data.role === 'Admin') {
                 window.location.href = '../admin-screen/admin-dashboard.html';
-            } else if (data.role === 'Staff') {
+            } else if (data.role === 'Sales') {
                 window.location.href = '../sales-screen/sales-transaction.html';
+            } else if (data.role === 'Inventory') {
+                window.location.href = '../admin-screen/admin-search.html';
             } else {
                 alert(data.error || 'Could not switch role.');
             }

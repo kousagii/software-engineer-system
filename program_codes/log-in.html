@@ -48,8 +48,9 @@
                 if (response.ok) {
                     if (data.role === 'Admin') {
                         window.location.href = 'admin-screen/admin-dashboard.html';
+                    } else if (data.role === 'Inventory') {
+                        window.location.href = 'admin-screen/admin-search.html';
                     } else {
-                        // All non-admin staff get the unified staff view
                         window.location.href = 'sales-screen/sales-transaction.html';
                     }
                 } else {

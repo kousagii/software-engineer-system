@@ -120,16 +120,27 @@ app.post('/api/login', (req, res) => {
             return res.status(401).json({ error: "Incorrect password" });
         }
 
-        // Determine session role based on user's DB role
-        // Admin gets 'Admin' view initially. All others get 'Staff'.
-        const initialRole = user.role === 'Admin' ? 'Admin' : 'Staff';
+        // DB role can be comma separated now, e.g. "Admin,Sales,Inventory"
+        const dbRoles = user.role.split(',').map(r => r.trim());
+        let availableRoles = [];
+        if (dbRoles.includes('Admin')) availableRoles.push('Admin');
+        if (dbRoles.includes('SalesStaff')) availableRoles.push('Sales');
+        if (dbRoles.includes('InventoryStaff')) availableRoles.push('Inventory');
 
-        // Store selected role in session; dbRole preserves the true DB role for switching
+        // Fallback for old legacy user roles
+        if (dbRoles.includes('Staff')) {
+            if (!availableRoles.includes('Sales')) availableRoles.push('Sales');
+            if (!availableRoles.includes('Inventory')) availableRoles.push('Inventory');
+        }
+
+        const initialRole = availableRoles.length > 0 ? availableRoles[0] : '';
+
         req.session.user = {
             id: user.userID,
             username: user.username,
-            role: initialRole,    // 'Admin' or 'Staff' — what they are acting as
-            dbRole: user.role,    // true DB role for permission checks & switching
+            role: initialRole,
+            availableRoles: availableRoles,
+            dbRole: user.role,
             name: user.firstName
         };
 
@@ -138,7 +149,7 @@ app.post('/api/login', (req, res) => {
             [user.userID, `${user.firstName} ${user.lastName} logged in as ${initialRole}`]
         );
 
-        res.json({ message: "Login successful", role: initialRole });
+        res.json({ message: "Login successful", role: initialRole, availableRoles });
     });
 });
 
@@ -148,30 +159,25 @@ app.get('/api/auth-status', (req, res) => {
         res.json({
             loggedIn: true,
             role: req.session.user.role,
-            dbRole: req.session.user.dbRole || req.session.user.role
+            availableRoles: req.session.user.availableRoles || [],
+            dbRole: req.session.user.dbRole
         });
     } else {
         res.json({ loggedIn: false });
     }
 });
 
-// Switch role without logging out (Admin only can switch to/from Admin)
+// Switch role without logging out
 app.post('/api/switch-role', (req, res) => {
     if (!req.session || !req.session.user) {
         return res.status(401).json({ error: "Not logged in." });
     }
 
     const { role: newRole } = req.body;
-    const { id, name, dbRole, role: oldRole } = req.session.user;
+    const { id, name, availableRoles, role: oldRole } = req.session.user;
 
-    const validRoles = ['Admin', 'Staff'];
-    if (!validRoles.includes(newRole)) {
-        return res.status(400).json({ error: "Invalid role." });
-    }
-
-    // Only an Admin DB account can switch to the Admin role
-    if (newRole === 'Admin' && dbRole !== 'Admin') {
-        return res.status(403).json({ error: "Access denied. Only Admin accounts can switch to Admin view." });
+    if (!availableRoles || !availableRoles.includes(newRole)) {
+        return res.status(403).json({ error: "Access denied. You do not have permission for this role." });
     }
 
     // Update the session role
