@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const currentPath = window.location.pathname;
             const userRole = data.role;
-            const dbRole   = data.dbRole || userRole; // true DB role
+            const dbRole = data.dbRole || userRole; // true DB role
 
             // 'Staff' covers all operational screens (sales + inventory)
             const isStaff = userRole === 'Staff';
@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             window.currentUserRole = userRole;
-            window.currentDbRole   = dbRole;
+            window.currentDbRole = dbRole;
 
             renderSidebar(userRole, dbRole);
             setupLogoutButton();
@@ -128,7 +128,6 @@ function renderSidebar(role, dbRole) {
                     <div class="menu">
                         <p class="sidebar-section-label">Sales</p>
                         <a href="../sales-screen/sales-transaction.html">Sales Transaction</a>
-                        <a href="../sales-screen/sales-product-list.html">Product List</a>
                         <a href="../sales-screen/sales-refund-or-exchange.html">Refund / Exchange</a>
                         <a href="../sales-screen/sales-history.html">History</a>
                     </div>
@@ -158,20 +157,20 @@ function switchRole(newRole) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole })
     })
-    .then(r => r.json())
-    .then(data => {
-        if (data.role === 'Admin') {
-            window.location.href = '../admin-screen/admin-dashboard.html';
-        } else if (data.role === 'Staff') {
-            window.location.href = '../sales-screen/sales-transaction.html';
-        } else {
-            alert(data.error || 'Could not switch role.');
-        }
-    })
-    .catch(err => {
-        console.error('Switch role failed', err);
-        alert('Could not switch role. Please try again.');
-    });
+        .then(r => r.json())
+        .then(data => {
+            if (data.role === 'Admin') {
+                window.location.href = '../admin-screen/admin-dashboard.html';
+            } else if (data.role === 'Staff') {
+                window.location.href = '../sales-screen/sales-transaction.html';
+            } else {
+                alert(data.error || 'Could not switch role.');
+            }
+        })
+        .catch(err => {
+            console.error('Switch role failed', err);
+            alert('Could not switch role. Please try again.');
+        });
 }
 
 function setupLogoutButton() {
@@ -208,7 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.target && e.target.tagName === 'INPUT') {
             const id = e.target.id ? e.target.id.toLowerCase() : '';
             const placeholder = e.target.placeholder ? e.target.placeholder.toLowerCase() : '';
-            
+
             // If it's a contact field and not explicitly allowing email
             if (id.includes('contact') && !placeholder.includes('email')) {
                 // Keep only digits

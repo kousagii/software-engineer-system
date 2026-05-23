@@ -221,6 +221,86 @@
         </div>
     </div>
 
+    <!-- Product List Modal -->
+    <div class="modal-overlay" id="productListModal" style="display: none;">
+        <div class="modal-box-lg">
+            <div class="plm-header">
+                <h3>📋 Product List</h3>
+                <button class="btn-cancel" style="margin:0; width:auto; padding: 6px 14px;" onclick="closePlmModal()">✕
+                    Close</button>
+            </div>
+            <div class="plm-toolbar">
+                <div>
+                    <label class="label-bold label-sm">Search</label>
+                    <input type="text" id="plmSearchInput" placeholder="Search by name, barcode, or brand."
+                        autocomplete="off" style="margin:4px 0 0;">
+                </div>
+                <div>
+                    <label class="label-bold label-sm">Category</label>
+                    <div class="category-pills" id="categoryPills" style="margin-top:4px;">
+                        <button class="category-pill active" data-cat="All" onclick="setPlmCategory('All')">All</button>
+                        <button class="category-pill" data-cat="Tools" onclick="setPlmCategory('Tools')">Tools</button>
+                        <button class="category-pill" data-cat="Cement"
+                            onclick="setPlmCategory('Cement')">Cement</button>
+                        <button class="category-pill" data-cat="Wood" onclick="setPlmCategory('Wood')">Wood</button>
+                        <button class="category-pill" data-cat="Roofing"
+                            onclick="setPlmCategory('Roofing')">Roofing</button>
+                        <button class="category-pill" data-cat="Bricks"
+                            onclick="setPlmCategory('Bricks')">Bricks</button>
+                        <button class="category-pill" data-cat="Paints"
+                            onclick="setPlmCategory('Paints')">Paints</button>
+                        <button class="category-pill" data-cat="Electrical"
+                            onclick="setPlmCategory('Electrical')">Electrical</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="label-bold label-sm">Sort By</label>
+                    <div class="category-pills" id="sortPills" style="margin-top:4px;">
+                        <button class="category-pill active" data-sort="name-asc" onclick="setPlmSort('name-asc')">Name
+                            A → Z</button>
+                        <button class="category-pill" data-sort="name-desc" onclick="setPlmSort('name-desc')">Name Z →
+                            A</button>
+                        <button class="category-pill" data-sort="price-asc" onclick="setPlmSort('price-asc')">Price Low
+                            → High</button>
+                        <button class="category-pill" data-sort="price-desc" onclick="setPlmSort('price-desc')">Price
+                            High → Low</button>
+                        <button class="category-pill" data-sort="stock-desc" onclick="setPlmSort('stock-desc')">Stock
+                            High → Low</button>
+                        <button class="category-pill" data-sort="stock-asc" onclick="setPlmSort('stock-asc')">Stock Low
+                            → High</button>
+                    </div>
+                </div>
+            </div>
+            <div class="plm-body">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="plmProductBody"></tbody>
+                </table>
+            </div>
+
+            <!-- Qty prompt overlay inside modal -->
+            <div class="plm-qty-overlay" id="plmQtyOverlay">
+                <div class="plm-qty-box">
+                    <h4 id="plmQtyTitle">Product Name</h4>
+                    <span class="sub-text" id="plmQtyStock">Stock: 0</span>
+                    <input type="number" id="plmQtyInput" class="plm-qty-input" value="1" min="1">
+                    <div class="plm-qty-actions">
+                        <button class="btn-confirm" onclick="confirmPlmAdd()">Add to Cart</button>
+                        <button class="btn-cancel-large" onclick="closePlmQty()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="../authGuard.js"></script>
     <script>
         let cart = [];
@@ -740,8 +820,7 @@
         }
 
         function goToProductList() {
-            localStorage.setItem("pendingCart", JSON.stringify(cart));
-            window.location.href = "sales-product-list.html";
+            openPlmModal();
         }
 
         async function loadPendingItems() {
@@ -844,6 +923,130 @@
                 console.warn("Could not load product cache:", e);
             }
         }
+
+        // === PRODUCT LIST MODAL ===
+        let plmCategory = 'All';
+        let plmSort = 'name-asc';
+        let plmSelectedProduct = null;
+
+        function openPlmModal() {
+            el('productListModal').style.display = 'flex';
+            el('plmSearchInput').value = '';
+            setPlmCategory('All');
+            setTimeout(() => el('plmSearchInput').focus(), 150);
+        }
+
+        function closePlmModal() {
+            el('productListModal').style.display = 'none';
+            el('barcodeInput').focus();
+        }
+
+        function setPlmCategory(cat) {
+            plmCategory = cat;
+            document.querySelectorAll('#categoryPills .category-pill').forEach(p => {
+                p.classList.toggle('active', p.dataset.cat === cat);
+            });
+            renderPlmProducts();
+        }
+
+        function setPlmSort(sort) {
+            plmSort = sort;
+            document.querySelectorAll('#sortPills .category-pill').forEach(p => {
+                p.classList.toggle('active', p.dataset.sort === sort);
+            });
+            renderPlmProducts();
+        }
+
+        function renderPlmProducts() {
+            const search = (el('plmSearchInput').value || '').toLowerCase();
+            let data = [...productCache];
+
+            // Filter by category
+            if (plmCategory !== 'All') {
+                data = data.filter(p => p.category === plmCategory);
+            }
+
+            // Filter by search
+            if (search) {
+                data = data.filter(p =>
+                    (p.productName && p.productName.toLowerCase().includes(search)) ||
+                    (p.barcode && p.barcode.includes(search)) ||
+                    (p.brand && p.brand.toLowerCase().includes(search))
+                );
+            }
+
+            // Sort
+            data.sort((a, b) => {
+                switch (plmSort) {
+                    case 'name-asc': return (a.productName || '').localeCompare(b.productName || '');
+                    case 'name-desc': return (b.productName || '').localeCompare(a.productName || '');
+                    case 'price-asc': return parseFloat(a.price) - parseFloat(b.price);
+                    case 'price-desc': return parseFloat(b.price) - parseFloat(a.price);
+                    case 'stock-desc': return b.stockQuantity - a.stockQuantity;
+                    case 'stock-asc': return a.stockQuantity - b.stockQuantity;
+                    default: return 0;
+                }
+            });
+
+            const body = el('plmProductBody');
+            if (data.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" class="text-center empty-cart-msg">No products found</td></tr>';
+            } else {
+                body.innerHTML = data.map(p => {
+                    const isOut = p.stockQuantity <= 0;
+                    const statusLabel = isOut ? 'Out of Stock' : (p.stockQuantity <= 10 ? 'Low Stock' : 'In Stock');
+                    const statusClass = isOut ? 'status-outstock' : (p.stockQuantity <= 10 ? 'status-lowstock' : 'status-instock');
+                    return `<tr>
+                        <td>
+                            <div class="product-name-col">
+                                <img src="${p.imagePath || placeholderImg}" onerror="this.src='${placeholderImg}'">
+                                <div><strong>${p.productName}</strong>${p.brand ? '<br><span class="sub-text">' + p.brand + '</span>' : ''}<br><span class="sub-text">BC: ${p.barcode}</span></div>
+                            </div>
+                        </td>
+                        <td><strong>₱${parseFloat(p.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></td>
+                        <td>${p.stockQuantity}</td>
+                        <td class="text-center"><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+                        <td class="text-center">
+                            <button class="btn-add" onclick="openPlmQty('${p.barcode}')" ${isOut ? 'disabled' : ''}>${isOut ? 'No Stock' : 'Add'}</button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+
+        function openPlmQty(barcode) {
+            plmSelectedProduct = productCache.find(p => p.barcode === barcode);
+            if (!plmSelectedProduct || plmSelectedProduct.stockQuantity <= 0) return;
+            el('plmQtyTitle').textContent = plmSelectedProduct.productName;
+            el('plmQtyStock').textContent = `Stock available: ${plmSelectedProduct.stockQuantity}`;
+            el('plmQtyInput').value = 1;
+            el('plmQtyInput').max = plmSelectedProduct.stockQuantity;
+            el('plmQtyOverlay').classList.add('active');
+            setTimeout(() => { el('plmQtyInput').focus(); el('plmQtyInput').select(); }, 100);
+        }
+
+        function closePlmQty() {
+            el('plmQtyOverlay').classList.remove('active');
+            plmSelectedProduct = null;
+        }
+
+        function confirmPlmAdd() {
+            if (!plmSelectedProduct) return;
+            const qty = parseInt(el('plmQtyInput').value) || 1;
+            if (qty < 1) return;
+            if (qty > plmSelectedProduct.stockQuantity) {
+                showToast('Insufficient stock!', true);
+                return;
+            }
+            const product = plmSelectedProduct;
+
+            closePlmQty();
+            closePlmModal();
+            addProduct(product.barcode, qty);
+            showToast(`${product.productName} x${qty} added to cart`);
+        }
+
+        // PLM event listeners (added in DOMContentLoaded below)
 
         function searchProducts(query) {
             const q = query.toLowerCase();
@@ -957,13 +1160,12 @@
             }
 
             hideSuggestions();
-            el("barcodeInput").value = "";
-
-            // Add the product using its barcode
-            const qty = parseInt(el("qtyInput").value) || 1;
-            addProduct(product.barcode, qty);
+            // Fill barcode input and focus qty so user can set quantity
+            el("barcodeInput").value = product.barcode;
             el("qtyInput").value = 1;
-            el("barcodeInput").focus();
+            el("qtyInput").focus();
+            el("qtyInput").select();
+            showToast(`${product.productName} selected. Input quantity.`);
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -978,12 +1180,34 @@
                     hideSuggestions();
                 }
             });
+
+            // Product list modal search
+            el('plmSearchInput').addEventListener('input', () => {
+                plmPage = 1;
+                renderPlmProducts();
+            });
+
+            // PLM qty Enter key
+            el('plmQtyInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); confirmPlmAdd(); }
+                if (e.key === 'Escape') { e.preventDefault(); closePlmQty(); }
+            });
         });
 
         document.addEventListener('keydown', function (e) {
             // Escape key closes any open modal
             if (e.key === 'Escape') {
                 hideSuggestions();
+                const plmQty = el('plmQtyOverlay');
+                if (plmQty && plmQty.classList.contains('active')) {
+                    closePlmQty();
+                    return;
+                }
+                const plmModal = el('productListModal');
+                if (plmModal && plmModal.style.display !== 'none') {
+                    closePlmModal();
+                    return;
+                }
                 ['paymentModal', 'receiptModal', 'clearCartModal'].forEach(id => {
                     const modal = el(id);
                     if (modal && modal.style.display !== 'none') {
@@ -1029,6 +1253,11 @@
             if (e.key === 'F9') {
                 e.preventDefault();
                 openPayment();
+            }
+
+            if (e.key === 'F2') {
+                e.preventDefault();
+                openPlmModal();
             }
         });
     </script>
