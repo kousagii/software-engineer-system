@@ -69,6 +69,7 @@ function renderSidebar(role, dbRole) {
                     <a href="../admin-screen/admin-search.html">Search</a>
                     <a href="../admin-screen/admin-product.html">Product</a>
                     <a href="../admin-screen/admin-supplier.html">Supplier</a>
+                    <a href="../inventory-screen/inventory-order-management.html">Order Management</a>
                     <a href="../admin-screen/admin-report.html">Reports</a>
                 </div>
             </div>
@@ -148,6 +149,20 @@ function renderSidebar(role, dbRole) {
     }
 
     sidebarContainer.innerHTML = sidebarHTML;
+
+    // Dynamically highlight active sidebar link
+    const currentPath = window.location.pathname;
+    const links = sidebarContainer.querySelectorAll('.menu a');
+    links.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href) {
+            // Normalize path by stripping directory nesting '../' and checking if it's in the current pathname
+            const cleanHref = href.replace(/^\.\.\//, '');
+            if (currentPath.includes(cleanHref)) {
+                link.classList.add('active');
+            }
+        }
+    });
 }
 
 // Switch role without logging out
