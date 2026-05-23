@@ -261,9 +261,9 @@ app.post('/api/products', upload.single('productImage'), (req, res) => {
 });
 
 // PUT route to UPDATE an existing product 
-app.put('/api/products/:id', upload.single('productImage'), (req, res) => {
+app.put('/api/products/:id', upload.single('productImage'), async (req, res) => {
     const { id } = req.params;
-    const { productName, category, stockQuantity, price, initialPrice, brand, productDescription, lowStockThreshold } = req.body;
+    const { productName, category, stockQuantity, price, initialPrice, brand, productDescription, lowStockThreshold, stockAdjustReason } = req.body;
 
     const newImagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
@@ -281,19 +281,41 @@ app.put('/api/products/:id', upload.single('productImage'), (req, res) => {
         params = [productName, category, stockQuantity, price, initialPrice || null, brand, productDescription, parseInt(lowStockThreshold) || 10, id];
     }
 
-    db.query(sql, params, (err, result) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: "Failed to update product" });
-        }
+    try {
+        // Fetch the current stock before updating (to calculate diff)
+        const [oldRows] = await db.promise().query(`SELECT stockQuantity FROM product WHERE productID = ?`, [id]);
+        const oldStock = oldRows.length > 0 ? parseInt(oldRows[0].stockQuantity) : 0;
+        const newStock = parseInt(stockQuantity) || 0;
+        const stockDiff = newStock - oldStock;
+
+        await db.promise().query(sql, params);
+
         const sessionUserID = req.session?.user?.id;
         if (!sessionUserID) return res.status(401).json({ error: "Unauthorized" });
 
+        // Always log the general edit
         db.query(`INSERT INTO inventory_record (userID, productID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Edit', 0, NOW(), ?)`,
             [sessionUserID, id, `Edited product: ${productName}`]);
+
+        // If stock changed and a reason was provided, log a dedicated stock adjustment record
+        if (stockDiff !== 0 && stockAdjustReason) {
+            // actionType must match a valid ENUM value; map free-text reasons to 'Stock Adjustment'
+            const validActionTypes = ['Damaged goods', 'Lost / Stolen', 'Inventory count correction', 'Stock Adjustment'];
+            const safeActionType = validActionTypes.includes(stockAdjustReason) ? stockAdjustReason : 'Stock Adjustment';
+            const adjustDetails = `Stock adjusted for: ${productName} (${stockDiff > 0 ? '+' : ''}${stockDiff}) — Reason: ${stockAdjustReason}`;
+            db.query(
+                `INSERT INTO inventory_record (userID, productID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, ?, ?, NOW(), ?)`,
+                [sessionUserID, id, safeActionType, stockDiff, adjustDetails]
+            );
+        }
+
         res.status(200).json({ message: "Product updated successfully!" });
-    });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to update product" });
+    }
 });
+
 
 // DELETE route to REMOVE a product (soft delete - marks as inactive)
 app.delete('/api/products/:id', (req, res) => {
@@ -320,26 +342,29 @@ app.delete('/api/products/:id', (req, res) => {
 
 // GET route to fetch all suppliers with their associated products
 app.get('/api/suppliers', (req, res) => {
-    const query = `
-        SELECT 
-            s.supplierID,
-            s.supplierName,
-            s.contactNumber,
-            s.email,
-            s.address,
-            s.termsOfPayment,
-            GROUP_CONCAT(sp.productID) AS productIDs,
-            GROUP_CONCAT(p.productName) AS productNames
-        FROM supplier s
-        LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID
-        LEFT JOIN product p ON sp.productID = p.productID
-        WHERE s.isActive = 1
-        GROUP BY s.supplierID;
-    `;
+    db.query("SET SESSION group_concat_max_len = 1000000", (err) => {
+        if (err) console.error("Failed to set group_concat_max_len", err);
+        const query = `
+            SELECT 
+                s.supplierID,
+                s.supplierName,
+                s.contactNumber,
+                s.email,
+                s.address,
+                s.termsOfPayment,
+                GROUP_CONCAT(sp.productID) AS productIDs,
+                GROUP_CONCAT(p.productName) AS productNames
+            FROM supplier s
+            LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID
+            LEFT JOIN product p ON sp.productID = p.productID
+            WHERE s.isActive = 1
+            GROUP BY s.supplierID;
+        `;
 
-    db.query(query, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(results);
+        db.query(query, (err, results) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json(results);
+        });
     });
 });
 
@@ -756,6 +781,123 @@ app.delete('/api/orders/:id', (req, res) => {
 });
 
 
+// GET auto-reorder/preview: Fetch low-stock items and their available suppliers
+app.get('/api/auto-reorder/preview', async (req, res) => {
+    const { productID } = req.query;
+    try {
+        let whereClause = `WHERE p.isActive = 1 AND s.isActive = 1 AND p.stockQuantity <= p.lowStockThreshold`;
+        const params = [];
+        if (productID) {
+            whereClause += ` AND p.productID = ?`;
+            params.push(productID);
+        }
+
+        const [rows] = await db.promise().query(`
+            SELECT
+                p.productID,
+                p.productName,
+                p.stockQuantity,
+                p.lowStockThreshold,
+                p.price,
+                s.supplierID,
+                s.supplierName
+            FROM product p
+            JOIN supplier_products sp ON p.productID = sp.productID
+            JOIN supplier s ON sp.supplierID = s.supplierID
+            ${whereClause}
+        `, params);
+
+        // Group by product
+        const productsMap = {};
+        rows.forEach(row => {
+            if (!productsMap[row.productID]) {
+                productsMap[row.productID] = {
+                    productID: row.productID,
+                    productName: row.productName,
+                    stockQuantity: row.stockQuantity,
+                    lowStockThreshold: parseInt(row.lowStockThreshold) || 10,
+                    price: parseFloat(row.price) || 0,
+                    suppliers: []
+                };
+            }
+            productsMap[row.productID].suppliers.push({
+                supplierID: row.supplierID,
+                supplierName: row.supplierName
+            });
+        });
+
+        res.json(Object.values(productsMap));
+    } catch (error) {
+        console.error('PREVIEW ERROR:', error);
+        res.status(500).json({ error: 'Failed to fetch reorder preview. ' + error.message });
+    }
+});
+
+// POST auto-reorder: Create Pending purchase orders based on explicit user selections
+app.post('/api/auto-reorder', async (req, res) => {
+    const userID = req.session && req.session.user ? req.session.user.id : null;
+    if (!userID) return res.status(401).json({ error: 'Please log in to create orders.' });
+
+    const { items } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'No items provided for reorder.' });
+    }
+
+    try {
+        // Group items by supplierID
+        const bySupplier = {};
+        for (const item of items) {
+            if (!bySupplier[item.supplierID]) {
+                bySupplier[item.supplierID] = { supplierName: item.supplierName, items: [] };
+            }
+            bySupplier[item.supplierID].items.push({
+                productID: item.productID,
+                productName: item.productName,
+                qty: Math.max(parseInt(item.quantity) || 1, 1),
+                price: parseFloat(item.price) || 0
+            });
+        }
+
+        const orderDateTime = new Date();
+        let ordersCreated = 0;
+        const createdOrders = [];
+
+        for (const [suppID, data] of Object.entries(bySupplier)) {
+            const [orderResult] = await db.promise().query(
+                `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo) VALUES (?, ?, ?, 'Pending', NULL, NULL)`,
+                [userID, suppID, orderDateTime]
+            );
+            const orderID = orderResult.insertId;
+
+            const values = data.items.map(it => [orderID, it.productID, it.qty, it.price]);
+            await db.promise().query(`INSERT INTO purchase_item (orderID, productID, quantity, unitCost) VALUES ?`, [values]);
+
+            await db.promise().query(
+                `INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Auto Reorder', ?)`,
+                [userID, `Auto-created PO-${orderID} for ${data.supplierName} (${data.items.length} item(s))`]
+            );
+
+            ordersCreated++;
+            createdOrders.push({
+                orderID,
+                supplierName: data.supplierName,
+                itemCount: data.items.length,
+                items: data.items.map(i => i.productName)
+            });
+        }
+
+        res.json({
+            message: `Auto reorder complete! ${ordersCreated} purchase order(s) created.`,
+            ordersCreated,
+            orders: createdOrders
+        });
+
+    } catch (error) {
+        console.error('AUTO REORDER ERROR:', error);
+        res.status(500).json({ error: 'Failed to create auto reorder. ' + error.message });
+    }
+});
+
 // USER MANAGEMENT 
 
 // GET route to fetch all users (excluding passwords for security)
@@ -948,9 +1090,13 @@ app.get('/api/reports/stocks', (req, res) => {
             CASE 
                 WHEN p.stockQuantity = 0 THEN 'Out of Stock'
                 ELSE 'Low Stock'
-            END AS status
+            END AS status,
+            GROUP_CONCAT(DISTINCT s.supplierName ORDER BY s.supplierName SEPARATOR ',') AS suppliers
         FROM product p
+        LEFT JOIN supplier_products sp ON p.productID = sp.productID
+        LEFT JOIN supplier s ON sp.supplierID = s.supplierID AND s.isActive = 1
         ${stockFilter}
+        GROUP BY p.productID, p.productName, p.category, p.stockQuantity, p.lowStockThreshold
         ORDER BY p.stockQuantity ASC
     `;
 
@@ -960,6 +1106,66 @@ app.get('/api/reports/stocks', (req, res) => {
             return res.status(500).json({ error: 'Failed to generate stock alerts report' });
         }
         res.json(results);
+    });
+});
+// Losses / Defective Report
+// Combines: (1) defective units from PO receipts, (2) manual stock write-offs from inventory_record
+app.get('/api/reports/losses', (req, res) => {
+    const { from, to } = req.query;
+    if (!from || !to) return res.status(400).json({ error: 'Date range required' });
+
+    // Source 1: Defective items from purchase orders (Partially Completed only — Completed orders are resolved)
+    const poSql = `
+        SELECT
+            DATE(po.orderDateTime) AS lossDate,
+            'PO Defective' AS source,
+            'po' AS sourceType,
+            p.productName AS product,
+            pi.defectiveQty AS qtyLost,
+            CONCAT('PO-', po.orderID, ' (', po.status, ') - Supplier: ', IFNULL(s.supplierName, 'N/A')) AS reason
+        FROM purchase_item pi
+        JOIN purchase_order po ON pi.orderID = po.orderID
+        JOIN product p ON pi.productID = p.productID
+        LEFT JOIN supplier s ON po.supplierID = s.supplierID
+        WHERE pi.defectiveQty > 0
+          AND po.status = 'Partially Completed'
+          AND DATE(po.orderDateTime) BETWEEN ? AND ?
+    `;
+
+    // Source 2: Manual stock write-offs logged in inventory_record
+    const adjSql = `
+        SELECT
+            DATE(ir.inventoryDate) AS lossDate,
+            'Stock Write-off' AS source,
+            'adjustment' AS sourceType,
+            IFNULL(p.productName, CONCAT('Product ID ', ir.productID)) AS product,
+            ABS(ir.quantityChange) AS qtyLost,
+            IFNULL(ir.details, ir.actionType) AS reason
+        FROM inventory_record ir
+        LEFT JOIN product p ON ir.productID = p.productID
+        WHERE ir.quantityChange < 0
+          AND ir.actionType IN ('Damaged goods', 'Lost / Stolen', 'Inventory count correction', 'Stock Adjustment')
+          AND DATE(ir.inventoryDate) BETWEEN ? AND ?
+    `;
+
+    db.query(poSql, [from, to], (err1, poResults) => {
+        if (err1) {
+            console.error('Losses PO Query Error:', err1);
+            return res.status(500).json({ error: 'Failed to fetch PO defective data' });
+        }
+
+        db.query(adjSql, [from, to], (err2, adjResults) => {
+            if (err2) {
+                console.error('Losses Adjustment Query Error:', err2);
+                return res.status(500).json({ error: 'Failed to fetch stock write-off data' });
+            }
+
+            const combined = [...poResults, ...adjResults].sort((a, b) =>
+                new Date(b.lossDate) - new Date(a.lossDate)
+            );
+
+            res.json(combined);
+        });
     });
 });
 

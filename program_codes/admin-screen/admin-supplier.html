@@ -100,6 +100,7 @@
 
                     <div style="flex: 1;">
                         <label>Product list (Select all that apply)</label>
+                        <input type="text" id="supplierProductSearch" placeholder="Search products..." onkeyup="filterSupplierProducts()" style="margin-bottom: 10px; width: 100%;">
                         <div class="product-select-box" style="max-height: 250px; overflow-y: auto;" id="product-checkbox-container">
                             <p style="color: #888; text-align: center; margin-top: 50px;">Loading products...</p>
                         </div>
@@ -108,6 +109,12 @@
 
                 <div class="align-right">
                     <button class="btn-create-supplier active" id="btn-save" onclick="saveSupplier()">Create</button>
+                </div>
+                
+                <!-- Danger zone: delete only visible in edit mode -->
+                <div id="delete-zone" style="display:none; margin-top:18px; border-top:1px solid #eee; padding-top:14px;">
+                    <p class="sub-text" style="margin:0 0 8px 0; color: #888;">⚠ Danger Zone</p>
+                    <button class="btn-delete" style="width: 100%; margin: 0;" onclick="deleteCurrentSupplier()">Delete This Supplier</button>
                 </div>
             </div>
         </div>
@@ -239,7 +246,6 @@
                         <td>
                             <div style="display: flex; gap: 5px;">
                                 <button class="btn-edit" onclick="openForm(${s.supplierID})">Edit</button>
-                                <button class="btn-delete" onclick="deleteSupplier(${s.supplierID})">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -263,6 +269,7 @@
 
             $('form-title').innerHTML = `📝 ${id ? 'Edit' : 'Create'} Supplier`;
             $('btn-save').innerText = id ? 'Save Changes' : 'Create';
+            $('delete-zone').style.display = id ? 'block' : 'none';
 
             toggleView('create-supplier-view');
         }
@@ -272,13 +279,24 @@
             try {
                 const res = await fetch('/api/products');
                 productList = await res.json();
-                $('product-checkbox-container').innerHTML = productList.length ? productList.map(p => `
-                    <label style="display: flex; align-items: center; font-weight: normal; margin-top: 5px; cursor: pointer;">
+                $('product-checkbox-container').innerHTML = productList.length ? productList.map(p => {
+                    const brandStr = p.brand ? ` (${p.brand})` : '';
+                    return `
+                    <label class="product-checkbox-label" style="display: flex; align-items: center; font-weight: normal; margin-top: 5px; cursor: pointer;">
                         <input type="checkbox" class="product-checkbox" value="${p.productID}" style="width: auto; margin-right: 10px; transform: scale(1.2);">
-                        ${p.productName}
+                        ${p.productName}${brandStr}
                     </label>
-                `).join('') : '<p style="color: #888; text-align: center;">No products available.</p>';            
+                    `;
+                }).join('') : '<p style="color: #888; text-align: center;">No products available.</p>';            
             } catch { console.error("Failed to load products for checkboxes."); }
+        }
+
+        function filterSupplierProducts() {
+            const q = val('supplierProductSearch').toLowerCase();
+            document.querySelectorAll('.product-checkbox-label').forEach(label => {
+                const text = label.textContent.toLowerCase();
+                label.style.display = text.includes(q) ? 'flex' : 'none';
+            });
         }
 
         async function loadSuppliers() {
@@ -329,11 +347,16 @@
             } catch { showAlert("Failed to connect to the server."); }
         }
 
-        function deleteSupplier(id) {
+        function deleteCurrentSupplier() {
+            if (!currentEditId) return;
             showAlert("Are you sure you want to delete this supplier?", true, async () => {
                 try {
-                    const res = await fetch(`/api/suppliers/${id}`, { method: 'DELETE' });
-                    if (res.ok) { showAlert("Supplier deleted!"); loadSuppliers(); } 
+                    const res = await fetch(`/api/suppliers/${currentEditId}`, { method: 'DELETE' });
+                    if (res.ok) { 
+                        showAlert("Supplier deleted!"); 
+                        loadSuppliers(); 
+                        toggleView('supplier-list-view');
+                    } 
                     else { const result = await res.json(); showAlert("Error: " + result.error); }
                 } catch { showAlert("Failed to connect to the server."); }
             });
