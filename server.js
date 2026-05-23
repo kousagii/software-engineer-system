@@ -120,17 +120,27 @@ app.post('/api/login', (req, res) => {
             return res.status(401).json({ error: "Incorrect password" });
         }
 
-        // DB role can be comma separated now, e.g. "Admin,Sales,Inventory"
         const dbRoles = user.role.split(',').map(r => r.trim());
         let availableRoles = [];
+        
+        // Check for Admin
         if (dbRoles.includes('Admin')) availableRoles.push('Admin');
-        if (dbRoles.includes('SalesStaff')) availableRoles.push('Sales');
-        if (dbRoles.includes('InventoryStaff')) availableRoles.push('Inventory');
+        
+        // Check for Sales (handles 'SalesStaff' and legacy 'Sales')
+        if (dbRoles.includes('SalesStaff') || dbRoles.includes('Sales')) {
+            availableRoles.push('Sales');
+        }
+        
+        // Check for Inventory (handles 'InventoryStaff' and legacy 'Inventory')
+        if (dbRoles.includes('InventoryStaff') || dbRoles.includes('Inventory')) {
+            availableRoles.push('Inventory');
+        }
 
-        // Fallback for old legacy user roles
-        if (dbRoles.includes('Staff')) {
-            if (!availableRoles.includes('Sales')) availableRoles.push('Sales');
-            if (!availableRoles.includes('Inventory')) availableRoles.push('Inventory');
+        // Fallback for old legacy 'Staff' role. 
+        // Only grant both if the user isn't already explicitly identified as Sales or Inventory
+        if (dbRoles.includes('Staff') && availableRoles.length === 0) {
+            availableRoles.push('Sales');
+            availableRoles.push('Inventory');
         }
 
         const initialRole = availableRoles.length > 0 ? availableRoles[0] : '';
@@ -160,7 +170,8 @@ app.get('/api/auth-status', (req, res) => {
             loggedIn: true,
             role: req.session.user.role,
             availableRoles: req.session.user.availableRoles || [],
-            dbRole: req.session.user.dbRole
+            dbRole: req.session.user.dbRole,
+            name: req.session.user.name
         });
     } else {
         res.json({ loggedIn: false });
@@ -954,6 +965,12 @@ app.put('/api/users/:id', async (req, res) => {
                     return res.status(400).json({ error: "Username already exists." });
                 }
                 return res.status(500).json({ error: "Failed to update user" });
+            }
+
+            // Immediately update session if the user updated their own profile
+            if (req.session && req.session.user && String(req.session.user.id) === String(id)) {
+                req.session.user.name = firstName;
+                req.session.user.username = username;
             }
 
             res.status(200).json({ message: "User updated successfully!" });

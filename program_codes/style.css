@@ -75,6 +75,65 @@ body {
     padding-top: 10px;
 }
 
+
+/* PREMIUM ROLE SELECT DROPDOWN */
+.premium-role-select {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--white);
+    padding: 10px 36px 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.premium-role-select:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.premium-role-select:focus {
+    outline: none;
+    border-color: #8fc96a;
+    box-shadow: 0 0 0 2px rgba(143, 201, 106, 0.2);
+}
+
+.premium-role-select option {
+    background: #2a2a2a;
+    color: var(--white);
+    padding: 10px;
+}
+
+/* PREMIUM USER PROFILE LOGOUT BUTTON */
+.logout-btn-v2 {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.logout-btn-v2:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.logout-btn-v2:hover svg {
+    stroke: #ffffff !important;
+}
+
 /* MAIN LAYOUT */
 main {
     flex: 1;
@@ -2479,9 +2538,41 @@ input[type="radio"]:checked+.mode-label {
         font-size: 12px;
         font-style: italic;
     }
-/* ===================== ROLE CHIPS ===================== */
-.role-chip { display: inline-flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
-.role-chip input[type='checkbox'] { position: absolute; opacity: 0; width: 0; height: 0; }
-.role-chip span { padding: 8px 18px; border: 1.5px solid var(--border-color); border-radius: 20px; font-weight: 500; font-size: 13px; color: var(--text-muted); transition: all 0.2s ease; background: var(--white); user-select: none; }
-.role-chip input[type='checkbox']:checked + span { background: var(--primary-color); color: var(--white); border-color: var(--primary-color); }
-.role-chip:hover span { border-color: var(--primary-color); }
+
+    /* ===================== ROLE CHIPS ===================== */
+    .role-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        cursor: pointer;
+    }
+
+    .role-chip input[type='checkbox'] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .role-chip span {
+        padding: 8px 18px;
+        border: 1.5px solid var(--border-color);
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--text-muted);
+        transition: all 0.2s ease;
+        background: var(--white);
+        user-select: none;
+    }
+
+    .role-chip input[type='checkbox']:checked+span {
+        background: var(--primary-color);
+        color: var(--white);
+        border-color: var(--primary-color);
+    }
+
+    .role-chip:hover span {
+        border-color: var(--primary-color);
+    }

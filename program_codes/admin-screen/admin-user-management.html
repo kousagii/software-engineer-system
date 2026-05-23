@@ -242,6 +242,12 @@
                 if (response.ok) {
                     closeUserModal();
                     fetchUsers();
+                    
+                    // Instantly refresh sidebar in case the active user edited their own profile
+                    if (typeof checkAuth === 'function') {
+                        checkAuth();
+                    }
+                    
                     showAlert(userID ? "User updated successfully!" : "User created successfully!");
                 } else {
                     showAlert(result.error || "An error occurred.");
