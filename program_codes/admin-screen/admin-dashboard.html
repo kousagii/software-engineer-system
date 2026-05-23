@@ -150,6 +150,11 @@
     <div class="table-container dash-alert-section">
       <div class="page-header">
         <h3 class="mt-0">Stock Alerts</h3>
+        <div class="toolbar-right">
+          <button class="btn-add" id="btn-auto-reorder-dash" onclick="openReorderModal()">
+            Auto Reorder All
+          </button>
+        </div>
       </div>
       <table class="data-table">
         <thead>
@@ -159,11 +164,13 @@
             <th>Stock Level</th>
             <th>Threshold</th>
             <th>Status</th>
+            <th>Supplier(s)</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="dash-alert-body">
           <tr>
-            <td colspan="5" class="center-text sub-text">Loading…</td>
+            <td colspan="7" class="center-text sub-text">Loading…</td>
           </tr>
         </tbody>
       </table>
@@ -172,6 +179,7 @@
   </main>
 
   <script src="../authGuard.js"></script>
+  <script src="../reorder-modal.js"></script>
   <script>
     // --- Live clock ---
     function updateClock() {
@@ -234,7 +242,13 @@
 
     // --- Stat Cards ---
     async function loadStats() {
-      const products = await safeFetch('/api/products');
+      const [products, suppliers, users, txns] = await Promise.all([
+        safeFetch('/api/products'),
+        safeFetch('/api/suppliers'),
+        safeFetch('/api/users'),
+        safeFetch('/api/transactions?limit=200')
+      ]);
+
       if (products) {
         document.getElementById('stat-products').textContent = products.length;
         const lowStock = products.filter(p => {
@@ -243,19 +257,17 @@
           return p.stockQuantity <= threshold;
         });
         document.getElementById('stat-lowstock').textContent = lowStock.length;
-        renderAlertTable(lowStock);
+        renderAlertTable(lowStock, suppliers || []);
       } else {
         document.getElementById('stat-products').textContent = 'N/A';
         document.getElementById('stat-lowstock').textContent = 'N/A';
         document.getElementById('dash-alert-body').innerHTML =
-          '<tr><td colspan="5" class="center-text sub-text">Could not load stock data.</td></tr>';
+          '<tr><td colspan="7" class="center-text sub-text">Could not load stock data.</td></tr>';
       }
 
-      const users = await safeFetch('/api/users');
       document.getElementById('stat-users').textContent = users ? users.length : 'N/A';
 
       // Today's sales total from /api/transactions
-      const txns = await safeFetch('/api/transactions?limit=200');
       if (txns && Array.isArray(txns)) {
         const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
         const todayTotal = txns
@@ -325,26 +337,81 @@
     }
 
     // --- Stock Alert Table ---
-    function renderAlertTable(lowStockProducts) {
+    function renderAlertTable(lowStockProducts, suppliers) {
+      // Build productID → supplier names map
+      const productSupplierMap = {};
+      (suppliers || []).forEach(s => {
+        if (s.productIDs) {
+          s.productIDs.split(',').forEach(pid => {
+            pid = pid.trim();
+            if (pid) {
+              if (!productSupplierMap[pid]) productSupplierMap[pid] = [];
+              productSupplierMap[pid].push(s.supplierName);
+            }
+          });
+        }
+      });
+
+      const btn = document.getElementById('btn-auto-reorder-dash');
       const tbody = document.getElementById('dash-alert-body');
+
       if (!lowStockProducts || lowStockProducts.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="center-text sub-text">No stock alerts. All levels are good.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="center-text sub-text">No stock alerts. All levels are good.</td></tr>';
+        if (btn) btn.disabled = true;
         return;
       }
+
       tbody.innerHTML = lowStockProducts.map(p => {
         const isOut = p.stockQuantity === 0;
-        const cls = isOut ? 'status-pill status-outstock' : 'status-pill status-lowstock';
+        const statusCls = isOut ? 'status-pill status-outstock' : 'status-pill status-lowstock';
+        const badgeCls = isOut ? 'supplier-badge out-stock' : 'supplier-badge low-stock';
         const label = isOut ? 'Out of Stock' : 'Low Stock';
         const threshold = (p.lowStockThreshold !== undefined && p.lowStockThreshold !== null)
           ? parseInt(p.lowStockThreshold) : 10;
+
+        const supplierList = productSupplierMap[String(p.productID)] || [];
+        const supplierCell = supplierList.length > 0
+          ? supplierList.map(name => `<span class="${badgeCls}">${name}</span>`).join(' ')
+          : '<span class="no-supplier-tag">No supplier</span>';
+        const reorderBtn = supplierList.length > 0
+          ? `<button class="btn-edit" onclick="openReorderModal(${p.productID})">Reorder</button>`
+          : '<span class="no-supplier-tag">—</span>';
+
         return `<tr>
           <td><strong>${p.productName}</strong></td>
           <td>${p.category || '—'}</td>
           <td>${p.stockQuantity}</td>
           <td class="sub-text">${threshold}</td>
-          <td><span class="${cls}">${label}</span></td>
+          <td><span class="${statusCls}">${label}</span></td>
+          <td>${supplierCell}</td>
+          <td>${reorderBtn}</td>
         </tr>`;
       }).join('');
+    }
+
+    // --- Modal helpers ---
+    function showInfoModal(title, message) {
+      document.getElementById('modal-message').innerHTML =
+        `<h3 style="color:var(--bg-dark);margin-bottom:15px;text-align:center;">${title}</h3>
+         <div style="text-align:center;font-size:14px;">${message}</div>`;
+      document.getElementById('modal-actions').innerHTML =
+        `<div style="text-align:center;margin-top:20px;">
+           <button class="modal-btn btn-ok" onclick="closeModal()">OK</button>
+         </div>`;
+      customModal.style.display = 'flex';
+    }
+
+    function showConfirmModal(title, message, onConfirm) {
+      document.getElementById('modal-message').innerHTML =
+        `<h3 style="color:var(--bg-dark);margin-bottom:15px;text-align:center;">${title}</h3>
+         <div style="text-align:center;font-size:14px;">${message}</div>`;
+      document.getElementById('modal-actions').innerHTML =
+        `<div style="text-align:center;margin-top:20px;display:flex;gap:10px;justify-content:center;">
+           <button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
+           <button class="modal-btn btn-ok" id="dash-confirm-btn">Confirm</button>
+         </div>`;
+      document.getElementById('dash-confirm-btn').onclick = () => { closeModal(); onConfirm(); };
+      customModal.style.display = 'flex';
     }
 
     // --- Init ---

@@ -96,6 +96,7 @@
     </main>
 
     <script src="../authGuard.js"></script>
+    <script src="../reorder-modal.js"></script>
 
     <script>
         let allProducts = [];
@@ -362,19 +363,52 @@
                         <th class="search-th">Name</th>
                         <th class="search-th">Price</th>
                         <th class="search-th">Status</th>
+                        <th class="search-th">Supplier(s)</th>
+                        <th class="search-th">Action</th>
                     </tr>
                 `;
+
+                // Build productID -> supplier names map for the products table
+                const productSupplierMap = {};
+                allSuppliers.forEach(s => {
+                    if (s.productIDs) {
+                        s.productIDs.split(',').forEach(pid => {
+                            pid = pid.trim();
+                            if (pid) {
+                                if (!productSupplierMap[pid]) productSupplierMap[pid] = [];
+                                productSupplierMap[pid].push(s.supplierName);
+                            }
+                        });
+                    }
+                });
 
                 data.forEach(item => {
                     let statusText = "In Stock";
                     let statusClass = "instock"; 
+                    let isLow = false;
 
                     if (item.stockQuantity == 0) {
                         statusText = "Out of Stock";
                         statusClass = "outstock";
-                    } else if (item.stockQuantity <= 10) {
+                        isLow = true;
+                    } else if (item.stockQuantity <= (parseInt(item.lowStockThreshold) || 10)) {
                         statusText = "Low Stock";
                         statusClass = "lowstock";
+                        isLow = true;
+                    }
+
+                    const badgeCls = item.stockQuantity == 0 ? 'supplier-badge out-stock' 
+                                   : isLow ? 'supplier-badge low-stock' 
+                                   : 'supplier-badge';
+
+                    const supplierList = productSupplierMap[String(item.productID)] || [];
+                    const supplierCell = supplierList.length > 0
+                        ? supplierList.map(name => `<span class="${badgeCls}">${name}</span>`).join(' ')
+                        : '<span class="no-supplier-tag">No supplier</span>';
+                    
+                    let actionCell = '—';
+                    if (isLow && supplierList.length > 0) {
+                        actionCell = `<button class="btn-edit" onclick="openReorderModal(${item.productID})">Reorder</button>`;
                     }
 
                     body.innerHTML += `
@@ -388,6 +422,8 @@
                                     ${statusText}
                                 </span>
                             </td>
+                            <td>${supplierCell}</td>
+                            <td>${actionCell}</td>
                         </tr>
                     `;
                 });
@@ -419,6 +455,7 @@
                 });
             }
         }
+
     </script>
 </body>
 </html>

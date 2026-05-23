@@ -2447,4 +2447,35 @@ input[type="radio"]:checked+.mode-label {
 .plm-qty-actions button {
     flex: 1;
     margin: 0;
-}
+    /* ===================== AUTO REORDER ===================== */
+
+    .supplier-badge {
+        display: inline-block;
+        background: #e8f0fe;
+        color: #356ac3;
+        border: 1px solid #c0d4f8;
+        border-radius: 20px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+        margin: 1px 2px;
+    }
+
+    .supplier-badge.low-stock {
+        background: #fff3cd;
+        color: #856404;
+        border-color: #ffd966;
+    }
+
+    .supplier-badge.out-stock {
+        background: #fad2d2;
+        color: #c63939;
+        border-color: #f5a0a0;
+    }
+
+    .no-supplier-tag {
+        color: #aaa;
+        font-size: 12px;
+        font-style: italic;
+    }

@@ -57,6 +57,7 @@
                                 <option value="sales">Sales Performance</option>
                                 <option value="userlogs">User Logs</option>
                                 <option value="stocks">Stocks Alert</option>
+                                <option value="losses">Losses / Defective</option>
                             </select>
                         </div>
                         <div id="userRoleFilterDiv">
@@ -76,6 +77,14 @@
                                 <option value="out">Out of Stock</option>
                             </select>
                         </div>
+                        <div id="lossSourceFilterDiv" style="display: none;">
+                            <label>Source</label>
+                            <select id="lossSource" onchange="renderReport()">
+                                <option value="">All Sources</option>
+                                <option value="po">PO Defective</option>
+                                <option value="adjustment">Stock Write-off</option>
+                            </select>
+                        </div>
                         <div id="dateFromDiv">
                             <label>From Date</label>
                             <input type="date" id="dateFrom">
@@ -88,7 +97,10 @@
                 </div>
 
                 <div class="toolbar-right">
-                    <button class="btn-search" onclick="generateReport()">Generate Report</button>
+                    <button class="btn-add hidden" id="btn-auto-reorder-report" onclick="openReorderModal()">
+                        Auto Reorder All
+                    </button>
+                    <button class="btn-search" id="btn-generate-report" onclick="generateReport()">Generate Report</button>
                 </div>
             </div>
 
@@ -144,6 +156,7 @@
     </main>
 
     <script src="../authGuard.js"></script>
+    <script src="../reorder-modal.js"></script>
     <script>
         let reportData = [];
         let currentPage = 1;
@@ -174,14 +187,18 @@
         function updateReportUI() {
             const userRoleDiv = $('userRoleFilterDiv');
             const stockStatusDiv = $('stockStatusFilterDiv');
+            const lossSourceDiv = $('lossSourceFilterDiv');
             const summaryPanel = $('report-summary');
+            const reorderBtn = $('btn-auto-reorder-report');
 
             // Hide/show filters based on report type
             if (currentReportType === 'sales') {
                 userRoleDiv.style.display = 'none';
                 stockStatusDiv.style.display = 'none';
+                lossSourceDiv.style.display = 'none';
                 summaryPanel.classList.remove('hidden');
                 summaryPanel.classList.add('flex');
+                if (reorderBtn) reorderBtn.classList.add('hidden');
                 $('report-table-head').innerHTML = `
                     <tr>
                         <th>Day</th>
@@ -195,11 +212,13 @@
                 userRoleDiv.style.flexDirection = 'column';
                 userRoleDiv.style.gap = '0';
                 stockStatusDiv.style.display = 'none';
+                lossSourceDiv.style.display = 'none';
                 summaryPanel.classList.add('hidden');
                 summaryPanel.classList.remove('flex');
+                if (reorderBtn) reorderBtn.classList.add('hidden');
                 $('report-table-head').innerHTML = `
                     <tr>
-                        <th>Date & Time</th>
+                        <th>Date &amp; Time</th>
                         <th>User</th>
                         <th>Action Performed</th>
                     </tr>
@@ -209,8 +228,10 @@
                 stockStatusDiv.style.display = 'flex';
                 stockStatusDiv.style.flexDirection = 'column';
                 stockStatusDiv.style.gap = '0';
+                lossSourceDiv.style.display = 'none';
                 summaryPanel.classList.add('hidden');
                 summaryPanel.classList.remove('flex');
+                if (reorderBtn) reorderBtn.classList.remove('hidden');
                 $('report-table-head').innerHTML = `
                     <tr>
                         <th>Category</th>
@@ -218,14 +239,39 @@
                         <th>Stock Level</th>
                         <th>Threshold</th>
                         <th>Status</th>
+                        <th>Supplier(s)</th>
+                        <th>Action</th>
                     </tr>
                 `;
+            } else if (currentReportType === 'losses') {
+                userRoleDiv.style.display = 'none';
+                stockStatusDiv.style.display = 'none';
+                lossSourceDiv.style.display = 'flex';
+                lossSourceDiv.style.flexDirection = 'column';
+                lossSourceDiv.style.gap = '0';
+                summaryPanel.classList.add('hidden');
+                summaryPanel.classList.remove('flex');
+                if (reorderBtn) reorderBtn.classList.add('hidden');
+                $('report-table-head').innerHTML = `
+                    <tr>
+                        <th>Date</th>
+                        <th>Source</th>
+                        <th>Product</th>
+                        <th>Qty Lost</th>
+                        <th>Reason / Reference</th>
+                    </tr>
+                `;  
             }
 
             // Show/hide date range pickers
             const showDates = currentReportType !== 'stocks';
             $('dateFromDiv').style.display = showDates ? '' : 'none';
             $('dateToDiv').style.display = showDates ? '' : 'none';
+
+            const generateBtn = $('btn-generate-report');
+            if (generateBtn) {
+                generateBtn.style.display = currentReportType === 'stocks' ? 'none' : 'inline-block';
+            }
         }
 
         // --- Report Data Processing ---
@@ -233,7 +279,8 @@
             const dateFrom = val('dateFrom');
             const dateTo = val('dateTo');
 
-            if (currentReportType !== 'stocks' && (!dateFrom || !dateTo)) {
+            const needsDates = currentReportType !== 'stocks';
+            if (needsDates && (!dateFrom || !dateTo)) {
                 showAlert('Please select both From and To dates.');
                 return;
             }
@@ -244,7 +291,8 @@
         async function loadReportData() {
             const roleParam = currentReportType === 'userlogs' ? `&role=${val('userRole')}` : '';
             const stockParam = currentReportType === 'stocks' ? `&status=${val('stockStatus')}` : '';
-            const dateParams = currentReportType === 'stocks' ? '' : `from=${val('dateFrom')}&to=${val('dateTo')}`;
+            const noDates = currentReportType === 'stocks';
+            const dateParams = noDates ? '' : `from=${val('dateFrom')}&to=${val('dateTo')}`;
 
             try {
                 const response = await fetch(`/api/reports/${currentReportType}?${dateParams}${roleParam}${stockParam}`);
@@ -290,11 +338,36 @@
                         action: r.action || '—'
                     };
                 });
+            } else if (currentReportType === 'losses') {
+                reportData = reportData.map(r => {
+                    const rawDate = r.lossDate || r.date || null;
+                    // rawDate may be a JS Date object (from MySQL) or a YYYY-MM-DD string
+                    let dt = null;
+                    if (rawDate) {
+                        if (rawDate instanceof Date) {
+                            dt = rawDate;
+                        } else {
+                            // Parse as local date to avoid UTC midnight shift
+                            dt = new Date(String(rawDate).replace(' ', 'T').split('T')[0] + 'T00:00:00');
+                        }
+                    }
+                    return {
+                        date: dt && !isNaN(dt) ? dt.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric', year: 'numeric' }) : '—',
+                        source: r.source || '—',
+                        sourceType: r.sourceType || '',
+                        product: r.product || '—',
+                        qtyLost: r.qtyLost || 0,
+                        reason: r.reason || '—'
+                    };
+                });
             }
 
             renderReport();
             if (currentReportType === 'sales') {
                 updateSummary();
+            }
+            if (currentReportType === 'losses') {
+                updateLossesSummary();
             }
         }
 
@@ -317,6 +390,11 @@
                 const stockFilter = val('stockStatus');
                 if (stockFilter) {
                     filteredData = filteredData.filter(item => item.status === (stockFilter === 'low' ? 'Low Stock' : 'Out of Stock'));
+                }
+            } else if (currentReportType === 'losses') {
+                const srcFilter = val('lossSource');
+                if (srcFilter) {
+                    filteredData = filteredData.filter(r => r.sourceType === srcFilter);
                 }
             }
 
@@ -356,18 +434,47 @@
                     </tr>
                 `).join('') || '<tr><td colspan="3" class="center-text">No data available.</td></tr>';
             } else if (currentReportType === 'stocks') {
-                tbody.innerHTML = paginatedData.map(r => `
+                tbody.innerHTML = paginatedData.map(r => {
+                    const isOut = r.status === 'Out of Stock';
+                    const badgeCls = isOut ? 'supplier-badge out-stock' : 'supplier-badge low-stock';
+                    const supplierCell = r.suppliers
+                        ? r.suppliers.split(',').map(s => `<span class="${badgeCls}">${s.trim()}</span>`).join(' ')
+                        : '<span class="no-supplier-tag">No supplier</span>';
+                    const reorderBtn = r.suppliers
+                        ? `<button class="btn-edit" onclick="openReorderModal(${r.productID})">Reorder</button>`
+                        : '<span class="no-supplier-tag">—</span>';
+                    return `
                     <tr>
                         <td>${r.category}</td>
-                        <td>${r.product}</td>
+                        <td><strong>${r.product}</strong></td>
                         <td>${r.stocks}</td>
                         <td>${r.threshold}</td>
-                        <td><span class="status-pill ${r.status === 'Low Stock' ? 'status-lowstock' : 'status-outstock'}">${r.status}</span></td>
+                        <td><span class="status-pill ${isOut ? 'status-outstock' : 'status-lowstock'}">${r.status}</span></td>
+                        <td>${supplierCell}</td>
+                        <td>${reorderBtn}</td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="7" class="center-text">No data available.</td></tr>';
+            } else if (currentReportType === 'losses') {
+                tbody.innerHTML = paginatedData.map(r => `
+                    <tr>
+                        <td>
+                            <div class="datetime-cell">
+                                <span class="date-label">${r.date}</span>
+                            </div>
+                        </td>
+                        <td><span class="status-pill ${r.sourceType === 'po' ? 'status-lowstock' : 'status-outstock'}">${r.source}</span></td>
+                        <td>${r.product}</td>
+                        <td><strong>${r.qtyLost}</strong></td>
+                        <td class="sub-text">${r.reason}</td>
                     </tr>
-                `).join('') || '<tr><td colspan="5" class="center-text">No data available.</td></tr>';
+                `).join('') || '<tr><td colspan="5" class="center-text">No losses recorded in this period.</td></tr>';
             }
 
             updatePaginationUI(filteredData.length, totalPages);
+        }
+
+        function updateLossesSummary() {
+            // Could add a summary card for total losses in the future
         }
 
         function updateSummary() {
@@ -421,6 +528,9 @@
             } else if (currentReportType === 'stocks') {
                 headers = ['Category', 'Product Name', 'Stock Level', 'Threshold', 'Status'];
                 rows = reportData.map(r => [r.category, r.product, r.stocks, r.threshold, r.status]);
+            } else if (currentReportType === 'losses') {
+                headers = ['Date', 'Source', 'Product', 'Qty Lost', 'Reason / Reference'];
+                rows = reportData.map(r => [r.date, r.source, r.product, r.qtyLost, r.reason]);
             }
 
             return { headers, rows };
@@ -434,7 +544,9 @@
 
             const { headers, rows } = getExportData();
             const reportLabel = currentReportType === 'sales' ? 'Sales Performance'
-                : currentReportType === 'userlogs' ? 'User Logs' : 'Stock Alerts';
+                : currentReportType === 'userlogs' ? 'User Logs'
+                : currentReportType === 'losses' ? 'Losses & Defective'
+                : 'Stock Alerts';
 
             // Build CSV content with BOM for Excel compatibility
             let csv = '\uFEFF'; // UTF-8 BOM
@@ -486,7 +598,9 @@
 
             const { headers, rows } = getExportData();
             const reportLabel = currentReportType === 'sales' ? 'Sales Performance'
-                : currentReportType === 'userlogs' ? 'User Logs' : 'Stock Alerts';
+                : currentReportType === 'userlogs' ? 'User Logs'
+                : currentReportType === 'losses' ? 'Losses & Defective'
+                : 'Stock Alerts';
 
             const ROWS_PER_IMAGE = 15;
             const padding = 40;
@@ -599,6 +713,7 @@
                 const userRoleDiv = $('userRoleFilterDiv');
                 if (userRoleDiv) userRoleDiv.style.display = 'none';
             }
+            // Both Admin and Staff can view the Losses report
         };
 
         document.addEventListener("DOMContentLoaded", () => {
