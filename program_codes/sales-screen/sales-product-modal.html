@@ -1,0 +1,299 @@
+    <!-- Product List Modal -->
+    <div class="modal-overlay" id="productListModal" style="display: none;">
+        <div class="modal-box-lg">
+            <div class="plm-header">
+                <h3>📋 Product List</h3>
+                <button class="btn-cancel" style="margin:0; width:auto; padding: 6px 14px;" onclick="closePlmModal()">✕ Close</button>
+            </div>
+            <div class="plm-toolbar">
+                <div>
+                    <label class="label-bold label-sm">Search</label>
+                    <input type="text" id="plmSearchInput" placeholder="Search by name, barcode, or brand." autocomplete="off" style="margin:4px 0 0;">
+                    <span class="sub-text" style="font-size: 11px; display: block; margin-top: 4px;">Use <strong>↑/↓</strong> to select product, <strong>Enter</strong> to add, <strong>Alt + ←/→</strong> to change category, <strong>Alt + ↑/↓</strong> to sort.</span>
+                </div>
+                <div style="margin-top:12px;">
+                    <!-- Category Block -->
+                    <div>
+                        <label class="label-bold label-sm" style="display:block; margin-bottom:6px;">Category</label>
+                        <div class="category-pills" id="categoryPills">
+                            <button class="category-pill active" data-cat="All" onclick="setPlmCategory('All')">All</button>
+                            <button class="category-pill" data-cat="Tools" onclick="setPlmCategory('Tools')">Tools</button>
+                            <button class="category-pill" data-cat="Cement" onclick="setPlmCategory('Cement')">Cement</button>
+                            <button class="category-pill" data-cat="Wood" onclick="setPlmCategory('Wood')">Wood</button>
+                            <button class="category-pill" data-cat="Roofing" onclick="setPlmCategory('Roofing')">Roofing</button>
+                            <button class="category-pill" data-cat="Bricks" onclick="setPlmCategory('Bricks')">Bricks</button>
+                            <button class="category-pill" data-cat="Paints" onclick="setPlmCategory('Paints')">Paints</button>
+                            <button class="category-pill" data-cat="Electrical" onclick="setPlmCategory('Electrical')">Electrical</button>
+                            <button class="category-pill" data-cat="Plumbing" onclick="setPlmCategory('Plumbing')">Plumbing</button>
+                            <button class="category-pill" data-cat="Steel" onclick="setPlmCategory('Steel')">Steel</button>
+                            <button class="category-pill" data-cat="Safety & PPE" onclick="setPlmCategory('Safety & PPE')">Safety & PPE</button>
+                            <button class="category-pill" data-cat="Other" onclick="setPlmCategory('Other')">Other</button>
+                        </div>
+                    </div>
+
+                    <!-- Sort Block -->
+                    <div style="margin-top:12px; display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <label class="label-bold label-sm" style="margin:0;">Sort By</label>
+                        <div class="category-pills" id="sortPills">
+                            <button class="category-pill active" data-sort="name-asc" onclick="setPlmSort('name-asc')">Name A-Z</button>
+                            <button class="category-pill" data-sort="name-desc" onclick="setPlmSort('name-desc')">Name Z-A</button>
+                            <button class="category-pill" data-sort="price-asc" onclick="setPlmSort('price-asc')">Price ↑</button>
+                            <button class="category-pill" data-sort="price-desc" onclick="setPlmSort('price-desc')">Price ↓</button>
+                            <button class="category-pill" data-sort="stock-desc" onclick="setPlmSort('stock-desc')">Stock ↓</button>
+                            <button class="category-pill" data-sort="stock-asc" onclick="setPlmSort('stock-asc')">Stock ↑</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="plm-body">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="plmProductBody"></tbody>
+                </table>
+            </div>
+
+            <!-- Qty prompt overlay inside modal -->
+            <div class="plm-qty-overlay" id="plmQtyOverlay">
+                <div class="plm-qty-box">
+                    <h4 id="plmQtyTitle">Product Name</h4>
+                    <span class="sub-text" id="plmQtyStock">Stock: 0</span>
+                    <input type="number" id="plmQtyInput" class="plm-qty-input" value="1" min="1">
+                    <div class="plm-qty-actions">
+                        <button class="btn-confirm" onclick="confirmPlmAdd()">Add to Cart</button>
+                        <button class="btn-cancel-large" onclick="closePlmQty()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+let plmCategory = 'All';
+let plmSort = 'name-asc';
+let plmSelectedProduct = null;
+let plmRenderedData = [];
+let plmSelectedIndex = -1;
+
+function setupPlmListeners() {
+    const searchInput = document.getElementById('plmSearchInput');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', () => {
+        renderPlmProducts();
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+        // Alt + Up/Down for Sorting
+        if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+            e.preventDefault();
+            const sorts = ['name-asc', 'name-desc', 'price-asc', 'price-desc', 'stock-desc', 'stock-asc'];
+            let sortIdx = sorts.indexOf(plmSort);
+            if (e.key === 'ArrowDown') sortIdx = (sortIdx + 1) % sorts.length;
+            else sortIdx = (sortIdx - 1 + sorts.length) % sorts.length;
+            setPlmSort(sorts[sortIdx]);
+            return;
+        }
+
+        // Arrow Down / Up for List selection
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (plmRenderedData.length === 0) return;
+            plmSelectedIndex++;
+            if (plmSelectedIndex >= plmRenderedData.length) plmSelectedIndex = 0;
+            highlightPlmRow();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (plmRenderedData.length === 0) return;
+            plmSelectedIndex--;
+            if (plmSelectedIndex < 0) plmSelectedIndex = plmRenderedData.length - 1;
+            highlightPlmRow();
+        } else if (e.key === 'Enter') {
+            // Enter to select
+            e.preventDefault();
+            if (plmSelectedIndex >= 0 && plmSelectedIndex < plmRenderedData.length) {
+                const p = plmRenderedData[plmSelectedIndex];
+                if (p.stockQuantity > 0) openPlmQty(p.barcode);
+            }
+        } else if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+            // Alt + Left/Right for Category
+            e.preventDefault();
+            const categories = ['All', 'Tools', 'Cement', 'Wood', 'Roofing', 'Bricks', 'Paints', 'Electrical', 'Plumbing', 'Steel', 'Safety & PPE', 'Other'];
+            let catIndex = categories.indexOf(plmCategory);
+            if (e.key === 'ArrowRight') catIndex = (catIndex + 1) % categories.length;
+            else catIndex = (catIndex - 1 + categories.length) % categories.length;
+            setPlmCategory(categories[catIndex]);
+        }
+    });
+
+    const qtyInput = document.getElementById('plmQtyInput');
+    if (qtyInput) {
+        qtyInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); confirmPlmAdd(); }
+            if (e.key === 'Escape') { e.preventDefault(); closePlmQty(); }
+        });
+    }
+}
+
+// Make functions globally available for inline onclicks from HTML and F2 shortcut
+window.openPlmModal = function() {
+    const modal = document.getElementById('productListModal');
+    if (modal) modal.style.display = 'flex';
+    const searchInput = document.getElementById('plmSearchInput');
+    if (searchInput) {
+        searchInput.value = '';
+        setPlmCategory('All');
+        setTimeout(() => searchInput.focus(), 150);
+    }
+}
+
+window.closePlmModal = function() {
+    const modal = document.getElementById('productListModal');
+    if (modal) modal.style.display = 'none';
+    const barcodeInput = document.getElementById('barcodeInput');
+    if (barcodeInput) barcodeInput.focus();
+}
+
+window.setPlmCategory = function(cat) {
+    plmCategory = cat;
+    document.querySelectorAll('#categoryPills .category-pill').forEach(p => {
+        p.classList.toggle('active', p.dataset.cat === cat);
+    });
+    renderPlmProducts();
+}
+
+window.setPlmSort = function(sort) {
+    plmSort = sort;
+    document.querySelectorAll('#sortPills .category-pill').forEach(p => {
+        p.classList.toggle('active', p.dataset.sort === sort);
+    });
+    renderPlmProducts();
+}
+
+function renderPlmProducts() {
+    const searchInput = document.getElementById('plmSearchInput');
+    if (!searchInput) return;
+
+    const search = (searchInput.value || '').toLowerCase();
+    
+    // Ensure productCache is defined globally in sales-transaction.html
+    if (typeof productCache === 'undefined') return;
+    
+    let data = [...productCache];
+
+    // Filter by category
+    if (plmCategory !== 'All') {
+        data = data.filter(p => p.category === plmCategory);
+    }
+
+    // Filter by search
+    if (search) {
+        data = data.filter(p =>
+            (p.productName && p.productName.toLowerCase().includes(search)) ||
+            (p.barcode && p.barcode.includes(search)) ||
+            (p.brand && p.brand.toLowerCase().includes(search))
+        );
+    }
+
+    // Sort
+    data.sort((a, b) => {
+        switch (plmSort) {
+            case 'name-asc': return (a.productName || '').localeCompare(b.productName || '');
+            case 'name-desc': return (b.productName || '').localeCompare(a.productName || '');
+            case 'price-asc': return parseFloat(a.price) - parseFloat(b.price);
+            case 'price-desc': return parseFloat(b.price) - parseFloat(a.price);
+            case 'stock-desc': return b.stockQuantity - a.stockQuantity;
+            case 'stock-asc': return a.stockQuantity - b.stockQuantity;
+            default: return 0;
+        }
+    });
+
+    plmRenderedData = data;
+    plmSelectedIndex = -1;
+
+    const body = document.getElementById('plmProductBody');
+    if (!body) return;
+
+    if (data.length === 0) {
+        body.innerHTML = '<tr><td colspan="5" class="text-center empty-cart-msg">No products found</td></tr>';
+    } else {
+        const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
+        
+        body.innerHTML = data.map(p => {
+            const isOut = p.stockQuantity <= 0;
+            const statusLabel = isOut ? 'Out of Stock' : (p.stockQuantity <= 10 ? 'Low Stock' : 'In Stock');
+            const statusClass = isOut ? 'status-outstock' : (p.stockQuantity <= 10 ? 'status-lowstock' : 'status-instock');
+            return `<tr>
+                <td>
+                    <div class="product-name-col">
+                        <img src="${p.imagePath || placeholderImg}" onerror="this.src='${placeholderImg}'">
+                        <div><strong>${p.productName}</strong>${p.brand ? '<br><span class="sub-text">' + p.brand + '</span>' : ''}<br><span class="sub-text">BC: ${p.barcode}</span></div>
+                    </div>
+                </td>
+                <td><strong>₱${parseFloat(p.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></td>
+                <td>${p.stockQuantity}</td>
+                <td class="text-center"><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+                <td class="text-center">
+                    <button class="btn-add" onclick="openPlmQty('${p.barcode}')" ${isOut ? 'disabled' : ''}>${isOut ? 'No Stock' : 'Add'}</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+}
+
+function highlightPlmRow() {
+    const rows = document.getElementById('plmProductBody').querySelectorAll('tr');
+    rows.forEach((row, i) => {
+        if (i === plmSelectedIndex) {
+            row.style.backgroundColor = 'rgba(143, 201, 106, 0.2)';
+            row.scrollIntoView({ block: 'nearest' });
+        } else {
+            row.style.backgroundColor = '';
+        }
+    });
+}
+
+window.openPlmQty = function(barcode) {
+    if (typeof productCache === 'undefined') return;
+    plmSelectedProduct = productCache.find(p => p.barcode === barcode);
+    if (!plmSelectedProduct || plmSelectedProduct.stockQuantity <= 0) return;
+    
+    document.getElementById('plmQtyTitle').textContent = plmSelectedProduct.productName;
+    document.getElementById('plmQtyStock').textContent = `Stock available: ${plmSelectedProduct.stockQuantity}`;
+    document.getElementById('plmQtyInput').value = 1;
+    document.getElementById('plmQtyInput').max = plmSelectedProduct.stockQuantity;
+    document.getElementById('plmQtyOverlay').classList.add('active');
+    setTimeout(() => { document.getElementById('plmQtyInput').focus(); document.getElementById('plmQtyInput').select(); }, 100);
+}
+
+window.closePlmQty = function() {
+    const overlay = document.getElementById('plmQtyOverlay');
+    if (overlay) overlay.classList.remove('active');
+    plmSelectedProduct = null;
+}
+
+window.confirmPlmAdd = function() {
+    if (!plmSelectedProduct) return;
+    const qty = parseInt(document.getElementById('plmQtyInput').value) || 1;
+    if (qty < 1) return;
+    if (qty > plmSelectedProduct.stockQuantity) {
+        if (typeof showToast === 'function') showToast('Insufficient stock!', true);
+        return;
+    }
+    const product = plmSelectedProduct;
+
+    closePlmQty();
+    closePlmModal();
+    if (typeof addProduct === 'function') addProduct(product.barcode, qty);
+    if (typeof showToast === 'function') showToast(`${product.productName} x${qty} added to cart`);
+}
+
+setupPlmListeners();
+</script>

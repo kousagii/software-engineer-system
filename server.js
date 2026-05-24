@@ -1245,16 +1245,26 @@ app.get('/api/searchProducts', (req, res) => {
 // GET recent sales transactions (for dashboard)
 app.get('/api/transactions', (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
-    const sql = `
+    const sessionUserID = req.session?.user?.id;
+    let sql = `
         SELECT st.transactionID, st.transactionCode, st.transDateTime,
                st.totalAmount, st.paymentMethod, st.paymentStatus,
+               st.cashReceived, st.digitalAmount, st.discountAmount,
                u.firstName, u.lastName
         FROM sales_transaction st
         LEFT JOIN users u ON st.userID = u.userID
-        ORDER BY st.transDateTime DESC
-        LIMIT ?
     `;
-    db.query(sql, [limit], (err, results) => {
+    const params = [];
+    
+    if (sessionUserID) {
+        sql += ` WHERE st.userID = ? `;
+        params.push(sessionUserID);
+    }
+    
+    sql += ` ORDER BY st.transDateTime DESC LIMIT ? `;
+    params.push(limit);
+
+    db.query(sql, params, (err, results) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: 'Failed to fetch transactions' });
@@ -1319,14 +1329,41 @@ app.post('/api/saveTransaction', (req, res) => {
     db.beginTransaction(err => {
         if (err) return res.status(500).json({ error: "Transaction initiation failed" });
 
-        const sqlTxn = `
-            INSERT INTO sales_transaction 
-            (transactionCode, userID, transDateTime, totalAmount, paymentMethod, referenceNumber, discountAmount, paymentStatus, cashReceived, digitalAmount) 
-            VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?)
-        `;
+        // 1. Determine base prefix
+        let basePrefix = 'UT';
+        if (paymentStatus === 'Refunded') basePrefix = 'UTR';
+        else if (paymentStatus === 'Exchanged') basePrefix = 'UTE';
+
+        // Extract Orig part if passed by client
+        let origMatch = transactionId ? transactionId.match(/\(Orig:\s*(.+?)\)/) : null;
+        let origSuffix = origMatch ? ` (Orig: ${origMatch[1]})` : '';
+
+        // 2. Generate MMDDYY
+        const now = new Date();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const yy = String(now.getFullYear()).slice(-2);
+        const datePart = `${mm}${dd}${yy}`;
+        const searchPattern = `${basePrefix}-${datePart}-%`;
+
+        // 3. Get sequence number
+        db.query(`SELECT COUNT(*) as count FROM sales_transaction WHERE transactionCode LIKE ?`, [searchPattern], (countErr, countRes) => {
+            if (countErr) {
+                console.error("❌ DB ERROR (Code Gen):", countErr.message);
+                return db.rollback(() => res.status(500).json({ error: "Failed to generate transaction code" }));
+            }
+
+            const nextSeq = String(countRes[0].count + 1).padStart(4, '0');
+            const newTransactionCode = `${basePrefix}-${datePart}-${nextSeq}${origSuffix}`;
+
+            const sqlTxn = `
+                INSERT INTO sales_transaction 
+                (transactionCode, userID, transDateTime, totalAmount, paymentMethod, referenceNumber, discountAmount, paymentStatus, cashReceived, digitalAmount) 
+                VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?)
+            `;
 
         const txnParams = [
-            transactionId,
+            newTransactionCode,
             finalUserID,
             totalAmount,
             paymentMethod || 'Cash',
@@ -1376,8 +1413,8 @@ app.post('/api/saveTransaction', (req, res) => {
                         db.commit(cErr => {
                             if (cErr) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
                             db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Sale', ?)`,
-                                [finalUserID, `Transaction ${transactionId} - Amount: ₱${parseFloat(totalAmount).toFixed(2)} - ${paymentMethod}`]);
-                            res.status(201).json({ message: "Transaction completed successfully.", transactionCode: transactionId });
+                                [finalUserID, `Transaction ${newTransactionCode} - Amount: ₱${parseFloat(totalAmount).toFixed(2)} - ${paymentMethod}`]);
+                            res.status(201).json({ message: "Transaction completed successfully.", transactionCode: newTransactionCode });
                         });
                     })
                     .catch(pErr => {
@@ -1386,6 +1423,7 @@ app.post('/api/saveTransaction', (req, res) => {
                     });
             });
         });
+        }); // End count query
     });
 });
 
@@ -1498,6 +1536,21 @@ app.post('/api/processAdjustment', async (req, res) => {
 
         const finalStatus = (mode === 'exchange') ? 'Exchanged' : 'Refunded';
 
+        let basePrefix = (mode === 'exchange') ? 'UTE' : 'UTR';
+        let origMatch = transactionCode ? transactionCode.match(/\(Orig:\s*(.+?)\)/) : null;
+        let origSuffix = origMatch ? ` (Orig: ${origMatch[1]})` : '';
+
+        const now = new Date();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const yy = String(now.getFullYear()).slice(-2);
+        const datePart = `${mm}${dd}${yy}`;
+        const searchPattern = `${basePrefix}-${datePart}-%`;
+
+        const [countRes] = await db.promise().query(`SELECT COUNT(*) as count FROM sales_transaction WHERE transactionCode LIKE ?`, [searchPattern]);
+        const nextSeq = String(countRes[0].count + 1).padStart(4, '0');
+        const generatedTransactionCode = `${basePrefix}-${datePart}-${nextSeq}${origSuffix}`;
+
         /**
          * INSERT INTO HEADER TABLE
          * Note: totalAmount is stored as -netBalance. 
@@ -1511,7 +1564,7 @@ app.post('/api/processAdjustment', async (req, res) => {
         `;
 
         const [txnResult] = await db.promise().query(logSql, [
-            transactionCode,
+            generatedTransactionCode,
             sessionUserID,
             -netBalance,
             paymentMethod,
@@ -1560,7 +1613,7 @@ app.post('/api/processAdjustment', async (req, res) => {
         res.json({
             success: true,
             message: "Adjustment processed successfully",
-            transactionCode: transactionCode
+            transactionCode: generatedTransactionCode
         });
 
     } catch (error) {

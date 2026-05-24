@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sales History | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
 <body>
@@ -90,8 +91,10 @@
                         </select>
                     </div>
                     <div class="toolbar-group">
-                        <label for="filterDate" style="margin:0; font-size:13px; white-space:nowrap;">Date:</label>
-                        <input type="date" id="filterDate" onchange="applyFilters()" style="margin:0; width:auto;">
+                        <label for="filterDateFrom" style="margin:0; font-size:13px; white-space:nowrap;">From:</label>
+                        <input type="date" id="filterDateFrom" onchange="applyFilters()" style="margin:0; width:auto;">
+                        <label for="filterDateTo" style="margin:0; font-size:13px; white-space:nowrap; margin-left:10px;">To:</label>
+                        <input type="date" id="filterDateTo" onchange="applyFilters()" style="margin:0; width:auto;">
                         <button class="btn-create" onclick="clearDateFilter()" style="margin:0;">All</button>
                     </div>
                     <div class="toolbar-group">
@@ -132,71 +135,7 @@
         </div>
     </main>
 
-    <!-- Transaction Detail Modal -->
-    <div class="modal-overlay" id="detailModal" style="display: none;">
-        <div class="modal-box"
-            style="max-width:520px; text-align:left; padding:25px 30px; max-height:85vh; overflow-y:auto;">
-            <h3 class="m-0"
-                style="margin-bottom:18px; padding-bottom:12px; border-bottom:2px solid var(--border-light);">
-                Transaction Details</h3>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="color:#777; font-size:13px;">Transaction Code</span>
-                <strong id="detail-txnCode" style="font-size:14px;">---</strong>
-            </div>
-            <div id="detail-origRow"
-                style="display:none; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="color:#777; font-size:13px;">Original Transaction</span>
-                <span id="detail-origCode" style="font-size:13px; color:var(--green-light); font-weight:600;">---</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="color:#777; font-size:13px;">Date & Time</span>
-                <span id="detail-date" style="font-size:13px;">---</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="color:#777; font-size:13px;">Payment Method</span>
-                <span id="detail-method" style="font-size:13px;">---</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="color:#777; font-size:13px;">Status</span>
-                <span id="detail-status">---</span>
-            </div>
-
-            <div style="margin:18px 0 10px; padding-top:12px; border-top:1px solid var(--border-light);">
-                <strong
-                    style="font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--green-light);">Items</strong>
-            </div>
-
-            <div class="cart-container" style="max-height:220px; min-height:auto;">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th class="center-text">Qty</th>
-                            <th class="center-text">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody id="detail-items">
-                        <tr>
-                            <td colspan="3" class="empty-cart-msg">Loading...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="total-display" style="margin:15px 0 10px; padding:12px;">
-                <p class="m-0" style="font-size:13px; color:#777;">Total Amount</p>
-                <h2 class="m-0" style="color:var(--green-light);">₱ <span id="detail-total">0.00</span></h2>
-            </div>
-
-            <div style="margin-top:10px; text-align:center;">
-                <button class="btn-cancel-large" onclick="el('detailModal').style.display='none'"
-                    style="width:100%; margin:0;">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Receipt Modal (same design as sales-transaction) -->
+    <!-- Hidden Receipt for Printing / Viewing -->
     <div class="modal-overlay" id="receiptModal" style="display: none;">
         <div class="receipt-container" id="printableReceipt">
             <div class="receipt-header">
@@ -207,6 +146,7 @@
                 </p>
                 <p>Date: <span id="hist-receipt-date">---</span></p>
                 <p>Method: <strong id="hist-receipt-method">---</strong></p>
+                <p id="hist-receipt-split-row" style="display:none;">Cash: <strong id="hist-receipt-cash">---</strong> | Digital: <strong id="hist-receipt-digital">---</strong></p>
             </div>
 
             <table class="receipt-items w-full">
@@ -221,11 +161,15 @@
             </table>
 
             <div class="receipt-totals">
-                <div class="grand-total"><span>Total:</span> <span id="hist-receipt-total">₱0.00</span></div>
+                <div><span>Subtotal:</span> <span id="hist-receipt-subtotal">₱0.00</span></div>
+                <div><span>Discount:</span> <span id="hist-receipt-discount">- ₱0.00</span></div>
+                <div class="grand-total"><span>Total Due:</span> <span id="hist-receipt-total">₱0.00</span></div>
             </div>
 
             <div class="receipt-qr-row">
-                <div class="qr-text-col" style="width:100%; text-align:center;">
+                <div id="qrcode-canvas" class="qr-canvas-box"></div>
+                <div class="qr-text-col">
+                    <span class="qr-scan-label">Scan for Refund/Exchange</span>
                     <p class="qr-thank-you">Thank you for purchasing at Udicon Trading!</p>
                 </div>
             </div>
@@ -267,7 +211,8 @@
 
         function applyFilters() {
             const statusFilter = el("filterStatus").value;
-            const dateFilter = el("filterDate").value;
+            const dateFrom = el("filterDateFrom").value;
+            const dateTo = el("filterDateTo").value;
             const searchTerm = el("searchInput").value.trim().toLowerCase();
 
             filteredTransactions = allTransactions.filter(txn => {
@@ -275,9 +220,10 @@
                 if (statusFilter !== 'all' && txn.paymentStatus !== statusFilter) return false;
 
                 // Date filter
-                if (dateFilter) {
+                if (dateFrom || dateTo) {
                     const txnDate = new Date(txn.transDateTime).toLocaleDateString('en-CA');
-                    if (txnDate !== dateFilter) return false;
+                    if (dateFrom && txnDate < dateFrom) return false;
+                    if (dateTo && txnDate > dateTo) return false;
                 }
 
                 // Search filter
@@ -315,31 +261,35 @@
         function updateSummaryCards() {
             const totalCount = filteredTransactions.length;
             const todayStr = new Date().toLocaleDateString('en-CA');
+            const dateFrom = el("filterDateFrom").value;
+            const dateTo = el("filterDateTo").value;
 
-            // Sales for selected date (or today if no date selected)
-            const selectedDate = el("filterDate").value || todayStr;
-            const dateSales = allTransactions
-                .filter(t => {
-                    const txnDate = new Date(t.transDateTime).toLocaleDateString('en-CA');
-                    return txnDate === selectedDate && parseFloat(t.totalAmount || 0) > 0;
-                })
+            // Sales for selected date range (or all filtered if no range, but let's sum up everything in filteredTransactions that is not Refunded/Exchanged)
+            // Wait, actually, let's sum everything in filteredTransactions that is a positive sale
+            const dateSales = filteredTransactions
+                .filter(t => parseFloat(t.totalAmount || 0) > 0)
                 .reduce((sum, t) => sum + parseFloat(t.totalAmount || 0), 0);
 
-            // Refunds / Exchanges = sum of absolute amounts for Refunded or Exchanged statuses (from filtered)
+            // Refunds / Exchanges
             const totalRefunds = filteredTransactions
                 .filter(t => t.paymentStatus === 'Refunded' || t.paymentStatus === 'Exchanged')
                 .reduce((sum, t) => sum + Math.abs(parseFloat(t.totalAmount || 0)), 0);
 
             // Dynamic page title based on selected date
             const salesLabel = document.querySelector('#stat-sales').closest('.dash-stat-info').querySelector('.sub-text');
-            if (selectedDate === todayStr) {
+            
+            if (dateFrom === todayStr && dateTo === todayStr) {
                 el("pageTitle").textContent = 'Sales History';
                 salesLabel.textContent = "Today's Sales";
+            } else if (dateFrom || dateTo) {
+                const formatOpts = { year: 'numeric', month: 'short', day: 'numeric' };
+                const fromFmt = dateFrom ? new Date(dateFrom + 'T00:00:00').toLocaleDateString('en-PH', formatOpts) : 'Beginning';
+                const toFmt = dateTo ? new Date(dateTo + 'T00:00:00').toLocaleDateString('en-PH', formatOpts) : 'Present';
+                el("pageTitle").textContent = 'Sales History \u2014 ' + fromFmt + ' to ' + toFmt;
+                salesLabel.textContent = 'Filtered Sales';
             } else {
-                const d = new Date(selectedDate + 'T00:00:00');
-                const formatted = d.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
-                el("pageTitle").textContent = 'Sales History \u2014 ' + formatted;
-                salesLabel.textContent = 'Total Sales';
+                el("pageTitle").textContent = 'Sales History';
+                salesLabel.textContent = 'All Sales';
             }
 
             el("stat-count").textContent = totalCount;
@@ -352,7 +302,8 @@
         }
 
         function clearDateFilter() {
-            el("filterDate").value = '';
+            el("filterDateFrom").value = '';
+            el("filterDateTo").value = '';
             applyFilters();
         }
 
@@ -376,6 +327,11 @@
                     if (txn.paymentStatus === 'Refunded') statusClass = 'status-outstock';
                     else if (txn.paymentStatus === 'Exchanged') statusClass = 'status-lowstock';
 
+                    let displayMethod = txn.paymentMethod || '—';
+                    if (parseFloat(txn.cashReceived || 0) > 0 && parseFloat(txn.digitalAmount || 0) > 0) {
+                        displayMethod = `SPLIT (${txn.paymentMethod} & Cash)`;
+                    }
+
                     return `
                     <tr>
                         <td><strong>${txn.transactionCode || '—'}</strong></td>
@@ -388,13 +344,12 @@
                         <td class="center-text" style="${isNegative ? 'color:var(--red-main);' : ''}">
                             ${isNegative ? '-' : ''}₱${Math.abs(amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
-                        <td class="center-text">${txn.paymentMethod || '—'}</td>
+                        <td class="center-text">${displayMethod}</td>
                         <td class="center-text">
                             <span class="status-pill ${statusClass}">${txn.paymentStatus || '—'}</span>
                         </td>
                         <td class="center-text">
-                            <button class="btn-add" onclick="viewDetail(${txn.transactionID})" style="margin:0 2px;">View</button>
-                            <button class="btn-view" onclick="showReceipt(${txn.transactionID})" style="margin:0 2px;">Print</button>
+                            <button class="btn-view" onclick="showReceipt(${txn.transactionID})" style="margin:0;">View Receipt</button>
                         </td>
                     </tr>`;
                 }).join('');
@@ -414,70 +369,7 @@
             }
         }
 
-        async function viewDetail(transactionID) {
-            const txn = allTransactions.find(t => t.transactionID === transactionID);
-            if (!txn) return;
 
-            // Parse the stored code: may be "UTE-xxx (Orig: UT-xxx)" or just "UT-xxx"
-            const fullCode = txn.transactionCode || '—';
-            const origMatch = fullCode.match(/^(.+?)\s*\(Orig:\s*(.+?)\)$/);
-
-            if (origMatch) {
-                // Has original reference embedded
-                el("detail-txnCode").textContent = origMatch[1].trim();
-                el("detail-origCode").textContent = origMatch[2].trim();
-                el("detail-origRow").style.display = 'flex';
-            } else if (txn.paymentStatus === 'Refunded' || txn.paymentStatus === 'Exchanged') {
-                // Old format without embedded orig - try to derive
-                el("detail-txnCode").textContent = fullCode;
-                let origCode = fullCode.replace(/^UTR-/, 'UT-').replace(/^UTE-/, 'UT-');
-                if (origCode === fullCode) origCode = '—';
-                el("detail-origCode").textContent = origCode;
-                el("detail-origRow").style.display = 'flex';
-            } else {
-                el("detail-txnCode").textContent = fullCode;
-                el("detail-origRow").style.display = 'none';
-            }
-
-            el("detail-date").textContent = new Date(txn.transDateTime).toLocaleString('en-PH');
-            el("detail-method").textContent = txn.paymentMethod || '—';
-            el("detail-status").textContent = txn.paymentStatus || '—';
-            el("detail-total").textContent = parseFloat(txn.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
-
-            // Fetch items
-            el("detail-items").innerHTML = `<tr><td colspan="3" class="empty-cart-msg">Loading items...</td></tr>`;
-            el("detailModal").style.display = "flex";
-
-            try {
-                const res = await fetch(`/api/transactions/${transactionID}/items`);
-                if (!res.ok) throw new Error('Failed to fetch items');
-                const items = await res.json();
-
-                if (items.length === 0) {
-                    el("detail-items").innerHTML = `<tr><td colspan="3" class="empty-cart-msg">No items found.</td></tr>`;
-                } else {
-                    el("detail-items").innerHTML = items.map(item => {
-                        const qty = item.quantity;
-                        const subtotal = parseFloat(item.subtotal || 0);
-                        const isReturn = qty < 0;
-                        return `
-                        <tr>
-                            <td>
-                                <strong>${item.productName || 'Unknown'}</strong><br>
-                                <small style="color:#777;">BC: ${item.barcode || '—'}</small>
-                            </td>
-                            <td class="center-text" style="${isReturn ? 'color:var(--red-main);' : ''}">${qty}</td>
-                            <td class="center-text" style="${isReturn ? 'color:var(--red-main);' : ''}">
-                                ₱${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </td>
-                        </tr>`;
-                    }).join('');
-                }
-            } catch (err) {
-                console.error(err);
-                el("detail-items").innerHTML = `<tr><td colspan="3" class="empty-cart-msg">Failed to load items.</td></tr>`;
-            }
-        }
 
         function closeModal(modalId) {
             el(modalId).style.display = "none";
@@ -486,7 +378,7 @@
         // Keyboard shortcuts
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
-                closeModal('detailModal');
+                closeModal('receiptModal');
                 return;
             }
 
@@ -505,8 +397,9 @@
         });
 
         function showReceipt(transactionID) {
-            const txn = allTransactions.find(t => t.transactionID === transactionID);
-            if (!txn) return;
+            return new Promise((resolve, reject) => {
+                const txn = allTransactions.find(t => t.transactionID === transactionID);
+                if (!txn) return reject("Transaction not found");
 
             // Parse code
             const fullCode = txn.transactionCode || '—';
@@ -522,7 +415,19 @@
             el('hist-receipt-type').textContent = typeLabel;
             el('hist-receipt-txn').textContent = shortCode;
             el('hist-receipt-date').textContent = new Date(txn.transDateTime).toLocaleString('en-PH');
-            el('hist-receipt-method').textContent = txn.paymentMethod || '—';
+            let displayMethod = txn.paymentMethod || '—';
+            const cashAmt = parseFloat(txn.cashReceived || 0);
+            const digitalAmt = parseFloat(txn.digitalAmount || 0);
+            
+            if (cashAmt > 0 && digitalAmt > 0) {
+                displayMethod = `SPLIT (${txn.paymentMethod} & Cash)`;
+                el('hist-receipt-split-row').style.display = 'block';
+                el('hist-receipt-cash').textContent = '₱' + cashAmt.toLocaleString(undefined, { minimumFractionDigits: 2 });
+                el('hist-receipt-digital').textContent = '₱' + digitalAmt.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            } else {
+                el('hist-receipt-split-row').style.display = 'none';
+            }
+            el('hist-receipt-method').textContent = displayMethod;
 
             // Show/hide original transaction
             if (origCode) {
@@ -532,7 +437,25 @@
                 el('hist-receipt-orig-row').style.display = 'none';
             }
 
-            el('hist-receipt-total').textContent = '₱' + Math.abs(parseFloat(txn.totalAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 });
+            const discountAmt = parseFloat(txn.discountAmount || 0);
+            const totalAmt = parseFloat(txn.totalAmount || 0);
+            const subtotalAmt = totalAmt + discountAmt;
+
+            el('hist-receipt-subtotal').textContent = '₱' + Math.abs(subtotalAmt).toLocaleString(undefined, { minimumFractionDigits: 2 });
+            el('hist-receipt-discount').textContent = '- ₱' + discountAmt.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            el('hist-receipt-total').textContent = '₱' + Math.abs(totalAmt).toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+            // Generate QR Code
+            const qrCanvas = el("qrcode-canvas");
+            qrCanvas.innerHTML = "";
+            new QRCode(qrCanvas, {
+                text: shortCode,
+                width: 70,
+                height: 70,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
 
             // Fetch and render items
             el('hist-receipt-items').innerHTML = '<tr><td colspan="3" style="text-align:center;">Loading...</td></tr>';
@@ -550,10 +473,13 @@
                             <td class="text-right">₱${Math.abs(subtotal).toFixed(2)}</td>
                         </tr>`;
                     }).join('');
+                    resolve();
                 })
-                .catch(() => {
+                .catch(err => {
                     el('hist-receipt-items').innerHTML = '<tr><td colspan="3" style="text-align:center;">Failed to load items.</td></tr>';
+                    resolve(); // Resolve anyway so it can still print what we have
                 });
+            });
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -565,7 +491,9 @@
                 now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
 
             // Default date filter to today
-            el("filterDate").value = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+            const todayISO = now.toLocaleDateString('en-CA');
+            el("filterDateFrom").value = todayISO;
+            el("filterDateTo").value = todayISO;
 
             loadTransactions();
             el("searchInput").focus();
