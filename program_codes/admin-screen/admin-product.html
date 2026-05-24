@@ -289,7 +289,6 @@
                                     <thead>
                                         <tr>
                                             <th>Variant</th>
-                                            <th>Barcode</th>
                                             <th>Stock</th>
                                             <th>Purchase (₱)</th>
                                             <th>Selling (₱)</th>
@@ -314,8 +313,6 @@
                     <div class="input-row">
                         <input type="file" id="prodImage" accept="image/*" onchange="previewSelectedImage(event)"
                             class="input-barcode">
-                        <button type="button" id="btn-generate-barcode" class="btn-back"
-                            onclick="generateBarcode()">Generate barcode</button>
                     </div>
                 </div>
 
@@ -363,6 +360,7 @@
         let productList = [], currentEditId = null, currentBarcode = "";
         let currentPage = 1;
         let currentPrintBarcode = "", currentPrintName = "";
+        let deletedVariantIds = [];
 
         const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
 
@@ -496,8 +494,6 @@
         }
 
         function generateBarcode() {
-            if (currentEditId) return;
-
             let isUnique = false;
             let newBarcode = "";
 
@@ -743,8 +739,22 @@
         function previewBarcode(barcode) {
             const prod = productList.find(p => p.barcode === barcode);
             if (!prod) return;
-            printQueue = [{ barcode, name: prod.productName, qty: 1 }];
-            showBarcodeModalContent();
+            currentPrintBarcode = barcode;
+            currentPrintName = prod.productName;
+
+            document.getElementById("barcodeProdName").innerText = prod.productName;
+            JsBarcode("#barcodeTarget", barcode, {
+                format: "CODE128",
+                width: 1.2,
+                fontSize: 12,
+                height: 45,
+                margin: 10,
+                displayValue: true,
+                background: "white"
+            });
+
+            document.getElementById("printCopies").value = 1;
+            document.getElementById("barcodeModal").style.display = "flex";
         }
 
         function closeBarcodeModal() {
@@ -984,8 +994,20 @@
 
             const optionLists = activeOptions.map(o => o.values);
             const combinations = getCartesianProduct(optionLists);
+            const newVariantNames = combinations.map(combo => combo.join(' - '));
 
             const tbody = $('combinations-tbody');
+
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(row => {
+                if (row.classList.contains('auto-generated')) {
+                    const valTextEl = row.querySelector('.variant-val-text');
+                    const name = valTextEl ? valTextEl.textContent.trim() : '';
+                    if (name && !newVariantNames.includes(name)) {
+                        row.remove();
+                    }
+                }
+            });
 
             // Collect the variant names that already exist in the table
             const existingVariantNames = new Set();
@@ -1012,15 +1034,11 @@
                 const barcode = generateUniqueLocalBarcode(tbody.querySelectorAll('tr').length + index);
 
                 const row = document.createElement('tr');
-                row.className = 'combination-row';
+                row.className = 'combination-row auto-generated';
                 row.innerHTML = `
                     <td>
                         <strong class="variant-val-text">${variantText}</strong>
-                    </td>
-                    <td>
-                        <div class="input-bc-cell">
-                            <input type="text" class="variant-bc-input w-140" value="${barcode}" oninput="updatePreview()">
-                        </div>
+                        <input type="hidden" class="variant-bc-input" value="${barcode}">
                     </td>
                     <td>
                         <input type="number" class="variant-stock-input w-70" value="${baseStock}" min="0" oninput="updatePreview()">
@@ -1057,11 +1075,7 @@
             row.innerHTML = `
                 <td>
                     <input type="text" class="variant-custom-val w-130" value="${variantValue}" placeholder="e.g. Extra Large" oninput="updatePreview()">
-                </td>
-                <td>
-                    <div class="input-bc-cell">
-                        <input type="text" class="variant-bc-input w-140" value="${barcode}" oninput="updatePreview()">
-                    </div>
+                    <input type="hidden" class="variant-bc-input" value="${barcode}">
                 </td>
                 <td>
                     <input type="number" class="variant-stock-input w-70" value="${baseStock}" min="0" oninput="updatePreview()">
@@ -1084,13 +1098,30 @@
         function removeCombinationRow(btn) {
             const row = btn.closest('tr');
             if (row) {
-                row.remove();
+                const pid = row.getAttribute('data-product-id');
+                if (pid) {
+                    showAlert("Are you sure you want to delete this variant? It will be removed when you save.", true, () => {
+                        deletedVariantIds.push(parseInt(pid));
+                        row.remove();
+                        checkCombinationsEmpty();
+                    });
+                } else {
+                    row.remove();
+                    checkCombinationsEmpty();
+                }
             }
-            updatePreview();
+        }
 
+        function checkCombinationsEmpty() {
+            updatePreview();
             const tbody = $('combinations-tbody');
             if (tbody.querySelectorAll('tr').length === 0) {
                 $('combinations-container').style.display = 'none';
+
+                const toggleMulti = $('varModeMulti');
+                if (toggleMulti && toggleMulti.disabled) {
+                    toggleMulti.disabled = false;
+                }
             }
         }
 
@@ -1166,17 +1197,28 @@
             };
 
             currentBarcode = p.barcode || "";
+            // Auto-generate barcode when creating a new product
+            if (!id) {
+                let newBarcode;
+                do {
+                    newBarcode = Date.now().toString().slice(-8) + Math.floor(1000 + Math.random() * 9000).toString();
+                } while (productList.find(x => x.barcode === newBarcode));
+                currentBarcode = newBarcode;
+            }
 
-            const btnBarcode = $('btn-generate-barcode');
             const toggleWrapper = $('variations-toggle-wrapper');
             const toggleMulti = $('varModeMulti');
 
             // Reset variations state every time
             variationOptions = [];
+            deletedVariantIds = [];
             $('variation-options-list').innerHTML = '';
             $('combinations-tbody').innerHTML = '';
             $('combinations-container').style.display = 'none';
-            if (toggleMulti) toggleMulti.checked = false;
+            if (toggleMulti) {
+                toggleMulti.checked = false;
+                toggleMulti.disabled = false;
+            }
             $('variations-panel').style.display = 'none';
 
             if (id) {
@@ -1187,7 +1229,7 @@
 
                 if (isVariantProduct) {
                     // Find siblings: all products sharing the same base name prefix
-                    const baseName = nameParts.slice(0, -1).join(' - ');
+                    const baseName = nameParts[0];
                     const siblings = productList.filter(x =>
                         x.productName === baseName ||
                         x.productName.startsWith(baseName + ' - ')
@@ -1215,16 +1257,16 @@
 
                         // Enable the variations toggle
                         if (toggleWrapper) toggleWrapper.style.display = 'flex';
-                        if (toggleMulti) toggleMulti.checked = true;
+                        if (toggleMulti) {
+                            toggleMulti.checked = true;
+                            toggleMulti.disabled = true; // Prevent toggling off when editing existing variants
+                        }
                         $('variations-panel').style.display = 'block';
                         $('combinations-container').style.display = 'block';
 
-                        // Disable barcode generate (not needed in bulk mode)
-                        if (btnBarcode) btnBarcode.disabled = true;
                         $('btn-adjust-stock').style.display = 'none';
                         $('delete-zone').style.display = 'none';
 
-                        // Hide single-product stock/price fields (they're handled per-variant)
                         $('prodStock').setAttribute('readonly', true);
                         $('btn-stock-minus').disabled = true;
                         $('btn-stock-plus').disabled = true;
@@ -1243,6 +1285,49 @@
                                 sibling.productID
                             );
                         });
+
+                        // Restore variation options
+                        let hasOptions = false;
+                        if (p.variantOptions) {
+                            try {
+                                const parsedOptions = JSON.parse(p.variantOptions);
+                                if (parsedOptions && parsedOptions.length > 0) {
+                                    parsedOptions.forEach((opt) => {
+                                        // Pass empty string for values so tags are not pre-populated
+                                        addVariationOptionRow(opt.name, '');
+                                    });
+                                    hasOptions = true;
+                                }
+                            } catch (e) { console.error("Failed to parse variant options", e); }
+                        }
+
+                        if (!hasOptions) {
+                            // Fallback reconstruction from suffixes
+                            const suffixPartsArray = siblings.map(sibling => {
+                                return sibling.productName.startsWith(baseName + ' - ')
+                                    ? sibling.productName.slice(baseName.length + 3).split(' - ')
+                                    : [];
+                            });
+
+                            let maxOptions = 0;
+                            suffixPartsArray.forEach(parts => {
+                                if (parts.length > maxOptions) maxOptions = parts.length;
+                            });
+
+                            if (maxOptions > 0) {
+                                for (let i = 0; i < maxOptions; i++) {
+                                    const uniqueValues = new Set();
+                                    suffixPartsArray.forEach(parts => {
+                                        if (parts[i]) uniqueValues.add(parts[i].trim());
+                                    });
+
+                                    if (uniqueValues.size > 0) {
+                                        // Pass empty string for values so tags are not pre-populated
+                                        addVariationOptionRow(`Option ${i + 1}`, '');
+                                    }
+                                }
+                            }
+                        }
 
                         // Use special bulk edit ID flag
                         currentEditId = '__variant_group__';
@@ -1273,7 +1358,6 @@
 
                 if (toggleWrapper) toggleWrapper.style.display = 'flex';
                 $('variations-panel').style.display = 'none';
-                if (btnBarcode) btnBarcode.disabled = true;
                 lockStockField();
                 $('btn-adjust-stock').style.display = 'block';
                 $('delete-zone').style.display = 'block';
@@ -1297,7 +1381,6 @@
 
                 if (toggleWrapper) toggleWrapper.style.display = 'flex';
                 $('variations-panel').style.display = 'none';
-                if (btnBarcode) btnBarcode.disabled = false;
 
                 $('prodStock').removeAttribute('readonly');
                 $('btn-stock-minus').disabled = false;
@@ -1306,6 +1389,9 @@
                 $('delete-zone').style.display = 'none';
                 stockAdjustReason = '';
                 stockUnlocked = false;
+
+                // Auto-render the pre-generated barcode
+                renderPreviewBarcode();
             }
 
             renderPreviewBarcode();
@@ -1365,8 +1451,8 @@
                 $('prevLowStock').textContent = val('prodLowStock') || '10';
                 $('prevDesc').textContent = val('prodDescription') || 'Description';
 
-                // Barcodes: Show list of variants
-                $('prevBarcode').style.display = 'none';
+                // Barcodes: Show list of variants compactly
+                $('prevBarcode').style.display = 'block'; // Show the base barcode from 'Generate'
                 $('barcode-canvas').style.display = 'none';
 
                 let previewContainer = $('variant-preview-summary');
@@ -1377,11 +1463,11 @@
                     $('prevBarcode').parentNode.appendChild(previewContainer);
                 }
                 previewContainer.innerHTML = variantRows.map(r => `
-                    <div class="variant-preview-item" style="margin-bottom: 12px;">
+                    <div class="variant-preview-item" style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #eee;">
                         <strong>${r.value}</strong><br>
                         <svg class="preview-var-bc" data-bc="${r.barcode}" style="margin: 4px 0; height: 35px;"></svg><br>
                         <span class="sub-text">Stock: ${r.stock} | Price: ₱${r.price.toFixed(2)}</span>
-                        ${r.productID ? `<br><span class="sub-text" style="opacity:0.6;">ID: ${r.productID}</span>` : ''}
+                        ${r.productID ? ` | <span class="sub-text" style="opacity:0.6;">ID: ${r.productID}</span>` : ''}
                     </div>
                 `).join('');
                 previewContainer.style.display = 'block';
@@ -1402,6 +1488,8 @@
                         }
                     }
                 });
+
+
             } else {
                 // Standard mode
                 $('prevStock').textContent = val('prodStock') || '0';
@@ -1455,6 +1543,10 @@
                     return showAlert("Please generate or add at least one variant before saving.");
                 }
 
+                if (!currentBarcode) {
+                    return showAlert("Barcode is missing. Please close and reopen the form to generate one.");
+                }
+
                 // Validate each variant row
                 const barcodes = new Set();
                 for (let i = 0; i < variantRows.length; i++) {
@@ -1486,6 +1578,8 @@
                 const category = val('prodCategory');
                 const desc = val('prodDescription');
                 const lowStock = parseInt(val('prodLowStock')) || 10;
+                const activeOptions = variationOptions.filter(o => o && o.name.trim());
+                const variantOptionsStr = activeOptions.length > 0 ? JSON.stringify(activeOptions) : null;
 
                 const products = variantRows.map(row => ({
                     ...(row.productID ? { productID: row.productID } : {}),
@@ -1497,8 +1591,13 @@
                     initialPrice: row.initialPrice,
                     brand: brand,
                     productDescription: desc,
-                    lowStockThreshold: lowStock
+                    lowStockThreshold: lowStock,
+                    variantOptions: variantOptionsStr
                 }));
+
+                deletedVariantIds.forEach(id => {
+                    products.push({ productID: id, isDeleted: true });
+                });
 
                 const formData = new FormData();
                 formData.append('products', JSON.stringify(products));
@@ -1526,7 +1625,7 @@
             }
 
             // Standard Single Product Save Logic
-            if (!currentBarcode) return showAlert("Please click 'Generate barcode' before saving!");
+            if (!currentBarcode) return showAlert("Barcode is missing. Please close and reopen the form to generate one.");
             if (!val('prodName')) return showAlert("Please fill in the Product Name!");
 
             const initialPrice = parseFloat(val('prodInitialPrice'));
@@ -1568,6 +1667,45 @@
             const imageFile = $('prodImage').files[0];
             if (imageFile) {
                 formData.append('productImage', imageFile);
+            }
+
+            if (currentEditId === '__variant_group__') {
+                // Converting a variant group to a single product
+                const products = [{
+                    productName: val('prodName'),
+                    barcode: currentBarcode,
+                    category: val('prodCategory'),
+                    stockQuantity: parseInt(val('prodStock')),
+                    price: parseFloat(val('prodPrice')),
+                    initialPrice: parseFloat(val('prodInitialPrice')),
+                    brand: val('prodBrand'),
+                    productDescription: val('prodDescription'),
+                    lowStockThreshold: parseInt(val('prodLowStock')) || 10
+                }];
+
+                deletedVariantIds.forEach(id => {
+                    products.push({ productID: id, isDeleted: true });
+                });
+
+                const formDataBulk = new FormData();
+                formDataBulk.append('products', JSON.stringify(products));
+                if (imageFile) formDataBulk.append('productImage', imageFile);
+
+                try {
+                    const res = await fetch('/api/products/bulk', {
+                        method: 'POST',
+                        body: formDataBulk
+                    });
+
+                    if (res.ok) {
+                        showAlert(`Product converted to a single product successfully!`);
+                        toggleView('product-list-view');
+                    } else {
+                        const result = await res.json();
+                        showAlert("Error: " + result.error);
+                    }
+                } catch { showAlert("Failed to connect to the server."); }
+                return;
             }
 
             try {
