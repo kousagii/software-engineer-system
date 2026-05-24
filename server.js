@@ -122,15 +122,15 @@ app.post('/api/login', (req, res) => {
 
         const dbRoles = user.role.split(',').map(r => r.trim());
         let availableRoles = [];
-        
+
         // Check for Admin
         if (dbRoles.includes('Admin')) availableRoles.push('Admin');
-        
+
         // Check for Sales (handles 'SalesStaff' and legacy 'Sales')
         if (dbRoles.includes('SalesStaff') || dbRoles.includes('Sales')) {
             availableRoles.push('Sales');
         }
-        
+
         // Check for Inventory (handles 'InventoryStaff' and legacy 'Inventory')
         if (dbRoles.includes('InventoryStaff') || dbRoles.includes('Inventory')) {
             availableRoles.push('Inventory');
@@ -254,13 +254,13 @@ app.get('/api/products', (req, res) => {
 
 // POST route to add a new product 
 app.post('/api/products', upload.single('productImage'), (req, res) => {
-    const { productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, lowStockThreshold } = req.body;
+    const { productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, lowStockThreshold, variantOptions } = req.body;
     const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
-    const sql = `INSERT INTO product (productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, imagePath, lowStockThreshold) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO product (productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, imagePath, lowStockThreshold, variantOptions) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    db.query(sql, [productName, barcode, category, stockQuantity, price, initialPrice || null, brand, productDescription, imagePath, parseInt(lowStockThreshold) || 10], (err, result) => {
+    db.query(sql, [productName, barcode, category, stockQuantity, price, initialPrice || null, brand, productDescription, imagePath, parseInt(lowStockThreshold) || 10, variantOptions || null], (err, result) => {
         if (err) {
             console.error(err);
             if (err.code === 'ER_DUP_ENTRY') {
@@ -298,11 +298,11 @@ app.post('/api/products/bulk', upload.single('productImage'), async (req, res) =
     try {
         await db.promise().query('START TRANSACTION');
 
-        const insertSql = `INSERT INTO product (productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, imagePath, lowStockThreshold) 
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        const insertSql = `INSERT INTO product (productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, imagePath, lowStockThreshold, variantOptions) 
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
         const updateSql = `UPDATE product 
-                           SET productName = ?, barcode = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ?, lowStockThreshold = ? 
+                           SET productName = ?, barcode = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ?, lowStockThreshold = ?, variantOptions = ? 
                            ${imagePath ? ', imagePath = ?' : ''}
                            WHERE productID = ?`;
 
@@ -312,7 +312,7 @@ app.post('/api/products/bulk', upload.single('productImage'), async (req, res) =
                         VALUES (?, ?, ?, ?, NOW(), ?)`;
 
         for (const item of products) {
-            const { productID, productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, lowStockThreshold, isDeleted } = item;
+            const { productID, productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, lowStockThreshold, isDeleted, variantOptions } = item;
 
             if (isDeleted) {
                 if (productID) {
@@ -345,7 +345,8 @@ app.post('/api/products/bulk', upload.single('productImage'), async (req, res) =
                     initialPrice ? parseFloat(initialPrice) : null,
                     brand || null,
                     productDescription || null,
-                    parseInt(lowStockThreshold) || 10
+                    parseInt(lowStockThreshold) || 10,
+                    variantOptions || null
                 ];
                 if (imagePath) updateParams.push(imagePath);
                 updateParams.push(productID);
@@ -383,7 +384,8 @@ app.post('/api/products/bulk', upload.single('productImage'), async (req, res) =
                     brand || null,
                     productDescription || null,
                     imagePath,
-                    parseInt(lowStockThreshold) || 10
+                    parseInt(lowStockThreshold) || 10,
+                    variantOptions || null
                 ]);
 
                 const newProductID = result.insertId;
@@ -413,7 +415,7 @@ app.post('/api/products/bulk', upload.single('productImage'), async (req, res) =
 // PUT route to UPDATE an existing product 
 app.put('/api/products/:id', upload.single('productImage'), async (req, res) => {
     const { id } = req.params;
-    const { productName, category, stockQuantity, price, initialPrice, brand, productDescription, lowStockThreshold, stockAdjustReason } = req.body;
+    const { productName, category, stockQuantity, price, initialPrice, brand, productDescription, lowStockThreshold, stockAdjustReason, variantOptions } = req.body;
 
     const newImagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
@@ -421,14 +423,14 @@ app.put('/api/products/:id', upload.single('productImage'), async (req, res) => 
 
     if (newImagePath) {
         sql = `UPDATE product 
-               SET productName = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ?, imagePath = ?, lowStockThreshold = ? 
+               SET productName = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ?, imagePath = ?, lowStockThreshold = ?, variantOptions = ? 
                WHERE productID = ?`;
-        params = [productName, category, stockQuantity, price, initialPrice || null, brand, productDescription, newImagePath, parseInt(lowStockThreshold) || 10, id];
+        params = [productName, category, stockQuantity, price, initialPrice || null, brand, productDescription, newImagePath, parseInt(lowStockThreshold) || 10, variantOptions || null, id];
     } else {
         sql = `UPDATE product 
-               SET productName = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ?, lowStockThreshold = ? 
+               SET productName = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ?, lowStockThreshold = ?, variantOptions = ? 
                WHERE productID = ?`;
-        params = [productName, category, stockQuantity, price, initialPrice || null, brand, productDescription, parseInt(lowStockThreshold) || 10, id];
+        params = [productName, category, stockQuantity, price, initialPrice || null, brand, productDescription, parseInt(lowStockThreshold) || 10, variantOptions || null, id];
     }
 
     try {
@@ -1388,12 +1390,12 @@ app.get('/api/transactions', (req, res) => {
         LEFT JOIN users u ON st.userID = u.userID
     `;
     const params = [];
-    
+
     if (sessionUserID) {
         sql += ` WHERE st.userID = ? `;
         params.push(sessionUserID);
     }
-    
+
     sql += ` ORDER BY st.transDateTime DESC LIMIT ? `;
     params.push(limit);
 
@@ -1495,67 +1497,67 @@ app.post('/api/saveTransaction', (req, res) => {
                 VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?)
             `;
 
-        const txnParams = [
-            newTransactionCode,
-            finalUserID,
-            totalAmount,
-            paymentMethod || 'Cash',
-            referenceNumber || null,
-            discountAmount || 0.00,
-            paymentStatus || 'Paid',
-            cashReceived || 0.00,
-            digitalAmount || 0.00
-        ];
+            const txnParams = [
+                newTransactionCode,
+                finalUserID,
+                totalAmount,
+                paymentMethod || 'Cash',
+                referenceNumber || null,
+                discountAmount || 0.00,
+                paymentStatus || 'Paid',
+                cashReceived || 0.00,
+                digitalAmount || 0.00
+            ];
 
-        db.query(sqlTxn, txnParams, (err, result) => {
-            if (err) {
-                console.error("❌ DB ERROR (Header):", err.message);
-                return db.rollback(() => res.status(500).json({ error: "Failed to save header: " + err.message }));
-            }
-
-            const dbAutoId = result.insertId;
-
-            const itemValues = items.map(item => [
-                dbAutoId,
-                item.productID,
-                item.name || item.productName || null,
-                parseFloat(item.price) || 0,
-                item.qty,
-                parseFloat((item.price * item.qty).toFixed(2))
-            ]);
-
-            const sqlItems = `INSERT INTO sales_item (transactionID, productID, productName, unitPrice, quantity, subtotal) VALUES ?`;
-
-            db.query(sqlItems, [itemValues], (itemErr) => {
-                if (itemErr) {
-                    console.error("❌ DB ERROR (Items):", itemErr.message);
-                    return db.rollback(() => res.status(500).json({ error: "Failed to save items: " + itemErr.message }));
+            db.query(sqlTxn, txnParams, (err, result) => {
+                if (err) {
+                    console.error("❌ DB ERROR (Header):", err.message);
+                    return db.rollback(() => res.status(500).json({ error: "Failed to save header: " + err.message }));
                 }
 
-                const updatePromises = items.map(item => {
-                    return new Promise((resolve, reject) => {
-                        db.query(`UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`,
-                            [item.qty, item.productID], (sErr, sRes) => {
-                                if (sErr) reject(sErr); else resolve(sRes);
-                            });
-                    });
-                });
+                const dbAutoId = result.insertId;
 
-                Promise.all(updatePromises)
-                    .then(() => {
-                        db.commit(cErr => {
-                            if (cErr) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
-                            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Sale', ?)`,
-                                [finalUserID, `Transaction ${newTransactionCode} - Amount: ₱${parseFloat(totalAmount).toFixed(2)} - ${paymentMethod}`]);
-                            res.status(201).json({ message: "Transaction completed successfully.", transactionCode: newTransactionCode });
+                const itemValues = items.map(item => [
+                    dbAutoId,
+                    item.productID,
+                    item.name || item.productName || null,
+                    parseFloat(item.price) || 0,
+                    item.qty,
+                    parseFloat((item.price * item.qty).toFixed(2))
+                ]);
+
+                const sqlItems = `INSERT INTO sales_item (transactionID, productID, productName, unitPrice, quantity, subtotal) VALUES ?`;
+
+                db.query(sqlItems, [itemValues], (itemErr) => {
+                    if (itemErr) {
+                        console.error("❌ DB ERROR (Items):", itemErr.message);
+                        return db.rollback(() => res.status(500).json({ error: "Failed to save items: " + itemErr.message }));
+                    }
+
+                    const updatePromises = items.map(item => {
+                        return new Promise((resolve, reject) => {
+                            db.query(`UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`,
+                                [item.qty, item.productID], (sErr, sRes) => {
+                                    if (sErr) reject(sErr); else resolve(sRes);
+                                });
                         });
-                    })
-                    .catch(pErr => {
-                        console.error("❌ STOCK ERROR:", pErr.message);
-                        db.rollback(() => res.status(500).json({ error: "Stock update failed" }));
                     });
+
+                    Promise.all(updatePromises)
+                        .then(() => {
+                            db.commit(cErr => {
+                                if (cErr) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
+                                db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Sale', ?)`,
+                                    [finalUserID, `Transaction ${newTransactionCode} - Amount: ₱${parseFloat(totalAmount).toFixed(2)} - ${paymentMethod}`]);
+                                res.status(201).json({ message: "Transaction completed successfully.", transactionCode: newTransactionCode });
+                            });
+                        })
+                        .catch(pErr => {
+                            console.error("❌ STOCK ERROR:", pErr.message);
+                            db.rollback(() => res.status(500).json({ error: "Stock update failed" }));
+                        });
+                });
             });
-        });
         }); // End count query
     });
 });
