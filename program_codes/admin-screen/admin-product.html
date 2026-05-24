@@ -159,7 +159,7 @@
             </div>
 
             <div class="split">
-                <div class="form-panel">
+                <div class="form-panel" style="flex: 2;">
                     <h3 id="form-title">Create Product</h3>
 
                     <label>Name</label>
@@ -194,23 +194,23 @@
                             <div class="qty-control" id="stock-qty-control">
                                 <button class="qty-btn" id="btn-stock-minus" onclick="changeStock(-1)">-</button>
                                 <input type="number" id="prodStock" value="25" class="center-text m-0" min="0"
-                                    oninput="updatePreview()" readonly>
+                                    oninput="updatePreview(); propagateBaseStock()" readonly>
                                 <button class="qty-btn" id="btn-stock-plus" onclick="changeStock(1)">+</button>
                             </div>
                             <button type="button" id="btn-adjust-stock" class="btn-back" style="margin-top:6px; width:100%; font-size:0.78rem; display:none;" onclick="openStockReasonModal()">
-                                🔒 Adjust Stock
+                                Adjust Stock
                             </button>
                         </div>
                         <div>
                             <label>Purchase Price (₱)</label>
-                            <input type="number" id="prodInitialPrice" placeholder="120" min="0" step="0.01" oninput="updatePreview()">
+                            <input type="number" id="prodInitialPrice" placeholder="120" min="0" step="0.01" oninput="updatePreview(); propagateBaseInitialPrice()">
                         </div>
                     </div>
 
                     <div class="split">
                         <div>
                             <label>Selling Price (₱)</label>
-                            <input type="number" id="prodPrice" placeholder="180" min="0" step="0.01" oninput="updatePreview()">
+                            <input type="number" id="prodPrice" placeholder="180" min="0" step="0.01" oninput="updatePreview(); propagateBasePrice()">
                         </div>
                         <div>
                             <label>Low Stock Threshold</label>
@@ -221,6 +221,50 @@
                     <label>Description</label>
                     <textarea id="prodDescription" rows="4" placeholder="Description"
                         oninput="updatePreview()"></textarea>
+
+                    <!-- Product Variations Switcher -->
+                    <div class="form-panel" id="variations-toggle-wrapper">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <strong style="margin: 0; white-space: nowrap;">Add Variations</strong>
+                                <span class="sub-text" style="margin: 0;">Enable if this product comes in different colors, sizes, etc.</span>
+                            </div>
+                            <label class="switch" style="margin: 0; flex-shrink: 0;">
+                                <input type="checkbox" id="varModeMulti" onchange="handleVariationsToggle()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Product Variations Builder Panel -->
+                    <div class="form-panel" id="variations-panel">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h4 style="margin:0;">Product Options</h4>
+                            <button type="button" class="btn-create" style="width: auto; margin: 0;" onclick="addVariationOptionRow()">+ Add Option</button>
+                        </div>
+                        <div class="flex-col-gap-10" id="variation-options-list">
+                        </div>
+
+                        <div class="form-panel" id="combinations-container" style="max-width: 700px;">
+                            <h4 style="margin-top:0;">Generated Variants</h4>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Variant</th>
+                                            <th>Barcode</th>
+                                            <th>Stock</th>
+                                            <th>Purchase (₱)</th>
+                                            <th>Selling (₱)</th>
+                                            <th class="center-text">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="combinations-tbody"></tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn-back" onclick="addCustomCombinationRow()">+ Add Custom Variant</button>
+                        </div>
+                    </div>
 
                     <label>Upload image</label>
                     <div class="image-upload-box">
@@ -237,15 +281,15 @@
                     </div>
                 </div>
 
-                <div class="form-panel">
+                <div class="form-panel" style="flex: 1;">
                     <h3>Product Details</h3>
                     <div class="preview-details">
                         <p><strong>Name:</strong> <span id="prevName">Pliers</span></p>
                         <p><strong>Brand:</strong> <span id="prevBrand">Stanley</span></p>
                         <p><strong>Category:</strong> <span id="prevCat">Tools</span></p>
                         <p><strong>Stock Quantity:</strong> <span id="prevStock">25</span></p>
-                        <p><strong>Purchase Price:</strong> ₱<span id="prevInitialPrice">120</span></p>
-                        <p><strong>Selling Price:</strong> ₱<span id="prevPrice">180</span></p>
+                        <p><strong>Purchase Price:</strong> <span id="prevInitialPrice">120</span></p>
+                        <p><strong>Selling Price:</strong> <span id="prevPrice">180</span></p>
                         <p><strong>Low Stock At:</strong> <span id="prevLowStock">10</span> units</p>
                         <p><strong>Description:</strong> <span id="prevDesc">Description</span></p>
 
@@ -385,7 +429,7 @@
                             <img src="${p.imagePath || placeholderImg}" alt="${p.productName}" onerror="this.onerror=null; this.src=placeholderImg;">
                             <div class="product-info">
                                 <strong>${p.productName}</strong><br>
-                                <span class="sub-text">BC: ${p.barcode}</span>
+                                <span class="sub-text">BC: ${p.barcode}</span><br>
                             </div>
                         </div>
                     </td>
@@ -550,6 +594,355 @@
             stockAdjustReason = '';
         }
 
+        // Dynamic variations arrays and options
+        let variationOptions = [];
+
+        function handleVariationsToggle() {
+            const isChecked = $('varModeMulti') && $('varModeMulti').checked;
+            const panel = $('variations-panel');
+            const btnBarcode = $('btn-generate-barcode');
+
+            if (isChecked) {
+                panel.style.display = 'block';
+                if (btnBarcode) btnBarcode.disabled = true;
+                currentBarcode = ""; // clear single barcode
+                
+                // Add initial default option row (e.g. Size or Color) to guide the user
+                if (variationOptions.filter(Boolean).length === 0) {
+                    // addVariationOptionRow('Size', '25kg, 1kg');
+                }
+            } else {
+                panel.style.display = 'none';
+                if (btnBarcode && !currentEditId) btnBarcode.disabled = false;
+                
+                // Hide variations preview summary
+                const previewContainer = $('variant-preview-summary');
+                if (previewContainer) previewContainer.style.display = 'none';
+            }
+            updatePreview();
+        }
+
+        function addVariationOptionRow(name = '', valuesStr = '') {
+            const index = variationOptions.length;
+            variationOptions.push({ name: name, values: [] });
+
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'variant-option-row';
+            rowDiv.id = `option-row-${index}`;
+            rowDiv.innerHTML = `
+                <div class="variant-option-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong>Option ${index + 1}</strong>
+                    <button type="button" class="btn-cancel btn-icon-sm variant-btn-remove" style="width: auto;" onclick="removeVariationOptionRow(${index})">Remove</button>
+                </div>
+                <div class="variant-split" style="display: flex; gap: 15px; width: 60%; min-width: 450px;">
+                    <div class="flex-1">
+                        <label class="font-sm-label">Option Name</label>
+                        <input type="text" id="opt-name-${index}" value="${name}" placeholder="e.g. Color or Size" class="font-sm-input" oninput="handleOptionUpdate(${index})">
+                    </div>
+                    <div class="flex-2">
+                        <label class="font-sm-label">Values</label>
+                        <div class="variant-tag-input-group" style="display: flex; gap: 8px;">
+                            <input type="text" id="opt-val-input-${index}" placeholder="Type value and press Enter" class="font-sm-input" onkeydown="handleTagKeydown(event, ${index})">
+                            <button type="button" class="btn-back font-sm-btn" style="width: auto;" onclick="addTagFromInput(${index})">Add</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="variant-tag-container" id="opt-tags-${index}" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px;"></div>
+            `;
+
+            $('variation-options-list').appendChild(rowDiv);
+            
+            if (valuesStr) {
+                const values = valuesStr.split(',').map(v => v.trim()).filter(Boolean);
+                variationOptions[index].values = values;
+                renderOptionTags(index);
+            }
+        }
+
+        function removeVariationOptionRow(index) {
+            const row = $(`option-row-${index}`);
+            if (row) {
+                row.remove();
+            }
+            variationOptions[index] = null; // Mark as removed
+            triggerCombinationsAutoGenerate();
+        }
+
+        function handleOptionUpdate(index) {
+            if (variationOptions[index]) {
+                variationOptions[index].name = $(`opt-name-${index}`).value.trim();
+            }
+        }
+
+        function handleTagKeydown(event, index) {
+            if (event.key === 'Enter' || event.key === ',') {
+                event.preventDefault();
+                addTagFromInput(index);
+            }
+        }
+
+        function addTagFromInput(index) {
+            const input = $(`opt-val-input-${index}`);
+            if (!input) return;
+            const rawVal = input.value.trim();
+            if (!rawVal) return;
+
+            const pieces = rawVal.split(',').map(p => p.trim()).filter(Boolean);
+            
+            pieces.forEach(p => {
+                if (variationOptions[index] && !variationOptions[index].values.includes(p)) {
+                    variationOptions[index].values.push(p);
+                }
+            });
+
+            input.value = '';
+            renderOptionTags(index);
+            triggerCombinationsAutoGenerate();
+        }
+
+        function removeTag(index, tagValue) {
+            if (variationOptions[index]) {
+                variationOptions[index].values = variationOptions[index].values.filter(v => v !== tagValue);
+                renderOptionTags(index);
+                triggerCombinationsAutoGenerate();
+            }
+        }
+
+        function renderOptionTags(index) {
+            const container = $(`opt-tags-${index}`);
+            if (!container || !variationOptions[index]) return;
+
+            container.innerHTML = variationOptions[index].values.map(val => `
+                <span class="status-pill status-completed" style="display: inline-flex; align-items: center; gap: 6px;">
+                    ${val}
+                    <span class="variant-tag-remove" style="cursor: pointer; font-weight: bold;" onclick="removeTag(${index}, '${val.replace(/'/g, "\\'")}')">×</span>
+                </span>
+            `).join('');
+        }
+
+        function triggerCombinationsAutoGenerate() {
+            const activeOptions = variationOptions.filter(o => o && o.name.trim() && o.values.length > 0);
+            
+            if (activeOptions.length > 0) {
+                generateCombinations();
+            } else {
+                $('combinations-tbody').innerHTML = '';
+                $('combinations-container').style.display = 'none';
+                updatePreview();
+            }
+        }
+
+        function getCartesianProduct(arrays) {
+            return arrays.reduce((acc, curr) => {
+                const res = [];
+                acc.forEach(a => {
+                    curr.forEach(b => {
+                        res.push(a.concat([b]));
+                    });
+                });
+                return res;
+            }, [[]]);
+        }
+
+        function generateUniqueLocalBarcode(index) {
+            const now = Date.now().toString().slice(-6);
+            const idxStr = String(index).padStart(2, '0');
+            const rand = Math.floor(1000 + Math.random() * 9000).toString();
+            return now + idxStr + rand;
+        }
+
+        function generateRowBarcode(btn, index) {
+            const row = btn.closest('tr');
+            if (row) {
+                const bcInput = row.querySelector('.variant-bc-input');
+                if (bcInput) {
+                    bcInput.value = generateUniqueLocalBarcode(index || Math.floor(Math.random() * 99));
+                    updatePreview();
+                }
+            }
+        }
+
+        function generateCombinations() {
+            const activeOptions = variationOptions.filter(o => o && o.name.trim() && o.values.length > 0);
+            if (activeOptions.length === 0) return;
+
+            const optionLists = activeOptions.map(o => o.values);
+            const combinations = getCartesianProduct(optionLists);
+
+            const tbody = $('combinations-tbody');
+
+            // Collect the variant names that already exist in the table
+            const existingVariantNames = new Set();
+            tbody.querySelectorAll('tr').forEach(row => {
+                const valTextEl = row.querySelector('.variant-val-text');
+                const customValEl = row.querySelector('.variant-custom-val');
+                const name = valTextEl
+                    ? valTextEl.textContent.trim()
+                    : (customValEl ? customValEl.value.trim() : '');
+                if (name) existingVariantNames.add(name);
+            });
+
+            const baseStock = parseInt(val('prodStock')) || 25;
+            const baseInitialPrice = parseFloat(val('prodInitialPrice')) || 0;
+            const basePrice = parseFloat(val('prodPrice')) || 0;
+
+            let addedCount = 0;
+            combinations.forEach((combo, index) => {
+                const variantText = combo.join(' - ');
+
+                // Skip if this variant already exists in the table
+                if (existingVariantNames.has(variantText)) return;
+
+                const barcode = generateUniqueLocalBarcode(tbody.querySelectorAll('tr').length + index);
+
+                const row = document.createElement('tr');
+                row.className = 'combination-row';
+                row.innerHTML = `
+                    <td>
+                        <strong class="variant-val-text">${variantText}</strong>
+                    </td>
+                    <td>
+                        <div class="input-bc-cell">
+                            <input type="text" class="variant-bc-input w-140" value="${barcode}" oninput="updatePreview()">
+                        </div>
+                    </td>
+                    <td>
+                        <input type="number" class="variant-stock-input w-70" value="${baseStock}" min="0" oninput="updatePreview()">
+                    </td>
+                    <td>
+                        <input type="number" class="variant-init-price-input w-90" value="${baseInitialPrice}" min="0" step="0.01" oninput="updatePreview()">
+                    </td>
+                    <td>
+                        <input type="number" class="variant-price-input w-90" value="${basePrice}" min="0" step="0.01" oninput="updatePreview()">
+                    </td>
+                    <td class="center-text">
+                        <button type="button" class="btn-danger-sm btn-icon-sm" onclick="removeCombinationRow(this)" title="Delete Variant">✕</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+                addedCount++;
+            });
+
+            $('combinations-container').style.display = 'block';
+            updatePreview();
+        }
+
+        function addCustomCombinationRow(variantValue = '', existingBarcode = null, existingStock = null, existingInitPrice = null, existingPrice = null, productId = null) {
+            const tbody = $('combinations-tbody');
+            const index = tbody.querySelectorAll('tr').length;
+            const barcode = existingBarcode !== null ? existingBarcode : generateUniqueLocalBarcode(index);
+            const baseStock = existingStock !== null ? existingStock : (parseInt(val('prodStock')) || 25);
+            const baseInitialPrice = existingInitPrice !== null ? existingInitPrice : (parseFloat(val('prodInitialPrice')) || 0);
+            const basePrice = existingPrice !== null ? existingPrice : (parseFloat(val('prodPrice')) || 0);
+
+            const row = document.createElement('tr');
+            row.className = 'combination-row';
+            if (productId) row.setAttribute('data-product-id', productId);
+            row.innerHTML = `
+                <td>
+                    <input type="text" class="variant-custom-val w-130" value="${variantValue}" placeholder="e.g. Extra Large" oninput="updatePreview()">
+                </td>
+                <td>
+                    <div class="input-bc-cell">
+                        <input type="text" class="variant-bc-input w-140" value="${barcode}" oninput="updatePreview()">
+                    </div>
+                </td>
+                <td>
+                    <input type="number" class="variant-stock-input w-70" value="${baseStock}" min="0" oninput="updatePreview()">
+                </td>
+                <td>
+                    <input type="number" class="variant-init-price-input w-90" value="${baseInitialPrice}" min="0" step="0.01" oninput="updatePreview()">
+                </td>
+                <td>
+                    <input type="number" class="variant-price-input w-90" value="${basePrice}" min="0" step="0.01" oninput="updatePreview()">
+                </td>
+                <td class="center-text">
+                    <button type="button" class="btn-danger-sm btn-icon-sm" onclick="removeCombinationRow(this)">✕</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+            $('combinations-container').style.display = 'block';
+            updatePreview();
+        }
+
+        function removeCombinationRow(btn) {
+            const row = btn.closest('tr');
+            if (row) {
+                row.remove();
+            }
+            updatePreview();
+            
+            const tbody = $('combinations-tbody');
+            if (tbody.querySelectorAll('tr').length === 0) {
+                $('combinations-container').style.display = 'none';
+            }
+        }
+
+        function getVariantRowsData() {
+            const rows = document.querySelectorAll('#combinations-tbody tr');
+            const data = [];
+            rows.forEach(row => {
+                let value = '';
+                const valTextEl = row.querySelector('.variant-val-text');
+                if (valTextEl) {
+                    value = valTextEl.textContent.trim();
+                } else {
+                    const customValEl = row.querySelector('.variant-custom-val');
+                    if (customValEl) {
+                        value = customValEl.value.trim();
+                    }
+                }
+                
+                const bcInput = row.querySelector('.variant-bc-input');
+                const stockInput = row.querySelector('.variant-stock-input');
+                const initPriceInput = row.querySelector('.variant-init-price-input');
+                const priceInput = row.querySelector('.variant-price-input');
+
+                if (value && bcInput && stockInput && initPriceInput && priceInput) {
+                    const productId = row.getAttribute('data-product-id') || null;
+                    data.push({
+                        productID: productId ? parseInt(productId) : null,
+                        value: value,
+                        barcode: bcInput.value.trim(),
+                        stock: parseInt(stockInput.value) || 0,
+                        initialPrice: parseFloat(initPriceInput.value) || 0,
+                        price: parseFloat(priceInput.value) || 0
+                    });
+                }
+            });
+            return data;
+        }
+
+        function propagateBaseStock() {
+            const isVarEnabled = $('varModeMulti') && $('varModeMulti').checked;
+            if (!isVarEnabled) return;
+            const baseStock = val('prodStock') || 0;
+            document.querySelectorAll('.variant-stock-input').forEach(input => {
+                input.value = baseStock;
+            });
+            updatePreview();
+        }
+
+        function propagateBaseInitialPrice() {
+            const isVarEnabled = $('varModeMulti') && $('varModeMulti').checked;
+            if (!isVarEnabled) return;
+            const basePrice = val('prodInitialPrice') || 0;
+            document.querySelectorAll('.variant-init-price-input').forEach(input => {
+                input.value = basePrice;
+            });
+            updatePreview();
+        }
+
+        function propagateBasePrice() {
+            const isVarEnabled = $('varModeMulti') && $('varModeMulti').checked;
+            if (!isVarEnabled) return;
+            const basePrice = val('prodPrice') || 0;
+            document.querySelectorAll('.variant-price-input').forEach(input => {
+                input.value = basePrice;
+            });
+            updatePreview();
+        }
+
         function openForm(id = null) {
             currentEditId = id;
             const p = productList.find(x => x.productID === id) || {
@@ -558,31 +951,138 @@
 
             currentBarcode = p.barcode || "";
 
-            val('prodName', p.productName);
-            val('prodBrand', p.brand || '');
-            val('prodCategory', p.category || 'Tools');
-            val('prodStock', p.stockQuantity || 25);
-            val('prodInitialPrice', p.initialPrice || '');
-            val('prodPrice', p.price || '');
-            val('prodDescription', p.productDescription || '');
-            val('prodLowStock', p.lowStockThreshold !== undefined && p.lowStockThreshold !== null ? p.lowStockThreshold : 10);
-
-            $('prodImage').value = '';
-            $('img-preview').src = p.imagePath ? p.imagePath : placeholderImg;
-
-            $('form-title').innerText = id ? "Edit Product" : "Create Product";
-            $('btn-save').innerText = id ? "Save Changes" : "Create Product";
-            $('prevProductId').innerText = id ? id : "(Auto-generated on save)";
-
             const btnBarcode = $('btn-generate-barcode');
-            btnBarcode.disabled = !!id;
+            const toggleWrapper = $('variations-toggle-wrapper');
+            const toggleMulti = $('varModeMulti');
 
-            // Stock field: locked when editing, free when creating
+            // Reset variations state every time
+            variationOptions = [];
+            $('variation-options-list').innerHTML = '';
+            $('combinations-tbody').innerHTML = '';
+            $('combinations-container').style.display = 'none';
+            if (toggleMulti) toggleMulti.checked = false;
+            $('variations-panel').style.display = 'none';
+
             if (id) {
+                // --- EDIT MODE ---
+                // Detect if this product belongs to a variant group
+                const nameParts = p.productName.split(' - ');
+                const isVariantProduct = nameParts.length >= 2;
+
+                if (isVariantProduct) {
+                    // Find siblings: all products sharing the same base name prefix
+                    const baseName = nameParts.slice(0, -1).join(' - ');
+                    const siblings = productList.filter(x =>
+                        x.productName === baseName ||
+                        x.productName.startsWith(baseName + ' - ')
+                    );
+
+                    if (siblings.length > 1 || (siblings.length === 1 && siblings[0].productName !== baseName)) {
+                        // Open in VARIANT GROUP EDIT MODE
+                        $('form-title').innerText = "Edit Variants";
+                        $('btn-save').innerText = "Save All Variants";
+                        $('prevProductId').innerText = "(Variant group)";
+
+                        val('prodName', baseName);
+                        val('prodBrand', p.brand || '');
+                        val('prodCategory', p.category || 'Tools');
+                        val('prodDescription', p.productDescription || '');
+                        val('prodLowStock', p.lowStockThreshold !== undefined && p.lowStockThreshold !== null ? p.lowStockThreshold : 10);
+
+                        // Use first sibling's price/stock as base hints
+                        val('prodStock', siblings[0].stockQuantity || 0);
+                        val('prodInitialPrice', siblings[0].initialPrice || '');
+                        val('prodPrice', siblings[0].price || '');
+
+                        $('prodImage').value = '';
+                        $('img-preview').src = p.imagePath ? p.imagePath : placeholderImg;
+
+                        // Enable the variations toggle
+                        if (toggleWrapper) toggleWrapper.style.display = 'flex';
+                        if (toggleMulti) toggleMulti.checked = true;
+                        $('variations-panel').style.display = 'block';
+                        $('combinations-container').style.display = 'block';
+
+                        // Disable barcode generate (not needed in bulk mode)
+                        if (btnBarcode) btnBarcode.disabled = true;
+                        $('btn-adjust-stock').style.display = 'none';
+                        $('delete-zone').style.display = 'none';
+
+                        // Hide single-product stock/price fields (they're handled per-variant)
+                        $('prodStock').setAttribute('readonly', true);
+                        $('btn-stock-minus').disabled = true;
+                        $('btn-stock-plus').disabled = true;
+
+                        // Load each sibling as a row in the combinations table
+                        siblings.forEach(sibling => {
+                            const variantSuffix = sibling.productName.startsWith(baseName + ' - ')
+                                ? sibling.productName.slice(baseName.length + 3)
+                                : sibling.productName;
+                            addCustomCombinationRow(
+                                variantSuffix,
+                                sibling.barcode,
+                                sibling.stockQuantity,
+                                sibling.initialPrice || 0,
+                                sibling.price,
+                                sibling.productID
+                            );
+                        });
+
+                        // Use special bulk edit ID flag
+                        currentEditId = '__variant_group__';
+
+                        renderPreviewBarcode();
+                        updatePreview();
+                        toggleView('create-product-view');
+                        return;
+                    }
+                }
+
+                // --- NORMAL SINGLE PRODUCT EDIT ---
+                val('prodName', p.productName);
+                val('prodBrand', p.brand || '');
+                val('prodCategory', p.category || 'Tools');
+                val('prodStock', p.stockQuantity || 25);
+                val('prodInitialPrice', p.initialPrice || '');
+                val('prodPrice', p.price || '');
+                val('prodDescription', p.productDescription || '');
+                val('prodLowStock', p.lowStockThreshold !== undefined && p.lowStockThreshold !== null ? p.lowStockThreshold : 10);
+
+                $('prodImage').value = '';
+                $('img-preview').src = p.imagePath ? p.imagePath : placeholderImg;
+
+                $('form-title').innerText = "Edit Product";
+                $('btn-save').innerText = "Save Changes";
+                $('prevProductId').innerText = id;
+
+                if (toggleWrapper) toggleWrapper.style.display = 'flex';
+                $('variations-panel').style.display = 'none';
+                if (btnBarcode) btnBarcode.disabled = true;
                 lockStockField();
                 $('btn-adjust-stock').style.display = 'block';
                 $('delete-zone').style.display = 'block';
             } else {
+                // --- CREATE MODE ---
+                val('prodName', p.productName);
+                val('prodBrand', p.brand || '');
+                val('prodCategory', p.category || 'Tools');
+                val('prodStock', p.stockQuantity || 25);
+                val('prodInitialPrice', p.initialPrice || '');
+                val('prodPrice', p.price || '');
+                val('prodDescription', p.productDescription || '');
+                val('prodLowStock', p.lowStockThreshold !== undefined && p.lowStockThreshold !== null ? p.lowStockThreshold : 10);
+
+                $('prodImage').value = '';
+                $('img-preview').src = placeholderImg;
+
+                $('form-title').innerText = "Create Product";
+                $('btn-save').innerText = "Create Product";
+                $('prevProductId').innerText = "(Auto-generated on save)";
+
+                if (toggleWrapper) toggleWrapper.style.display = 'flex';
+                $('variations-panel').style.display = 'none';
+                if (btnBarcode) btnBarcode.disabled = false;
+
                 $('prodStock').removeAttribute('readonly');
                 $('btn-stock-minus').disabled = false;
                 $('btn-stock-plus').disabled = false;
@@ -596,6 +1096,7 @@
             updatePreview();
             toggleView('create-product-view');
         }
+
 
         function previewSelectedImage(event) {
             const file = event.target.files[0];
@@ -616,6 +1117,7 @@
             if (currentVal + amount >= 0) {
                 val('prodStock', currentVal + amount);
                 updatePreview();
+                propagateBaseStock();
             }
         }
 
@@ -623,11 +1125,82 @@
             $('prevName').textContent = val('prodName') || 'Product Name';
             $('prevBrand').textContent = val('prodBrand') || 'Brand';
             $('prevCat').textContent = val('prodCategory');
-            $('prevStock').textContent = val('prodStock') || '0';
-            $('prevInitialPrice').textContent = val('prodInitialPrice') || '0';
-            $('prevPrice').textContent = val('prodPrice') || '0';
-            $('prevLowStock').textContent = val('prodLowStock') || '10';
-            $('prevDesc').textContent = val('prodDescription') || 'Description';
+            
+            const isVarEnabled = $('varModeMulti') && $('varModeMulti').checked;
+            const variantRows = getVariantRowsData();
+
+            if (isVarEnabled && variantRows.length > 0) {
+                // Variations preview mode
+                $('prevStock').innerHTML = `<span class="supplier-badge badge-dark">${variantRows.reduce((a, b) => a + b.stock, 0)} Total Units</span>`;
+                
+                // Show range of prices
+                const prices = variantRows.map(r => r.price);
+                const minPrice = Math.min(...prices);
+                const maxPrice = Math.max(...prices);
+                const priceRange = minPrice === maxPrice ? `₱${minPrice.toFixed(2)}` : `₱${minPrice.toFixed(2)} - ₱${maxPrice.toFixed(2)}`;
+                $('prevPrice').innerHTML = `<strong class="text-green-light">${priceRange}</strong>`;
+                
+                const initPrices = variantRows.map(r => r.initialPrice);
+                const minInit = Math.min(...initPrices);
+                const maxInit = Math.max(...initPrices);
+                const initRange = minInit === maxInit ? `₱${minInit.toFixed(2)}` : `₱${minInit.toFixed(2)} - ₱${maxInit.toFixed(2)}`;
+                $('prevInitialPrice').innerHTML = initRange;
+
+                $('prevLowStock').textContent = val('prodLowStock') || '10';
+                $('prevDesc').textContent = val('prodDescription') || 'Description';
+
+                // Barcodes: Show list of variants
+                $('prevBarcode').style.display = 'none';
+                $('barcode-canvas').style.display = 'none';
+                
+                let previewContainer = $('variant-preview-summary');
+                if (!previewContainer) {
+                    previewContainer = document.createElement('div');
+                    previewContainer.id = 'variant-preview-summary';
+                    previewContainer.className = 'variant-preview-container';
+                    $('prevBarcode').parentNode.appendChild(previewContainer);
+                }
+                previewContainer.innerHTML = variantRows.map(r => `
+                    <div class="variant-preview-item" style="margin-bottom: 12px;">
+                        <strong>${r.value}</strong><br>
+                        <svg class="preview-var-bc" data-bc="${r.barcode}" style="margin: 4px 0; height: 35px;"></svg><br>
+                        <span class="sub-text">Stock: ${r.stock} | Price: ₱${r.price.toFixed(2)}</span>
+                        ${r.productID ? `<br><span class="sub-text" style="opacity:0.6;">ID: ${r.productID}</span>` : ''}
+                    </div>
+                `).join('');
+                previewContainer.style.display = 'block';
+
+                document.querySelectorAll('.preview-var-bc').forEach(svg => {
+                    const bc = svg.getAttribute('data-bc');
+                    if (bc) {
+                        try {
+                            JsBarcode(svg, bc, {
+                                format: "CODE128",
+                                displayValue: true,
+                                height: 35,
+                                fontSize: 12,
+                                margin: 0
+                            });
+                        } catch (e) {
+                            svg.innerHTML = '<text x="0" y="15" fill="red" font-size="12">Invalid Barcode</text>';
+                        }
+                    }
+                });
+            } else {
+                // Standard mode
+                $('prevStock').textContent = val('prodStock') || '0';
+                $('prevInitialPrice').textContent = `₱${parseFloat(val('prodInitialPrice') || 0).toFixed(2)}`;
+                $('prevPrice').textContent = `₱${parseFloat(val('prodPrice') || 0).toFixed(2)}`;
+                $('prevLowStock').textContent = val('prodLowStock') || '10';
+                $('prevDesc').textContent = val('prodDescription') || 'Description';
+
+                // Hide variants preview summary
+                const previewContainer = $('variant-preview-summary');
+                if (previewContainer) previewContainer.style.display = 'none';
+
+                $('prevBarcode').style.display = 'block';
+                renderPreviewBarcode();
+            }
         }
 
         async function loadProducts() {
@@ -655,6 +1228,88 @@
         }
 
         async function saveProduct() {
+            const isVarEnabled = $('varModeMulti') && $('varModeMulti').checked;
+
+            if (isVarEnabled) {
+                // Bulk variations save logic
+                if (!val('prodName')) return showAlert("Please fill in the Product Name!");
+
+                const variantRows = getVariantRowsData();
+                if (variantRows.length === 0) {
+                    return showAlert("Please generate or add at least one variant before saving.");
+                }
+
+                // Validate each variant row
+                const barcodes = new Set();
+                for (let i = 0; i < variantRows.length; i++) {
+                    const row = variantRows[i];
+                    if (!row.barcode) {
+                        return showAlert(`Variant "${row.value}" requires a valid barcode!`);
+                    }
+                    if (barcodes.has(row.barcode)) {
+                        return showAlert(`Duplicate barcode detected: "${row.barcode}". Every variant must have a unique barcode!`);
+                    }
+                    barcodes.add(row.barcode);
+
+                    if (isNaN(row.stock) || row.stock < 0) {
+                        return showAlert(`Variant "${row.value}" requires a valid stock quantity (0 or greater).`);
+                    }
+                    if (isNaN(row.initialPrice) || row.initialPrice < 0) {
+                        return showAlert(`Variant "${row.value}" requires a valid purchase price (0 or greater).`);
+                    }
+                    if (isNaN(row.price) || row.price <= 0) {
+                        return showAlert(`Variant "${row.value}" requires a valid selling price (greater than 0).`);
+                    }
+                    if (row.price < row.initialPrice) {
+                        return showAlert(`Variant "${row.value}" selling price cannot be lower than the purchase price.`);
+                    }
+                }
+
+                const baseName = val('prodName');
+                const brand = val('prodBrand');
+                const category = val('prodCategory');
+                const desc = val('prodDescription');
+                const lowStock = parseInt(val('prodLowStock')) || 10;
+
+                const products = variantRows.map(row => ({
+                    ...(row.productID ? { productID: row.productID } : {}),
+                    productName: `${baseName} - ${row.value}`,
+                    barcode: row.barcode,
+                    category: category,
+                    stockQuantity: row.stock,
+                    price: row.price,
+                    initialPrice: row.initialPrice,
+                    brand: brand,
+                    productDescription: desc,
+                    lowStockThreshold: lowStock
+                }));
+
+                const formData = new FormData();
+                formData.append('products', JSON.stringify(products));
+
+                const imageFile = $('prodImage').files[0];
+                if (imageFile) {
+                    formData.append('productImage', imageFile);
+                }
+
+                try {
+                    const res = await fetch('/api/products/bulk', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (res.ok) {
+                        showAlert(`All ${products.length} variations saved successfully!`);
+                        toggleView('product-list-view');
+                    } else {
+                        const result = await res.json();
+                        showAlert("Error: " + result.error);
+                    }
+                } catch { showAlert("Failed to connect to the server."); }
+                return;
+            }
+
+            // Standard Single Product Save Logic
             if (!currentBarcode) return showAlert("Please click 'Generate barcode' before saving!");
             if (!val('prodName')) return showAlert("Please fill in the Product Name!");
 

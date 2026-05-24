@@ -277,6 +277,139 @@ app.post('/api/products', upload.single('productImage'), (req, res) => {
     });
 });
 
+// POST route to add/update multiple products in bulk (variations)
+app.post('/api/products/bulk', upload.single('productImage'), async (req, res) => {
+    const sessionUserID = req.session?.user?.id;
+    if (!sessionUserID) return res.status(401).json({ error: "Unauthorized" });
+
+    let products = [];
+    try {
+        products = typeof req.body.products === 'string' ? JSON.parse(req.body.products) : req.body.products;
+    } catch (e) {
+        return res.status(400).json({ error: "Invalid products array format" });
+    }
+
+    if (!Array.isArray(products) || products.length === 0) {
+        return res.status(400).json({ error: "No products to save" });
+    }
+
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+
+    try {
+        await db.promise().query('START TRANSACTION');
+
+        const insertSql = `INSERT INTO product (productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, imagePath, lowStockThreshold) 
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+        const updateSql = `UPDATE product 
+                           SET productName = ?, barcode = ?, category = ?, stockQuantity = ?, price = ?, initialPrice = ?, brand = ?, productDescription = ?, lowStockThreshold = ? 
+                           ${imagePath ? ', imagePath = ?' : ''}
+                           WHERE productID = ?`;
+
+        const deleteSql = `UPDATE product SET isActive = 0 WHERE productID = ?`;
+
+        const logSql = `INSERT INTO inventory_record (userID, productID, actionType, quantityChange, inventoryDate, details) 
+                        VALUES (?, ?, ?, ?, NOW(), ?)`;
+
+        for (const item of products) {
+            const { productID, productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, lowStockThreshold, isDeleted } = item;
+
+            if (isDeleted) {
+                if (productID) {
+                    await db.promise().query(deleteSql, [productID]);
+                    await db.promise().query(logSql, [
+                        sessionUserID,
+                        productID,
+                        'Archive',
+                        0,
+                        `Archived product variant: ${productName}`
+                    ]);
+                }
+                continue;
+            }
+
+            if (productID) {
+                // Fetch the current stock before updating (to calculate diff)
+                const [oldRows] = await db.promise().query(`SELECT stockQuantity FROM product WHERE productID = ?`, [productID]);
+                const oldStock = oldRows.length > 0 ? parseInt(oldRows[0].stockQuantity) : 0;
+                const newStock = parseInt(stockQuantity) || 0;
+                const stockDiff = newStock - oldStock;
+
+                // Update existing product
+                const updateParams = [
+                    productName,
+                    barcode,
+                    category,
+                    newStock,
+                    parseFloat(price) || 0.00,
+                    initialPrice ? parseFloat(initialPrice) : null,
+                    brand || null,
+                    productDescription || null,
+                    parseInt(lowStockThreshold) || 10
+                ];
+                if (imagePath) updateParams.push(imagePath);
+                updateParams.push(productID);
+
+                await db.promise().query(updateSql, updateParams);
+
+                // Log edit
+                await db.promise().query(logSql, [
+                    sessionUserID,
+                    productID,
+                    'Edit',
+                    0,
+                    `Edited product variant: ${productName}`
+                ]);
+
+                // Log stock diff if adjusted
+                if (stockDiff !== 0) {
+                    await db.promise().query(logSql, [
+                        sessionUserID,
+                        productID,
+                        'Stock Adjustment',
+                        stockDiff,
+                        `Stock adjusted for variant: ${productName} (${stockDiff > 0 ? '+' : ''}${stockDiff})`
+                    ]);
+                }
+            } else {
+                // Insert new product
+                const [result] = await db.promise().query(insertSql, [
+                    productName,
+                    barcode,
+                    category,
+                    parseInt(stockQuantity) || 0,
+                    parseFloat(price) || 0.00,
+                    initialPrice ? parseFloat(initialPrice) : null,
+                    brand || null,
+                    productDescription || null,
+                    imagePath,
+                    parseInt(lowStockThreshold) || 10
+                ]);
+
+                const newProductID = result.insertId;
+
+                await db.promise().query(logSql, [
+                    sessionUserID,
+                    newProductID,
+                    'Add',
+                    parseInt(stockQuantity) || 0,
+                    `Added product variant: ${productName}`
+                ]);
+            }
+        }
+
+        await db.promise().query('COMMIT');
+        res.status(200).json({ message: "Success!" });
+    } catch (err) {
+        await db.promise().query('ROLLBACK');
+        console.error("Bulk save error:", err);
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ error: "One of the barcodes already exists! Please make sure all barcodes are unique." });
+        }
+        res.status(500).json({ error: "Database error during bulk save" });
+    }
+});
+
 // PUT route to UPDATE an existing product 
 app.put('/api/products/:id', upload.single('productImage'), async (req, res) => {
     const { id } = req.params;
