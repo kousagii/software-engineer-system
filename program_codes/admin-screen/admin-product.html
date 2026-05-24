@@ -332,7 +332,7 @@
                         <p><strong>Barcode:</strong></p>
                         <div class="center-text">
                             <svg id="barcode-canvas" class="w-full" style="display: none;"></svg>
-                            <p id="prevBarcode" class="center-text font-barcode sub-text">Click 'Generate barcode'</p>
+                            <p id="prevBarcode" class="center-text font-barcode sub-text" style="display: none;"></p>
                         </div>
 
                         <br>
@@ -361,6 +361,7 @@
         let currentPage = 1;
         let currentPrintBarcode = "", currentPrintName = "";
         let deletedVariantIds = [];
+        let convertingFromSingle = null; // { productID, barcode } when converting a single product to variants
 
         const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
 
@@ -525,8 +526,8 @@
                 });
             } else {
                 canvas.style.display = 'none';
-                prevText.style.display = 'block';
-                prevText.textContent = "Click 'Generate barcode'";
+                prevText.style.display = 'none';
+                prevText.textContent = "";
             }
         }
 
@@ -831,14 +832,18 @@
             if (isChecked) {
                 panel.style.display = 'block';
                 if (btnBarcode) btnBarcode.disabled = true;
-                currentBarcode = ""; // clear single barcode
 
-                // Add initial default option row (e.g. Size or Color) to guide the user
-                if (variationOptions.filter(Boolean).length === 0) {
-                    // addVariationOptionRow('Size', '25kg, 1kg');
+                // If enabling for an existing single product (not a variant group), store its ID+barcode
+                // so the first generated variant row can reuse the original productID (UPDATE, not INSERT)
+                if (currentEditId && currentEditId !== '__variant_group__') {
+                    const origProduct = productList.find(x => x.productID === currentEditId);
+                    if (origProduct) {
+                        convertingFromSingle = { productID: currentEditId, barcode: origProduct.barcode };
+                    }
                 }
             } else {
                 panel.style.display = 'none';
+                convertingFromSingle = null;
                 if (btnBarcode && !currentEditId) btnBarcode.disabled = false;
 
                 // Hide variations preview summary
@@ -952,8 +957,13 @@
             if (activeOptions.length > 0) {
                 generateCombinations();
             } else {
-                $('combinations-tbody').innerHTML = '';
-                $('combinations-container').style.display = 'none';
+                // Only remove auto-generated rows; keep custom/existing rows intact
+                const tbody = $('combinations-tbody');
+                tbody.querySelectorAll('tr.auto-generated').forEach(row => row.remove());
+                // Hide container only if there are truly no rows left
+                if (tbody.querySelectorAll('tr').length === 0) {
+                    $('combinations-container').style.display = 'none';
+                }
                 updatePreview();
             }
         }
@@ -1031,14 +1041,21 @@
                 // Skip if this variant already exists in the table
                 if (existingVariantNames.has(variantText)) return;
 
-                const barcode = generateUniqueLocalBarcode(tbody.querySelectorAll('tr').length + index);
+                // If converting a single product to variants, stamp the first new row with the original productID+barcode
+                let rowBarcode = generateUniqueLocalBarcode(tbody.querySelectorAll('tr').length + index);
+                let rowProductId = null;
+                if (convertingFromSingle && addedCount === 0 && tbody.querySelectorAll('tr').length === 0) {
+                    rowBarcode = convertingFromSingle.barcode;
+                    rowProductId = convertingFromSingle.productID;
+                }
 
                 const row = document.createElement('tr');
                 row.className = 'combination-row auto-generated';
+                if (rowProductId) row.setAttribute('data-product-id', rowProductId);
                 row.innerHTML = `
                     <td>
                         <strong class="variant-val-text">${variantText}</strong>
-                        <input type="hidden" class="variant-bc-input" value="${barcode}">
+                        <input type="hidden" class="variant-bc-input" value="${rowBarcode}">
                     </td>
                     <td>
                         <input type="number" class="variant-stock-input w-70" value="${baseStock}" min="0" oninput="updatePreview()">
@@ -1212,6 +1229,7 @@
             // Reset variations state every time
             variationOptions = [];
             deletedVariantIds = [];
+            convertingFromSingle = null;
             $('variation-options-list').innerHTML = '';
             $('combinations-tbody').innerHTML = '';
             $('combinations-container').style.display = 'none';
@@ -1259,7 +1277,7 @@
                         if (toggleWrapper) toggleWrapper.style.display = 'flex';
                         if (toggleMulti) {
                             toggleMulti.checked = true;
-                            toggleMulti.disabled = true; // Prevent toggling off when editing existing variants
+                            toggleMulti.disabled = true;
                         }
                         $('variations-panel').style.display = 'block';
                         $('combinations-container').style.display = 'block';
@@ -1293,7 +1311,6 @@
                                 const parsedOptions = JSON.parse(p.variantOptions);
                                 if (parsedOptions && parsedOptions.length > 0) {
                                     parsedOptions.forEach((opt) => {
-                                        // Pass empty string for values so tags are not pre-populated
                                         addVariationOptionRow(opt.name, '');
                                     });
                                     hasOptions = true;
@@ -1452,7 +1469,7 @@
                 $('prevDesc').textContent = val('prodDescription') || 'Description';
 
                 // Barcodes: Show list of variants compactly
-                $('prevBarcode').style.display = 'block'; // Show the base barcode from 'Generate'
+                $('prevBarcode').style.display = 'none';
                 $('barcode-canvas').style.display = 'none';
 
                 let previewContainer = $('variant-preview-summary');
@@ -1541,10 +1558,6 @@
                 const variantRows = getVariantRowsData();
                 if (variantRows.length === 0) {
                     return showAlert("Please generate or add at least one variant before saving.");
-                }
-
-                if (!currentBarcode) {
-                    return showAlert("Barcode is missing. Please close and reopen the form to generate one.");
                 }
 
                 // Validate each variant row
