@@ -35,7 +35,8 @@
                 <option value="Inventory count correction">Inventory count correction</option>
                 <option value="Other">Other (specify below)</option>
             </select>
-            <input type="text" id="stockReasonOther" placeholder="Specify reason..." style="display:none; margin-bottom:6px;">
+            <input type="text" id="stockReasonOther" placeholder="Specify reason..."
+                style="display:none; margin-bottom:6px;">
             <div class="split">
                 <button class="btn-proceed w-full m-0" onclick="confirmStockReason()">Unlock & Edit</button>
                 <button class="btn-cancel w-full m-0" onclick="closeStockReasonModal()">Cancel</button>
@@ -50,16 +51,37 @@
                 <span class="sub-text">Generate 30x20mm thermal barcode labels</span>
             </div>
 
-            <div class="barcode-preview-container">
+            <!-- Single Preview -->
+            <div id="singlePreviewContainer" class="barcode-preview-container" style="display:none;">
                 <div id="barcodePreviewArea" class="barcode-label">
                     <div id="barcodeProdName" class="barcode-prod-name">Product Name</div>
                     <svg id="barcodeTarget" class="barcode-target"></svg>
                 </div>
             </div>
 
-            <div class="print-setup-row">
-                <label class="m-0">Print Copies:</label>
-                <input type="number" id="printCopies" value="1" min="1" max="100" class="input-qty center-text m-0">
+            <!-- Print Queue for single/multiple -->
+            <div id="multiPrintQtyAllContainer"
+                style="display:none; justify-content: space-between; align-items: center; margin-bottom:10px; background: #f9f9f9; padding: 8px 10px; border-radius: 6px; border: 1px solid #eee;">
+                <span style="font-size: 13px; font-weight: 500;">Print Copies (All):</span>
+                <div style="display:flex; gap:5px; align-items:center;">
+                    <input type="number" id="qtyAllInput" min="1" value="1" class="input-qty m-0 center-text"
+                        style="width:60px; height: 30px;" onfocus="this.select()">
+                    <button class="btn-proceed"
+                        style="margin:0; padding: 4px 8px; font-size: 12px; height: 30px; line-height: 1;"
+                        onclick="applyQtyToAll()">Apply</button>
+                </div>
+            </div>
+
+            <div id="multiPrintContainer"
+                style="max-height: 400px; overflow-y: auto; text-align:left; margin-bottom: 15px; padding-right: 5px;">
+                <!-- Dynamically populated -->
+            </div>
+
+            <div style="display: flex; justify-content: flex-start; margin-bottom:15px; width: 100%;">
+                <label class="checkbox-label" style="margin:0;">
+                    <input type="checkbox" id="cbUseInitials" checked onchange="updateBarcodeModalPreview()"> Abbreviate
+                    long names
+                </label>
             </div>
 
             <div class="split">
@@ -79,9 +101,15 @@
     <main class="dashboard-main">
 
         <div id="product-list-view" class="w-full">
-            <div class="page-header">
+            <div class="page-header" style="flex-wrap: wrap;">
                 <h2>Product Management</h2>
-                <button class="btn-create" onclick="openForm()">+ Create Product</button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button id="btn-toggle-multi-print" class="btn-view" onclick="toggleMultiPrintMode()"
+                        style="padding: 9px 20px; margin: 0; font-weight: bold; border-radius: var(--rad-md); font-size: 14px; white-space: nowrap; min-width: 150px;">🖨
+                        Print Labels</button>
+                    <button id="btn-create-product-header" class="btn-create" onclick="openForm()">+ Create
+                        Product</button>
+                </div>
             </div>
 
             <div class="form-panel toolbar">
@@ -135,7 +163,7 @@
                             <th>Description</th>
                             <th>Price</th>
                             <th>Stocks</th>
-                            <th class="center-text">Action</th>
+                            <th class="center-text" id="action-header-cell">Action</th>
                         </tr>
                     </thead>
                     <tbody id="product-table-body">
@@ -163,7 +191,8 @@
                     <h3 id="form-title">Create Product</h3>
 
                     <label>Name</label>
-                    <input type="text" id="prodName" placeholder="e.g. Pliers" oninput="autoCapitalize(this); updatePreview()">
+                    <input type="text" id="prodName" placeholder="e.g. Pliers"
+                        oninput="autoCapitalize(this); updatePreview()">
 
                     <div class="split">
                         <div>
@@ -197,24 +226,29 @@
                                     oninput="updatePreview(); propagateBaseStock()" readonly>
                                 <button class="qty-btn" id="btn-stock-plus" onclick="changeStock(1)">+</button>
                             </div>
-                            <button type="button" id="btn-adjust-stock" class="btn-back" style="margin-top:6px; width:100%; font-size:0.78rem; display:none;" onclick="openStockReasonModal()">
+                            <button type="button" id="btn-adjust-stock" class="btn-back"
+                                style="margin-top:6px; width:100%; font-size:0.78rem; display:none;"
+                                onclick="openStockReasonModal()">
                                 Adjust Stock
                             </button>
                         </div>
                         <div>
                             <label>Purchase Price (₱)</label>
-                            <input type="number" id="prodInitialPrice" placeholder="120" min="0" step="0.01" oninput="updatePreview(); propagateBaseInitialPrice()">
+                            <input type="number" id="prodInitialPrice" placeholder="120" min="0" step="0.01"
+                                oninput="updatePreview(); propagateBaseInitialPrice()">
                         </div>
                     </div>
 
                     <div class="split">
                         <div>
                             <label>Selling Price (₱)</label>
-                            <input type="number" id="prodPrice" placeholder="180" min="0" step="0.01" oninput="updatePreview(); propagateBasePrice()">
+                            <input type="number" id="prodPrice" placeholder="180" min="0" step="0.01"
+                                oninput="updatePreview(); propagateBasePrice()">
                         </div>
                         <div>
                             <label>Low Stock Threshold</label>
-                            <input type="number" id="prodLowStock" placeholder="10" value="10" min="0" oninput="updatePreview()">
+                            <input type="number" id="prodLowStock" placeholder="10" value="10" min="0"
+                                oninput="updatePreview()">
                         </div>
                     </div>
 
@@ -227,7 +261,8 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
                             <div style="display: flex; align-items: center; gap: 15px;">
                                 <strong style="margin: 0; white-space: nowrap;">Add Variations</strong>
-                                <span class="sub-text" style="margin: 0;">Enable if this product comes in different colors, sizes, etc.</span>
+                                <span class="sub-text" style="margin: 0;">Enable if this product comes in different
+                                    colors, sizes, etc.</span>
                             </div>
                             <label class="switch" style="margin: 0; flex-shrink: 0;">
                                 <input type="checkbox" id="varModeMulti" onchange="handleVariationsToggle()">
@@ -238,9 +273,11 @@
 
                     <!-- Product Variations Builder Panel -->
                     <div class="form-panel" id="variations-panel">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                             <h4 style="margin:0;">Product Options</h4>
-                            <button type="button" class="btn-create" style="width: auto; margin: 0;" onclick="addVariationOptionRow()">+ Add Option</button>
+                            <button type="button" class="btn-create" style="width: auto; margin: 0;"
+                                onclick="addVariationOptionRow()">+ Add Option</button>
                         </div>
                         <div class="flex-col-gap-10" id="variation-options-list">
                         </div>
@@ -262,7 +299,8 @@
                                     <tbody id="combinations-tbody"></tbody>
                                 </table>
                             </div>
-                            <button type="button" class="btn-back" onclick="addCustomCombinationRow()">+ Add Custom Variant</button>
+                            <button type="button" class="btn-back" onclick="addCustomCombinationRow()">+ Add Custom
+                                Variant</button>
                         </div>
                     </div>
 
@@ -308,9 +346,11 @@
                     <button class="btn-create w-full" id="btn-save" onclick="saveProduct()">Create Product</button>
 
                     <!-- Danger zone: delete only visible in edit mode -->
-                    <div id="delete-zone" style="display:none; margin-top:18px; border-top:1px solid var(--border-light); padding-top:14px;">
+                    <div id="delete-zone"
+                        style="display:none; margin-top:18px; border-top:1px solid var(--border-light); padding-top:14px;">
                         <p class="sub-text" style="margin:0 0 8px 0; color: var(--text-muted, #888);">⚠ Danger Zone</p>
-                        <button class="btn-delete w-full m-0" onclick="deleteCurrentProduct()">Delete This Product</button>
+                        <button class="btn-delete w-full m-0" onclick="deleteCurrentProduct()">Delete This
+                            Product</button>
                     </div>
                 </div>
             </div>
@@ -421,8 +461,20 @@
             $('btn-next').disabled = currentPage === totalPages;
         }
 
+        let isMultiPrintMode = false;
+
         function renderTable(data) {
-            $('product-table-body').innerHTML = data.map(p => `
+            const selectAll = document.getElementById('selectAllProducts');
+            if (selectAll) selectAll.checked = false;
+
+            $('product-table-body').innerHTML = data.map(p => {
+                const actionCell = isMultiPrintMode
+                    ? `<label class="checkbox-label flex-end m-0" style="justify-content:center;"><input type="checkbox" class="product-checkbox" value="${p.barcode}" onchange="checkSelectAllState()"></label>`
+                    : `<div class="action-group">
+                            <button class="btn-edit" onclick="openForm(${p.productID})">Edit</button>
+                            <button class="btn-view" onclick="previewBarcode('${p.barcode}')">Print</button>
+                        </div>`;
+                return `
                 <tr>
                     <td>
                         <div class="product-name-col">
@@ -437,13 +489,10 @@
                     <td>₱${parseFloat(p.price).toFixed(2)}</td>
                     <td>${p.stockQuantity}</td>
                     <td class="center-text">
-                        <div class="action-group">
-                            <button class="btn-edit" onclick="openForm(${p.productID})">Edit</button>
-                            <button class="btn-view" onclick="previewBarcode('${p.barcode}')">Print</button>
-                        </div>
+                        ${actionCell}
                     </td>
-                </tr>
-            `).join('') || '<tr><td colspan="5" class="center-text">No products found.</td></tr>';
+                </tr>`;
+            }).join('') || '<tr><td colspan="5" class="center-text">No products found.</td></tr>';
         }
 
         function generateBarcode() {
@@ -485,66 +534,233 @@
             }
         }
 
-        function renderPrintBarcodes(barcode, name, copies) {
-            const area = document.getElementById("barcodePrintContainer");
-            area.innerHTML = "";
-            for (let i = 0; i < copies; i++) {
-                const label = document.createElement("div");
-                label.className = "barcode-label";
+        // --- Smart Formatting & Abbreviation Helper ---
+        function formatProductName(name, useInitials) {
+            const toTitleCase = (str) => {
+                if (!str) return '';
+                return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+            };
 
-                const nameDiv = document.createElement("div");
-                nameDiv.className = "barcode-prod-name";
-                nameDiv.innerText = name;
+            const parts = name.split(' - ');
+            const baseName = parts[0];
 
-                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                svg.className = "barcode-target";
+            const words = baseName.split(/\s+/);
+            let abbrBase = baseName;
 
-                label.appendChild(nameDiv);
-                label.appendChild(svg);
-                area.appendChild(label);
+            if (words.length > 1) {
+                abbrBase = words.map((w, idx) => {
+                    if (/\d/.test(w)) return w;   // keep numbers
+                    if (idx === 0) return toTitleCase(w); // title-case first word
 
-                JsBarcode(svg, barcode, {
-                    format: "CODE128",
-                    width: 1.2,
-                    fontSize: 12,
-                    height: 45,
-                    margin: 10,
-                    displayValue: true,
-                    background: "white"
+                    if (useInitials) {
+                        return w.charAt(0).toUpperCase() + '.'; // abbreviate
+                    } else {
+                        return toTitleCase(w); // full word title-cased
+                    }
+                }).join(' ');
+            } else if (words.length === 1) {
+                abbrBase = toTitleCase(words[0]);
+            }
+
+            let formattedVariation = '';
+            if (parts.length > 1) {
+                const variationStr = parts.slice(1).join(' - ');
+                formattedVariation = ' - ' + variationStr.split(/\s+/).map(w => {
+                    if (/\d/.test(w)) return w;
+                    return toTitleCase(w);
+                }).join(' ');
+            }
+
+            return abbrBase + formattedVariation;
+        }
+
+        let printQueue = [];
+
+        function applyQtyToAll() {
+            const val = parseInt(document.getElementById('qtyAllInput').value) || 1;
+            printQueue.forEach((_, index) => {
+                const el = document.getElementById(`qty_${index}`);
+                if (el) el.value = val;
+            });
+        }
+
+        function updateBarcodeModalPreview() {
+            const useInitials = document.getElementById("cbUseInitials").checked;
+            if (printQueue.length === 1) {
+                document.getElementById("barcodeProdName").innerHTML = formatProductName(printQueue[0].name, useInitials);
+            } else {
+                printQueue.forEach((item, index) => {
+                    const el = document.getElementById(`print_name_${index}`);
+                    if (el) el.innerHTML = `<strong>${formatProductName(item.name, useInitials)}</strong><br><small style="color:#777;">BC: ${item.barcode}</small>`;
                 });
             }
+        }
+
+        function showBarcodeModalContent() {
+            document.getElementById("singlePreviewContainer").style.display = printQueue.length === 1 ? "flex" : "none";
+            const multiContainer = document.getElementById("multiPrintContainer");
+            const qtyAllContainer = document.getElementById("multiPrintQtyAllContainer");
+
+            // Auto-check abbreviate every time modal opens
+            const cbUseInitials = document.getElementById("cbUseInitials");
+            cbUseInitials.checked = true;
+            const useInitials = true;
+
+            qtyAllContainer.style.display = printQueue.length > 1 ? "flex" : "none";
+
+            if (printQueue.length === 1) {
+                document.getElementById("barcodeProdName").innerHTML = formatProductName(printQueue[0].name, useInitials);
+                JsBarcode("#barcodeTarget", printQueue[0].barcode, {
+                    format: "CODE128", width: 1.2, fontSize: 12, height: 45, margin: 10, displayValue: true, background: "white"
+                });
+
+                multiContainer.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
+                        <div id="print_name_0" style="flex:1; padding-right:10px; white-space:normal; overflow-wrap:break-word;">
+                            <strong>${formatProductName(printQueue[0].name, useInitials)}</strong><br><small style="color:#777;">BC: ${printQueue[0].barcode}</small>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-weight:600; font-size:13px;">Qty:</span>
+                            <input type="number" id="qty_0" value="1" min="1" class="input-qty center-text m-0" style="width:70px;" onfocus="this.select()">
+                        </div>
+                    </div>
+                `;
+            } else {
+                multiContainer.innerHTML = printQueue.map((item, index) => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
+                        <div id="print_name_${index}" style="flex:1; padding-right:10px; white-space:normal; overflow-wrap:break-word;">
+                            <strong>${formatProductName(item.name, useInitials)}</strong><br><small style="color:#777;">BC: ${item.barcode}</small>
+                        </div>
+                        <input type="number" id="qty_${index}" value="1" min="1" class="input-qty center-text m-0" style="width:80px;" title="Print Quantity" onfocus="this.select()">
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById("barcodeModal").style.display = "flex";
+        }
+
+        function triggerPrint() {
+            // Update queue quantities
+            printQueue.forEach((item, index) => {
+                const q = parseInt(document.getElementById(`qty_${index}`).value);
+                item.qty = (isNaN(q) || q < 1) ? 1 : q;
+            });
+
+            const useInitials = document.getElementById("cbUseInitials").checked;
+            const area = document.getElementById("barcodePrintContainer");
+            area.innerHTML = "";
+
+            printQueue.forEach(item => {
+                let displayName = formatProductName(item.name, useInitials);
+
+                for (let i = 0; i < item.qty; i++) {
+                    const label = document.createElement("div");
+                    label.className = "barcode-label";
+
+                    const nameDiv = document.createElement("div");
+                    nameDiv.className = "barcode-prod-name";
+                    nameDiv.style.fontSize = "9px";
+                    nameDiv.style.textAlign = "left";
+                    nameDiv.style.fontWeight = "600";
+                    nameDiv.style.paddingLeft = "2px";
+                    nameDiv.style.width = "100%";
+                    nameDiv.style.lineHeight = "1.1";
+                    nameDiv.innerHTML = displayName;
+
+                    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                    svg.className = "barcode-target";
+
+                    label.appendChild(nameDiv);
+                    label.appendChild(svg);
+                    area.appendChild(label);
+
+                    JsBarcode(svg, item.barcode, {
+                        format: "CODE128", width: 1.5, fontSize: 10, height: 60, margin: 2, displayValue: true, background: "white"
+                    });
+                }
+            });
+
+            window.print();
+        }
+
+        // --- Multi-select barcode print mode ---
+        function toggleMultiPrintMode() {
+            isMultiPrintMode = !isMultiPrintMode;
+            const btn = document.getElementById('btn-toggle-multi-print');
+            const thAction = document.getElementById('action-header-cell');
+            const createBtn = document.getElementById('btn-create-product-header');
+
+            if (isMultiPrintMode) {
+                // Change main button to "Print Selected"
+                btn.innerHTML = '🖨 Print Selected';
+                btn.className = 'btn-view';
+                btn.onclick = openMultiBarcodeModal;
+                if (createBtn) createBtn.style.display = 'none';
+
+                // Show "Cancel" button on the left
+                let cancelBtn = document.getElementById('btn-cancel-multi-print');
+                if (!cancelBtn) {
+                    cancelBtn = document.createElement('button');
+                    cancelBtn.id = 'btn-cancel-multi-print';
+                    cancelBtn.className = 'btn-cancel';
+                    cancelBtn.style.margin = '0';
+                    cancelBtn.style.whiteSpace = 'nowrap';
+                    cancelBtn.innerHTML = 'Cancel';
+                    cancelBtn.onclick = toggleMultiPrintMode;
+                    btn.parentNode.insertBefore(cancelBtn, btn);
+                }
+                cancelBtn.style.display = 'inline-block';
+
+                // Replace Action header with Select All checkbox + Label
+                thAction.innerHTML = '<label class="checkbox-label m-0" style="justify-content:center; display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="selectAllProducts" onclick="toggleAllProducts(this)"> <span style="font-size:12px; font-weight:normal;">Select All</span></label>';
+            } else {
+                // Restore main button
+                btn.innerHTML = '🖨 Print Labels';
+                btn.className = 'btn-view';
+                btn.onclick = toggleMultiPrintMode;
+                if (createBtn) createBtn.style.display = 'inline-block';
+
+                const cancelBtn = document.getElementById('btn-cancel-multi-print');
+                if (cancelBtn) cancelBtn.style.display = 'none';
+
+                thAction.innerHTML = 'Action';
+            }
+            processData();
+        }
+
+        function toggleAllProducts(source) {
+            document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = source.checked);
+        }
+
+        function checkSelectAllState() {
+            const selectAll = document.getElementById('selectAllProducts');
+            if (!selectAll) return;
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            const checkedBoxes = document.querySelectorAll('.product-checkbox:checked');
+            selectAll.checked = checkboxes.length > 0 && checkboxes.length === checkedBoxes.length;
         }
 
         function previewBarcode(barcode) {
             const prod = productList.find(p => p.barcode === barcode);
             if (!prod) return;
-            currentPrintBarcode = barcode;
-            currentPrintName = prod.productName;
-            
-            document.getElementById("barcodeProdName").innerText = prod.productName;
-            JsBarcode("#barcodeTarget", barcode, {
-                format: "CODE128",
-                width: 1.2,
-                fontSize: 12,
-                height: 45,
-                margin: 10,
-                displayValue: true,
-                background: "white"
-            });
-            
-            document.getElementById("printCopies").value = 1;
-            document.getElementById("barcodeModal").style.display = "flex";
+            printQueue = [{ barcode, name: prod.productName, qty: 1 }];
+            showBarcodeModalContent();
         }
 
         function closeBarcodeModal() {
             document.getElementById("barcodeModal").style.display = "none";
         }
 
-        function triggerPrint() {
-            let copies = parseInt(document.getElementById("printCopies").value);
-            if (isNaN(copies) || copies < 1) copies = 1;
-            renderPrintBarcodes(currentPrintBarcode, currentPrintName, copies);
-            window.print();
+        function openMultiBarcodeModal() {
+            const selected = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.value);
+            if (selected.length === 0) return showAlert('Please select at least one product to print barcodes.');
+
+            printQueue = selected.map(barcode => {
+                const prod = productList.find(p => p.barcode === barcode);
+                return { barcode, name: prod.productName, qty: 1 };
+            });
+
+            showBarcodeModalContent();
         }
 
         // Tracks whether stock has been unlocked for editing and the reason provided
@@ -562,7 +778,7 @@
             $('stock-reason-modal').style.display = 'none';
         }
 
-        $('stockReasonSelect') && document.getElementById('stockReasonSelect').addEventListener('change', function() {
+        $('stockReasonSelect') && document.getElementById('stockReasonSelect').addEventListener('change', function () {
             $('stockReasonOther').style.display = this.value === 'Other' ? 'block' : 'none';
         });
 
@@ -606,7 +822,7 @@
                 panel.style.display = 'block';
                 if (btnBarcode) btnBarcode.disabled = true;
                 currentBarcode = ""; // clear single barcode
-                
+
                 // Add initial default option row (e.g. Size or Color) to guide the user
                 if (variationOptions.filter(Boolean).length === 0) {
                     // addVariationOptionRow('Size', '25kg, 1kg');
@@ -614,7 +830,7 @@
             } else {
                 panel.style.display = 'none';
                 if (btnBarcode && !currentEditId) btnBarcode.disabled = false;
-                
+
                 // Hide variations preview summary
                 const previewContainer = $('variant-preview-summary');
                 if (previewContainer) previewContainer.style.display = 'none';
@@ -651,7 +867,7 @@
             `;
 
             $('variation-options-list').appendChild(rowDiv);
-            
+
             if (valuesStr) {
                 const values = valuesStr.split(',').map(v => v.trim()).filter(Boolean);
                 variationOptions[index].values = values;
@@ -688,7 +904,7 @@
             if (!rawVal) return;
 
             const pieces = rawVal.split(',').map(p => p.trim()).filter(Boolean);
-            
+
             pieces.forEach(p => {
                 if (variationOptions[index] && !variationOptions[index].values.includes(p)) {
                     variationOptions[index].values.push(p);
@@ -722,7 +938,7 @@
 
         function triggerCombinationsAutoGenerate() {
             const activeOptions = variationOptions.filter(o => o && o.name.trim() && o.values.length > 0);
-            
+
             if (activeOptions.length > 0) {
                 generateCombinations();
             } else {
@@ -871,7 +1087,7 @@
                 row.remove();
             }
             updatePreview();
-            
+
             const tbody = $('combinations-tbody');
             if (tbody.querySelectorAll('tr').length === 0) {
                 $('combinations-container').style.display = 'none';
@@ -892,7 +1108,7 @@
                         value = customValEl.value.trim();
                     }
                 }
-                
+
                 const bcInput = row.querySelector('.variant-bc-input');
                 const stockInput = row.querySelector('.variant-stock-input');
                 const initPriceInput = row.querySelector('.variant-init-price-input');
@@ -1125,21 +1341,21 @@
             $('prevName').textContent = val('prodName') || 'Product Name';
             $('prevBrand').textContent = val('prodBrand') || 'Brand';
             $('prevCat').textContent = val('prodCategory');
-            
+
             const isVarEnabled = $('varModeMulti') && $('varModeMulti').checked;
             const variantRows = getVariantRowsData();
 
             if (isVarEnabled && variantRows.length > 0) {
                 // Variations preview mode
                 $('prevStock').innerHTML = `<span class="supplier-badge badge-dark">${variantRows.reduce((a, b) => a + b.stock, 0)} Total Units</span>`;
-                
+
                 // Show range of prices
                 const prices = variantRows.map(r => r.price);
                 const minPrice = Math.min(...prices);
                 const maxPrice = Math.max(...prices);
                 const priceRange = minPrice === maxPrice ? `₱${minPrice.toFixed(2)}` : `₱${minPrice.toFixed(2)} - ₱${maxPrice.toFixed(2)}`;
                 $('prevPrice').innerHTML = `<strong class="text-green-light">${priceRange}</strong>`;
-                
+
                 const initPrices = variantRows.map(r => r.initialPrice);
                 const minInit = Math.min(...initPrices);
                 const maxInit = Math.max(...initPrices);
@@ -1152,7 +1368,7 @@
                 // Barcodes: Show list of variants
                 $('prevBarcode').style.display = 'none';
                 $('barcode-canvas').style.display = 'none';
-                
+
                 let previewContainer = $('variant-preview-summary');
                 if (!previewContainer) {
                     previewContainer = document.createElement('div');
@@ -1344,7 +1560,7 @@
             formData.append('brand', val('prodBrand'));
             formData.append('productDescription', val('prodDescription'));
             formData.append('lowStockThreshold', parseInt(val('prodLowStock')) || 10);
-            
+
             if (stockUnlocked && stockAdjustReason) {
                 formData.append('stockAdjustReason', stockAdjustReason);
             }
