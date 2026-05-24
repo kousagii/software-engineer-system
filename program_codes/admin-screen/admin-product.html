@@ -361,6 +361,7 @@
         let currentPage = 1;
         let currentPrintBarcode = "", currentPrintName = "";
         let deletedVariantIds = [];
+        let loadedVariantIds = [];
         let convertingFromSingle = null; // { productID, barcode } when converting a single product to variants
 
         const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
@@ -1283,11 +1284,13 @@
                         $('combinations-container').style.display = 'block';
 
                         $('btn-adjust-stock').style.display = 'none';
-                        $('delete-zone').style.display = 'none';
+                        $('delete-zone').style.display = 'block';
 
                         $('prodStock').setAttribute('readonly', true);
                         $('btn-stock-minus').disabled = true;
                         $('btn-stock-plus').disabled = true;
+
+                        loadedVariantIds = siblings.map(s => s.productID);
 
                         // Load each sibling as a row in the combinations table
                         siblings.forEach(sibling => {
@@ -1534,7 +1537,25 @@
 
         function deleteCurrentProduct() {
             if (!currentEditId) return;
-            showAlert("Are you sure you want to delete this product? This cannot be undone.", true, async () => {
+            showAlert("Are you sure you want to delete this product?", true, async () => {
+                if (currentEditId === '__variant_group__') {
+                    const products = loadedVariantIds.map(id => ({ productID: id, isDeleted: true }));
+                    const formDataBulk = new FormData();
+                    formDataBulk.append('products', JSON.stringify(products));
+
+                    try {
+                        const res = await fetch('/api/products/bulk', { method: 'POST', body: formDataBulk });
+                        if (res.ok) {
+                            showAlert("Variant group deleted successfully.");
+                            toggleView('product-list-view');
+                        } else {
+                            const result = await res.json();
+                            showAlert("Error: " + result.error);
+                        }
+                    } catch { showAlert("Failed to connect to the server."); }
+                    return;
+                }
+
                 try {
                     const res = await fetch(`/api/products/${currentEditId}`, { method: 'DELETE' });
                     if (res.ok) {
@@ -1550,14 +1571,31 @@
 
         async function saveProduct() {
             const isVarEnabled = $('varModeMulti') && $('varModeMulti').checked;
+            const baseName = val('prodName').trim();
+
+            if (!baseName) return showAlert("Please fill in the Product Name!");
+
+            // --- Universal Duplicate Name Check ---
+            const baseNameLower = baseName.toLowerCase();
+            const ignoreIds = currentEditId === '__variant_group__' ? loadedVariantIds : (currentEditId ? [currentEditId] : []);
+
+            const existingDuplicate = productList.find(p => {
+                if (ignoreIds.includes(p.productID)) return false;
+                const pName = p.productName.toLowerCase();
+                return pName === baseNameLower || pName.startsWith(baseNameLower + ' - ');
+            });
+
+            if (existingDuplicate) {
+                return showAlert(`This product name already exists! (Found: "${existingDuplicate.productName}")`);
+            }
 
             if (isVarEnabled) {
                 // Bulk variations save logic
-                if (!val('prodName')) return showAlert("Please fill in the Product Name!");
+                // (Product Name is already checked at the top)
 
                 const variantRows = getVariantRowsData();
                 if (variantRows.length === 0) {
-                    return showAlert("Please generate or add at least one variant before saving.");
+                    return showAlert("Please generate or add at least one variant before saving. If you want to delete this product entirely, use the Delete button below.");
                 }
 
                 // Validate each variant row
@@ -1608,6 +1646,14 @@
                     variantOptions: variantOptionsStr
                 }));
 
+                const seenVariantNames = new Set();
+                for (let p of products) {
+                    if (seenVariantNames.has(p.productName.toLowerCase())) {
+                        return showAlert(`You have multiple variants with the exact same name: "${p.productName}"`);
+                    }
+                    seenVariantNames.add(p.productName.toLowerCase());
+                }
+
                 deletedVariantIds.forEach(id => {
                     products.push({ productID: id, isDeleted: true });
                 });
@@ -1639,7 +1685,8 @@
 
             // Standard Single Product Save Logic
             if (!currentBarcode) return showAlert("Barcode is missing. Please close and reopen the form to generate one.");
-            if (!val('prodName')) return showAlert("Please fill in the Product Name!");
+
+            // (Product Name is already checked at the top)
 
             const initialPrice = parseFloat(val('prodInitialPrice'));
             const sellingPrice = parseFloat(val('prodPrice'));

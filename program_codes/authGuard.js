@@ -19,14 +19,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 const adminPages = [
                     'admin-dashboard', 'admin-search', 'admin-product', 'admin-supplier',
                     'inventory-order-management', 'admin-report', 'admin-user-management',
-                    'admin-backup', 'admin-help'
+                    'admin-backup', 'admin-help', 'admin-archive'
                 ];
                 if (adminPages.some(p => currentPath.includes(p))) {
                     isAllowed = true;
                 }
             } else if (userRole === 'Inventory') {
                 const inventoryPages = [
-                    'inventory-screen', 'admin-product', 'admin-supplier', 'admin-search', 'admin-report'
+                    'inventory-screen', 'admin-product', 'admin-supplier', 'admin-search', 'admin-report', 'admin-archive'
                 ];
                 if (inventoryPages.some(p => currentPath.includes(p))) {
                     isAllowed = true;
@@ -132,6 +132,7 @@ function renderSidebar(name, role, availableRoles) {
             <div class="bottom-menu">
                 <div class="menu">
                     <a href="../admin-screen/admin-user-management.html">User Management</a>
+                    <a href="../admin-screen/admin-archive.html">Archive</a>
                     <a href="../admin-screen/admin-backup.html">Back-up</a>
                     <a href="../admin-screen/admin-help.html">Help</a>
                     ${switchButtonsHTML}
@@ -151,6 +152,7 @@ function renderSidebar(name, role, availableRoles) {
                     <a href="../admin-screen/admin-supplier.html">Supplier</a>
                     <a href="../inventory-screen/inventory-order-management.html">Order Management</a>
                     <a href="../admin-screen/admin-report.html">Reports</a>
+                    <a href="../admin-screen/admin-archive.html">Archive</a>
                 </div>
             </div>
             <div class="bottom-menu">
@@ -228,7 +230,7 @@ function setupLogoutButton() {
     if (logoutBtn) {
         logoutBtn.addEventListener("click", () => {
             let modal = document.getElementById('alert-modal');
-            
+
             // In case a page doesn't have the modal skeleton, add it
             if (!modal) {
                 modal = document.createElement('div');
@@ -247,7 +249,7 @@ function setupLogoutButton() {
             const alertActions = document.getElementById('alert-actions');
 
             alertMessage.innerText = "Are you sure you want to sign out?";
-            
+
             alertActions.innerHTML = `
                 <button class="modal-btn btn-cancel" id="logout-cancel-btn">Cancel</button>
                 <button class="modal-btn btn-ok" id="logout-confirm-btn">Sign Out</button>
@@ -263,7 +265,7 @@ function setupLogoutButton() {
                 const confirmBtn = document.getElementById('logout-confirm-btn');
                 confirmBtn.innerHTML = 'Signing out...';
                 confirmBtn.disabled = true;
-                
+
                 fetch('/api/logout', { method: 'POST' })
                     .then(response => response.json())
                     .then(() => {

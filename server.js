@@ -490,6 +490,75 @@ app.delete('/api/products/:id', (req, res) => {
 });
 
 
+// ARCHIVE MANAGEMENT
+
+// GET archived (soft-deleted) products
+app.get('/api/archive/products', (req, res) => {
+    const sql = `SELECT * FROM product WHERE isActive = 0 ORDER BY productID DESC`;
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json({ error: "Failed to fetch archived products" });
+        res.json(results);
+    });
+});
+
+// GET archived (soft-deleted) suppliers
+app.get('/api/archive/suppliers', (req, res) => {
+    db.query("SET SESSION group_concat_max_len = 1000000", (err) => {
+        if (err) console.error("Failed to set group_concat_max_len", err);
+        const query = `
+            SELECT 
+                s.supplierID,
+                s.supplierName,
+                s.contactNumber,
+                s.email,
+                s.address,
+                s.termsOfPayment,
+                GROUP_CONCAT(sp.productID) AS productIDs,
+                GROUP_CONCAT(p.productName) AS productNames
+            FROM supplier s
+            LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID
+            LEFT JOIN product p ON sp.productID = p.productID
+            WHERE s.isActive = 0
+            GROUP BY s.supplierID;
+        `;
+        db.query(query, (err, results) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json(results);
+        });
+    });
+});
+
+// Restore an archived product
+app.put('/api/archive/products/:id/restore', (req, res) => {
+    const { id } = req.params;
+    const sql = `UPDATE product SET isActive = 1 WHERE productID = ?`;
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Failed to restore product" });
+        const sessionUserID = req.session?.user?.id;
+        if (sessionUserID) {
+            db.query(`INSERT INTO inventory_record (userID, productID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Edit', 0, NOW(), ?)`,
+                [sessionUserID, id, `Restored product ID: ${id}`]);
+        }
+        res.status(200).json({ message: "Product restored!" });
+    });
+});
+
+// Restore an archived supplier
+app.put('/api/archive/suppliers/:id/restore', (req, res) => {
+    const { id } = req.params;
+    const sql = `UPDATE supplier SET isActive = 1 WHERE supplierID = ?`;
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Failed to restore supplier" });
+        const sessionUserID = req.session?.user?.id;
+        if (sessionUserID) {
+            db.query(`INSERT INTO inventory_record (userID, supplierID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Supplier Edit', 0, NOW(), ?)`,
+                [sessionUserID, id, `Restored supplier ID: ${id}`]);
+        }
+        res.status(200).json({ message: "Supplier restored!" });
+    });
+});
+
+
 // SUPPLIER MANAGEMENT 
 
 // GET route to fetch all suppliers with their associated products

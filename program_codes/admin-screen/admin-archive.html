@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive | Udicon Trading</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+
+<body>
+    <div id="sidebar"></div>
+
+    <div id="custom-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div id="modal-message"></div>
+            <div id="modal-actions"></div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <main class="dashboard-main">
+        <div class="page-header">
+            <h2>Archive</h2>
+        </div>
+
+        <div class="archive-tab-bar">
+            <button class="archive-tab-btn active-tab" id="tab-products" onclick="switchTab('products')">
+                Products <span class="tab-count" id="product-count">0</span>
+            </button>
+            <button class="archive-tab-btn" id="tab-suppliers" onclick="switchTab('suppliers')">
+                Suppliers <span class="tab-count" id="supplier-count">0</span>
+            </button>
+        </div>
+
+        <div class="form-panel toolbar">
+            <div class="search-group">
+                <label>Search</label>
+                <input type="text" id="searchInput" placeholder="Search archived items..." class="w-200">
+            </div>
+            <div class="toolbar-right">
+                <div class="sort-group">
+                    <label>Show</label>
+                    <select id="showLimit" class="w-70">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="all">All</option>
+                    </select>
+                    <label>Sort by</label>
+                    <select id="sortMode" class="w-150">
+                        <option value="default">Default</option>
+                        <option value="asc">Name (A-Z)</option>
+                        <option value="desc">Name (Z-A)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRODUCTS TABLE -->
+        <div class="table-container" id="products-table-section">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Brand</th>
+                        <th>Barcode</th>
+                        <th>Stock</th>
+                        <th>Price</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="products-table-body">
+                    <tr>
+                        <td colspan="7" class="center-text">Loading archived products...</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div id="pagination-controls" class="pagination-container hidden">
+                <button id="btn-prev" onclick="changePage(-1)">Previous</button>
+                <span id="page-info">Page 1 of 1</span>
+                <button id="btn-next" onclick="changePage(1)">Next</button>
+            </div>
+        </div>
+
+        <!-- SUPPLIERS TABLE -->
+        <div class="table-container hidden" id="suppliers-table-section">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Supplier</th>
+                        <th>Contact Number</th>
+                        <th>Email</th>
+                        <th>Address</th>
+                        <th>Terms of Payment</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="suppliers-table-body">
+                    <tr>
+                        <td colspan="6" class="center-text">Loading archived suppliers...</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div id="supplier-pagination-controls" class="pagination-container hidden">
+                <button id="sup-btn-prev" onclick="changeSupplierPage(-1)">Previous</button>
+                <span id="sup-page-info">Page 1 of 1</span>
+                <button id="sup-btn-next" onclick="changeSupplierPage(1)">Next</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="../authGuard.js"></script>
+    <script>
+        const $ = id => document.getElementById(id);
+        const val = id => $(id).value;
+
+        let archivedProducts = [];
+        let archivedSuppliers = [];
+        let currentTab = 'products';
+        let currentPage = 1;
+        let supplierPage = 1;
+
+        const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
+
+        // --- Toast ---
+        function showToast(msg, isError = false) {
+            const toast = $('toast');
+            toast.textContent = msg;
+            toast.className = isError ? 'show error' : 'show';
+            setTimeout(() => { toast.className = ''; }, 3000);
+        }
+
+        // --- Modal ---
+        const closeModal = () => $('custom-modal').classList.remove('flex');
+
+        function showAlert(msg, isConfirm = false, cb = null) {
+            $('modal-message').innerHTML = msg;
+            $('modal-actions').innerHTML = isConfirm
+                ? `<button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
+                   <button class="modal-btn btn-ok" id="conf-btn">Confirm</button>`
+                : `<button class="modal-btn btn-ok" onclick="closeModal()">OK</button>`;
+
+            if (cb) {
+                $('conf-btn').onclick = () => { closeModal(); cb(); };
+            }
+            $('custom-modal').classList.add('flex');
+        }
+
+        // --- Tab Switching ---
+        function switchTab(tab) {
+            currentTab = tab;
+            $('tab-products').classList.toggle('active-tab', tab === 'products');
+            $('tab-suppliers').classList.toggle('active-tab', tab === 'suppliers');
+            $('products-table-section').classList.toggle('hidden', tab !== 'products');
+            $('suppliers-table-section').classList.toggle('hidden', tab !== 'suppliers');
+
+            currentPage = 1;
+            supplierPage = 1;
+            processData();
+        }
+
+        // --- Data Processing ---
+        function processData() {
+            if (currentTab === 'products') {
+                processProducts();
+            } else {
+                processSuppliers();
+            }
+        }
+
+        function processProducts() {
+            let data = [...archivedProducts];
+            const query = val('searchInput').toLowerCase();
+            const sort = val('sortMode');
+            const limitVal = val('showLimit');
+
+            if (query) {
+                data = data.filter(p =>
+                    (p.productName || '').toLowerCase().includes(query) ||
+                    (p.category || '').toLowerCase().includes(query) ||
+                    (p.brand || '').toLowerCase().includes(query) ||
+                    (p.barcode || '').toLowerCase().includes(query) ||
+                    String(p.productID).includes(query)
+                );
+            }
+
+            if (sort === 'asc') data.sort((a, b) => (a.productName || '').localeCompare(b.productName || ''));
+            else if (sort === 'desc') data.sort((a, b) => (b.productName || '').localeCompare(a.productName || ''));
+
+            let paginatedData;
+            if (limitVal === 'all') {
+                paginatedData = data;
+                updatePaginationUI('pagination-controls', 'page-info', 'btn-prev', 'btn-next', data.length, data.length, currentPage);
+            } else {
+                const limit = parseInt(limitVal);
+                const totalPages = Math.ceil(data.length / limit);
+                if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+                const start = (currentPage - 1) * limit;
+                paginatedData = data.slice(start, start + limit);
+                updatePaginationUI('pagination-controls', 'page-info', 'btn-prev', 'btn-next', data.length, limit, currentPage);
+            }
+
+            renderProductsTable(paginatedData);
+        }
+
+        function processSuppliers() {
+            let data = [...archivedSuppliers];
+            const query = val('searchInput').toLowerCase();
+            const sort = val('sortMode');
+            const limitVal = val('showLimit');
+
+            if (query) {
+                data = data.filter(s =>
+                    Object.values(s).some(v => String(v).toLowerCase().includes(query))
+                );
+            }
+
+            if (sort === 'asc') data.sort((a, b) => (a.supplierName || '').localeCompare(b.supplierName || ''));
+            else if (sort === 'desc') data.sort((a, b) => (b.supplierName || '').localeCompare(a.supplierName || ''));
+
+            let paginatedData;
+            if (limitVal === 'all') {
+                paginatedData = data;
+                updatePaginationUI('supplier-pagination-controls', 'sup-page-info', 'sup-btn-prev', 'sup-btn-next', data.length, data.length, supplierPage);
+            } else {
+                const limit = parseInt(limitVal);
+                const totalPages = Math.ceil(data.length / limit);
+                if (supplierPage > totalPages && totalPages > 0) supplierPage = totalPages;
+                const start = (supplierPage - 1) * limit;
+                paginatedData = data.slice(start, start + limit);
+                updatePaginationUI('supplier-pagination-controls', 'sup-page-info', 'sup-btn-prev', 'sup-btn-next', data.length, limit, supplierPage);
+            }
+
+            renderSuppliersTable(paginatedData);
+        }
+
+        function updatePaginationUI(containerId, infoId, prevId, nextId, totalItems, limit, page) {
+            const container = $(containerId);
+            if (limit === 'all' || limit >= totalItems || totalItems === 0) {
+                container.classList.add('hidden');
+                container.classList.remove('flex');
+                return;
+            }
+
+            const totalPages = Math.ceil(totalItems / limit);
+            $(infoId).innerText = `Page ${page} of ${totalPages}`;
+            $(prevId).disabled = page === 1;
+            $(nextId).disabled = page === totalPages;
+
+            container.classList.remove('hidden');
+            container.classList.add('flex');
+        }
+
+        function changePage(dir) {
+            currentPage += dir;
+            processProducts();
+        }
+
+        function changeSupplierPage(dir) {
+            supplierPage += dir;
+            processSuppliers();
+        }
+
+        // --- Render Tables ---
+        function renderProductsTable(data) {
+            if (data.length === 0) {
+                $('products-table-body').innerHTML = `
+                    <tr><td colspan="7">
+                        <div class="archive-empty-state">
+                            <div class="empty-icon">📦</div>
+                            <p>No archived products found.</p>
+                        </div>
+                    </td></tr>`;
+                return;
+            }
+
+            $('products-table-body').innerHTML = data.map(p => {
+                const imgSrc = p.imagePath ? p.imagePath : placeholderImg;
+                const price = parseFloat(p.price || 0).toFixed(2);
+                return `
+                    <tr>
+                        <td>
+                            <div class="archive-product-cell">
+                                <img src="${imgSrc}" alt="" class="archive-product-img" onerror="this.src='${placeholderImg}'">
+                                <div class="archive-product-info">
+                                    <strong>${p.productName}</strong>
+                                    <span class="sub-text">ID: ${p.productID}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="sub-text">${p.category || 'N/A'}</td>
+                        <td class="sub-text">${p.brand || 'N/A'}</td>
+                        <td class="sub-text">${p.barcode || 'N/A'}</td>
+                        <td class="sub-text">${p.stockQuantity || 0}</td>
+                        <td class="sub-text">₱${price}</td>
+                        <td>
+                            <button class="btn-restore" onclick="restoreProduct(${p.productID}, '${(p.productName || '').replace(/'/g, "\\'")}')">Restore</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderSuppliersTable(data) {
+            if (data.length === 0) {
+                $('suppliers-table-body').innerHTML = `
+                    <tr><td colspan="6">
+                        <div class="archive-empty-state">
+                            <div class="empty-icon">🏭</div>
+                            <p>No archived suppliers found.</p>
+                        </div>
+                    </td></tr>`;
+                return;
+            }
+
+            $('suppliers-table-body').innerHTML = data.map(s => {
+                const addr = (s.address && s.address.length > 35) ? s.address.substring(0, 35) + '...' : (s.address || 'N/A');
+                return `
+                    <tr>
+                        <td><strong>${s.supplierName}</strong><br><small class="sub-text">ID: ${s.supplierID}</small></td>
+                        <td class="sub-text">${s.contactNumber || 'N/A'}</td>
+                        <td class="sub-text">${s.email || 'N/A'}</td>
+                        <td class="sub-text address-cell">${addr}</td>
+                        <td class="sub-text">${s.termsOfPayment || 'COD'}</td>
+                        <td>
+                            <button class="btn-restore" onclick="restoreSupplier(${s.supplierID}, '${(s.supplierName || '').replace(/'/g, "\\'")}')">Restore</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // --- API Calls ---
+        async function loadArchivedProducts() {
+            try {
+                const res = await fetch('/api/archive/products');
+                archivedProducts = await res.json();
+                $('product-count').textContent = archivedProducts.length;
+            } catch {
+                archivedProducts = [];
+                $('product-count').textContent = '0';
+            }
+        }
+
+        async function loadArchivedSuppliers() {
+            try {
+                const res = await fetch('/api/archive/suppliers');
+                archivedSuppliers = await res.json();
+                $('supplier-count').textContent = archivedSuppliers.length;
+            } catch {
+                archivedSuppliers = [];
+                $('supplier-count').textContent = '0';
+            }
+        }
+
+        function restoreProduct(id, name) {
+            showAlert(`Restore <strong>${name}</strong> back to active products?`, true, async () => {
+                try {
+                    const res = await fetch(`/api/archive/products/${id}/restore`, { method: 'PUT' });
+                    if (res.ok) {
+                        showToast(`"${name}" has been restored!`);
+                        await loadAll();
+                        processData();
+                    } else {
+                        const result = await res.json();
+                        showToast('Error: ' + result.error, true);
+                    }
+                } catch {
+                    showToast('Failed to connect to the server.', true);
+                }
+            });
+        }
+
+        function restoreSupplier(id, name) {
+            showAlert(`Restore <strong>${name}</strong> back to active suppliers?`, true, async () => {
+                try {
+                    const res = await fetch(`/api/archive/suppliers/${id}/restore`, { method: 'PUT' });
+                    if (res.ok) {
+                        showToast(`"${name}" has been restored!`);
+                        await loadAll();
+                        processData();
+                    } else {
+                        const result = await res.json();
+                        showToast('Error: ' + result.error, true);
+                    }
+                } catch {
+                    showToast('Failed to connect to the server.', true);
+                }
+            });
+        }
+
+        async function loadAll() {
+            await Promise.all([loadArchivedProducts(), loadArchivedSuppliers()]);
+        }
+
+        // --- Init ---
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadAll();
+            processData();
+
+            ['searchInput', 'sortMode', 'showLimit'].forEach(id => {
+                $(id).addEventListener(id === 'searchInput' ? 'keyup' : 'change', () => {
+                    currentPage = 1;
+                    supplierPage = 1;
+                    processData();
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

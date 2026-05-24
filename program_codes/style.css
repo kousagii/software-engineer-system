@@ -2707,3 +2707,116 @@ input:checked+.slider:before {
     align-items: center;
     gap: 10px;
 }
+
+/* ===================== ARCHIVE PAGE ===================== */
+
+.archive-tab-bar {
+    display: flex;
+    border: 1px solid var(--border-color);
+    border-radius: var(--rad-md);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.archive-tab-btn {
+    margin: 0;
+    border-radius: 0;
+    flex: 1;
+    background: var(--white);
+    color: var(--text-dark);
+    border: none;
+    border-left: 1px solid var(--border-color);
+    padding: 12px 20px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.archive-tab-btn:first-child {
+    border-left: none;
+}
+
+.archive-tab-btn.active-tab {
+    background: var(--bg-dark);
+    color: var(--white);
+}
+
+.archive-tab-btn:hover:not(.active-tab) {
+    background: #eae6e1;
+}
+
+.archive-tab-btn .tab-count {
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    margin-left: 6px;
+}
+
+.archive-tab-btn.active-tab .tab-count {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-restore {
+    background: #2b8a4e;
+    color: var(--white);
+    padding: 8px 16px;
+    font-size: 13px;
+    border-radius: var(--rad-sm);
+    margin: 0;
+    width: auto;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-restore:hover {
+    background: #1e6b3b;
+}
+
+.archive-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+}
+
+.archive-empty-state .empty-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.archive-empty-state p {
+    font-size: 15px;
+    margin: 0;
+}
+
+.archive-product-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 4px;
+    background: var(--white);
+    border: 1px solid var(--border-light);
+}
+
+.archive-product-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.archive-product-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.archive-product-info strong {
+    font-size: 14px;
+}
+
+.archive-product-info .sub-text {
+    font-size: 12px;
+}

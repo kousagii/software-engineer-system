@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supplier Management | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css">
 </head>
+
 <body>
     <div id="sidebar"></div>
 
@@ -17,7 +19,7 @@
     </div>
 
     <main class="dashboard-main">
-        
+
         <div id="supplier-list-view" class="w-full">
             <div class="page-header">
                 <h2>Supplier Management</h2>
@@ -52,12 +54,19 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Supplier</th><th>Contact Number</th><th>Email</th>
-                            <th>Address</th><th>Terms of Payment</th><th>Product List</th><th>Action</th>
+                            <th>Supplier</th>
+                            <th>Contact Number</th>
+                            <th>Email</th>
+                            <th>Address</th>
+                            <th>Terms of Payment</th>
+                            <th>Product List</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="supplier-table-body">
-                        <tr><td colspan="7" class="center-text">Loading...</td></tr>
+                        <tr>
+                            <td colspan="7" class="center-text">Loading...</td>
+                        </tr>
                     </tbody>
                 </table>
 
@@ -78,30 +87,33 @@
                 <h3 id="form-title" style="border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px;">
                     📝 Create Supplier
                 </h3>
-                
+
                 <div class="split" style="gap: 40px;">
                     <div style="flex: 1;">
                         <label>Name</label>
                         <input type="text" id="supName" placeholder="Supplier Name" maxlength="100">
-                        
+
                         <label>Contact Number</label>
                         <input type="tel" id="supContact" placeholder="09135513434" maxlength="11"
                             oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
-                        
+
                         <label>Email</label>
                         <input type="email" id="supEmail" placeholder="supplier@gmail.com">
-                        
+
                         <label>Address</label>
                         <textarea id="supAddress" rows="3" placeholder="Address"></textarea>
-                        
+
                         <label>Terms of Payment</label>
-                        <input type="text" id="supTerms" placeholder="e.g., COD, 30 Days, 90 Days" value="COD" maxlength="50">
+                        <input type="text" id="supTerms" placeholder="e.g., COD, 30 Days, 90 Days" value="COD"
+                            maxlength="50">
                     </div>
 
                     <div style="flex: 1;">
                         <label>Product list (Select all that apply)</label>
-                        <input type="text" id="supplierProductSearch" placeholder="Search products..." onkeyup="filterSupplierProducts()" style="margin-bottom: 10px; width: 100%;">
-                        <div class="product-select-box" style="max-height: 250px; overflow-y: auto;" id="product-checkbox-container">
+                        <input type="text" id="supplierProductSearch" placeholder="Search products..."
+                            onkeyup="filterSupplierProducts()" style="margin-bottom: 10px; width: 100%;">
+                        <div class="product-select-box" style="max-height: 250px; overflow-y: auto;"
+                            id="product-checkbox-container">
                             <p style="color: #888; text-align: center; margin-top: 50px;">Loading products...</p>
                         </div>
                     </div>
@@ -110,11 +122,13 @@
                 <div class="align-right">
                     <button class="btn-create-supplier active" id="btn-save" onclick="saveSupplier()">Create</button>
                 </div>
-                
+
                 <!-- Danger zone: delete only visible in edit mode -->
-                <div id="delete-zone" style="display:none; margin-top:18px; border-top:1px solid #eee; padding-top:14px;">
+                <div id="delete-zone"
+                    style="display:none; margin-top:18px; border-top:1px solid #eee; padding-top:14px;">
                     <p class="sub-text" style="margin:0 0 8px 0; color: #888;">⚠ Danger Zone</p>
-                    <button class="btn-delete" style="width: 100%; margin: 0;" onclick="deleteCurrentSupplier()">Delete This Supplier</button>
+                    <button class="btn-delete" style="width: 100%; margin: 0;" onclick="deleteCurrentSupplier()">Delete
+                        This Supplier</button>
                 </div>
             </div>
         </div>
@@ -124,7 +138,7 @@
     <script src="../authGuard.js"></script>
     <script>
         let supplierList = [], productList = [], currentEditId = null;
-        let currentPage = 1; 
+        let currentPage = 1;
 
         // --- Utility Helpers ---
         const $ = id => document.getElementById(id);
@@ -141,11 +155,11 @@
 
         function showAlert(msg, isConfirm = false, cb = null) {
             $('modal-message').innerHTML = msg;
-            $('modal-actions').innerHTML = isConfirm 
+            $('modal-actions').innerHTML = isConfirm
                 ? `<button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
                    <button class="modal-btn btn-danger" id="conf-btn">Confirm</button>`
                 : `<button class="modal-btn btn-ok" onclick="closeModal()">OK</button>`;
-            
+
             if (cb) {
                 $('conf-btn').onclick = () => { closeModal(); cb(); };
             }
@@ -154,16 +168,16 @@
 
         // --- Updated View Products to display as a styled list ---
         function viewProducts(name, productsStr) {
-            const listItems = productsStr 
-                ? productsStr.split(',').map(p => `<li class="modal-list-item">${p.trim()}</li>`).join('') 
+            const listItems = productsStr
+                ? productsStr.split(',').map(p => `<li class="modal-list-item">${p.trim()}</li>`).join('')
                 : '<li class="modal-list-item">No products assigned.</li>';
-                
+
             showAlert(`
                 <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 18px;">Products for ${name}:</h3>
                 <ul class="modal-product-list">
                     ${listItems}
                 </ul>
-            `);        
+            `);
         }
 
         // --- Core Algorithms ---
@@ -217,7 +231,7 @@
             $('page-info').innerText = `Page ${currentPage} of ${totalPages}`;
             $('btn-prev').disabled = currentPage === 1;
             $('btn-next').disabled = currentPage === totalPages;
-            
+
             paginationEl.classList.remove('hidden');
             paginationEl.classList.add('flex');
         }
@@ -249,14 +263,14 @@
                             </div>
                         </td>
                     </tr>
-                `;            
+                `;
             }).join('') || '<tr><td colspan="7" class="center-text">No results found.</td></tr>';
         }
 
         // --- Form Logic ---
         function openForm(id = null) {
             currentEditId = id;
-            const s = supplierList.find(x => x.supplierID === id) || { supplierName:'', contactNumber:'', email:'', address:'', termsOfPayment:'', productIDs:'' };
+            const s = supplierList.find(x => x.supplierID === id) || { supplierName: '', contactNumber: '', email: '', address: '', termsOfPayment: '', productIDs: '' };
 
             val('supName', s.supplierName || '');
             val('supContact', s.contactNumber || '');
@@ -267,7 +281,7 @@
             const selectedIDs = (s.productIDs || '').toString().split(',');
             document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = selectedIDs.includes(cb.value));
 
-            $('form-title').innerHTML = `📝 ${id ? 'Edit' : 'Create'} Supplier`;
+            $('form-title').innerHTML = `${id ? 'Edit' : 'Create'} Supplier`;
             $('btn-save').innerText = id ? 'Save Changes' : 'Create';
             $('delete-zone').style.display = id ? 'block' : 'none';
 
@@ -287,7 +301,7 @@
                         ${p.productName}${brandStr}
                     </label>
                     `;
-                }).join('') : '<p style="color: #888; text-align: center;">No products available.</p>';            
+                }).join('') : '<p style="color: #888; text-align: center;">No products available.</p>';
             } catch { console.error("Failed to load products for checkboxes."); }
         }
 
@@ -336,7 +350,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                
+
                 if (res.ok) {
                     showAlert(`Supplier ${currentEditId ? 'updated' : 'created'} successfully!`);
                     toggleView('supplier-list-view');
@@ -352,18 +366,18 @@
             showAlert("Are you sure you want to delete this supplier?", true, async () => {
                 try {
                     const res = await fetch(`/api/suppliers/${currentEditId}`, { method: 'DELETE' });
-                    if (res.ok) { 
-                        showAlert("Supplier deleted!"); 
-                        loadSuppliers(); 
+                    if (res.ok) {
+                        showAlert("Supplier deleted!");
+                        loadSuppliers();
                         toggleView('supplier-list-view');
-                    } 
+                    }
                     else { const result = await res.json(); showAlert("Error: " + result.error); }
                 } catch { showAlert("Failed to connect to the server."); }
             });
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            fetchProductsForCheckboxes(); 
+            fetchProductsForCheckboxes();
             loadSuppliers();
             ['searchInput', 'sortMode', 'showLimit'].forEach(id => {
                 $(id).addEventListener(id === 'searchInput' ? 'keyup' : 'change', () => {
@@ -374,4 +388,5 @@
         });
     </script>
 </body>
+
 </html>
