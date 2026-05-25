@@ -140,6 +140,11 @@
                     <div class="sub-text" style="text-align: center; width: 100%;">Products Sold</div>
                     <h3 id="summaryProductsSold" style="margin: 5px 0 0 0; text-align: center; width: 100%;">0</h3>
                 </div>
+                <div class="form-panel center-text p-20"
+                    style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                    <div class="sub-text" style="text-align: center; width: 100%;">Refunds / Exchanges</div>
+                    <h3 id="summaryRefunds" style="margin: 5px 0 0 0; text-align: center; width: 100%; color: #d32f2f;">₱ 0.00</h3>
+                </div>
             </div>
 
             <div class="table-container">
@@ -215,10 +220,12 @@
                 if (reorderBtn) reorderBtn.classList.add('hidden');
                 $('report-table-head').innerHTML = `
                     <tr>
-                        <th>Day</th>
-                        <th>Total Orders</th>
+                        <th>Date & Time</th>
+                        <th>Transaction Code</th>
+                        <th>Cashier</th>
                         <th>Products Sold</th>
-                        <th>Sales</th>
+                        <th>Amount</th>
+                        <th>Status</th>
                     </tr>
                 `;
             } else if (currentReportType === 'userlogs') {
@@ -329,14 +336,19 @@
         function processData() {
             currentPage = 1;
             if (currentReportType === 'sales') {
-                reportData = reportData.map(r => ({
-                    day: new Date(r.day).toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric', year: '2-digit' }),
-                    orders: parseInt(r.orders) || 0,
-                    productsSold: parseInt(r.productsSold) || 0,
-                    salesRaw: parseFloat(r.sales) || 0,
-                    expensesRaw: parseFloat(r.expenses) || 0,
-                    sales: `₱ ${parseFloat(r.sales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                }));
+                reportData = reportData.map(r => {
+                    const dt = new Date(r.transDateTime);
+                    return {
+                        date: dt.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric', year: 'numeric' }) + ' ' + dt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                        code: r.transactionCode || '—',
+                        cashier: r.cashier || '—',
+                        productsSold: parseInt(r.productsSold) || 0,
+                        salesRaw: parseFloat(r.sales) || 0,
+                        expensesRaw: parseFloat(r.expenses) || 0,
+                        sales: `₱ ${parseFloat(r.sales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                        status: r.paymentStatus || 'Paid'
+                    };
+                });
             } else if (currentReportType === 'userlogs') {
                 reportData = reportData.map(r => {
                     const dt = new Date(r.dateTime);
@@ -412,6 +424,11 @@
                 }
             }
 
+            // Display newest first in the UI table (exports still use the original chronological order)
+            if (currentReportType !== 'stocks') {
+                filteredData.reverse();
+            }
+
             const totalPages = Math.ceil(filteredData.length / limit) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
             if (currentPage < 1) currentPage = 1;
@@ -421,14 +438,20 @@
             const paginatedData = filteredData.slice(startIndex, endIndex);
 
             if (currentReportType === 'sales') {
-                tbody.innerHTML = paginatedData.map(r => `
+                tbody.innerHTML = paginatedData.map(r => {
+                    let statusColor = '#333';
+                    if (r.status === 'Refunded') statusColor = '#d32f2f';
+                    else if (r.status === 'Exchanged') statusColor = '#f57c00';
+                    return `
                     <tr>
-                        <td>${r.day}</td>
-                        <td>${r.orders}</td>
+                        <td>${r.date}</td>
+                        <td>${r.code}</td>
+                        <td>${r.cashier}</td>
                         <td>${r.productsSold}</td>
                         <td>${r.sales}</td>
+                        <td style="color: ${statusColor}; font-weight: bold;">${r.status}</td>
                     </tr>
-                `).join('') || '<tr><td colspan="4" class="center-text">No data available.</td></tr>';
+                `}).join('') || '<tr><td colspan="6" class="center-text">No data available.</td></tr>';
             } else if (currentReportType === 'userlogs') {
                 tbody.innerHTML = paginatedData.map(r => `
                     <tr>
@@ -494,17 +517,25 @@
         function updateSummary() {
             if (currentReportType !== 'sales') return;
 
-            const totalSales = reportData.reduce((sum, r) => sum + (r.salesRaw || 0), 0);
-            const totalExpenses = reportData.reduce((sum, r) => sum + (r.expensesRaw || 0), 0);
-            const totalRevenue = totalSales - totalExpenses;
-            const totalOrders = reportData.reduce((sum, r) => sum + r.orders, 0);
-            const totalProductsSold = reportData.reduce((sum, r) => sum + r.productsSold, 0);
+            const totalSales = reportData.reduce((sum, r) => {
+                const amt = parseFloat(r.salesRaw || 0);
+                return sum + (amt > 0 ? amt : 0);
+            }, 0);
+            const totalRefunds = reportData.reduce((sum, r) => {
+                const amt = parseFloat(r.salesRaw || 0);
+                return sum + (amt < 0 ? Math.abs(amt) : 0);
+            }, 0);
+            const totalExpenses = reportData.reduce((sum, r) => sum + parseFloat(r.expensesRaw || 0), 0);
+            const totalRevenue = (totalSales - totalRefunds) - totalExpenses;
+            const totalOrders = reportData.filter(r => r.status === 'Paid' || parseFloat(r.salesRaw || 0) > 0).length;
+            const totalProductsSold = reportData.reduce((sum, r) => sum + parseInt(r.productsSold || 0), 0);
 
             $('summaryTotal').textContent = `₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             $('summaryExpenses').textContent = `₱ ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             $('summaryRevenue').textContent = `₱ ${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             $('summaryOrders').textContent = totalOrders;
             $('summaryProductsSold').textContent = totalProductsSold;
+            $('summaryRefunds').textContent = `₱ ${totalRefunds.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         }
 
         function updatePaginationUI(totalItems, totalPages) {
@@ -534,8 +565,8 @@
             let rows = [];
 
             if (currentReportType === 'sales') {
-                headers = ['Day', 'Total Orders', 'Products Sold', 'Sales'];
-                rows = reportData.map(r => [r.day, r.orders, r.productsSold, r.sales]);
+                headers = ['Date & Time', 'Transaction Code', 'Cashier', 'Products Sold', 'Amount', 'Status'];
+                rows = reportData.map(r => [r.date, r.code, r.cashier, r.productsSold, r.sales, r.status]);
             } else if (currentReportType === 'userlogs') {
                 headers = ['Date', 'Time', 'User', 'Role', 'Action Performed'];
                 rows = reportData.map(r => [r.date, r.time, r.userName, r.userType, r.action]);
@@ -572,10 +603,18 @@
 
             // Add summary for sales
             if (currentReportType === 'sales') {
-                const totalSales = reportData.reduce((sum, r) => sum + (r.salesRaw || 0), 0);
-                const totalOrders = reportData.reduce((sum, r) => sum + r.orders, 0);
-                const totalProductsSold = reportData.reduce((sum, r) => sum + r.productsSold, 0);
+                const totalSales = reportData.reduce((sum, r) => {
+                    const amt = parseFloat(r.salesRaw || 0);
+                    return sum + (amt > 0 ? amt : 0);
+                }, 0);
+                const totalRefunds = reportData.reduce((sum, r) => {
+                    const amt = parseFloat(r.salesRaw || 0);
+                    return sum + (amt < 0 ? Math.abs(amt) : 0);
+                }, 0);
+                const totalOrders = reportData.filter(r => r.status === 'Paid' || parseFloat(r.salesRaw || 0) > 0).length;
+                const totalProductsSold = reportData.reduce((sum, r) => sum + parseInt(r.productsSold || 0), 0);
                 csv += `Total Sales,₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
+                csv += `Total Refunds / Exchanges,₱ ${totalRefunds.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
                 csv += `Total Orders,${totalOrders}\n`;
                 csv += `Total Products Sold,${totalProductsSold}\n\n`;
             }
@@ -635,14 +674,22 @@
             `;
 
             if (currentReportType === 'sales') {
-                const totalSales = reportData.reduce((sum, r) => sum + (r.salesRaw || 0), 0);
-                const totalExpenses = reportData.reduce((sum, r) => sum + (r.expensesRaw || 0), 0);
-                const totalRevenue = totalSales - totalExpenses;
-                const totalOrders = reportData.reduce((sum, r) => sum + r.orders, 0);
-                const totalProductsSold = reportData.reduce((sum, r) => sum + r.productsSold, 0);
+                const totalSales = reportData.reduce((sum, r) => {
+                    const amt = parseFloat(r.salesRaw || 0);
+                    return sum + (amt > 0 ? amt : 0);
+                }, 0);
+                const totalRefunds = reportData.reduce((sum, r) => {
+                    const amt = parseFloat(r.salesRaw || 0);
+                    return sum + (amt < 0 ? Math.abs(amt) : 0);
+                }, 0);
+                const totalExpenses = reportData.reduce((sum, r) => sum + parseFloat(r.expensesRaw || 0), 0);
+                const totalRevenue = (totalSales - totalRefunds) - totalExpenses;
+                const totalOrders = reportData.filter(r => r.status === 'Paid' || parseFloat(r.salesRaw || 0) > 0).length;
+                const totalProductsSold = reportData.reduce((sum, r) => sum + parseInt(r.productsSold || 0), 0);
                 html += `
                     <div style="display: flex; flex-wrap: wrap; justify-content: space-around; margin-bottom: 20px; font-weight: bold; padding: 10px; background-color: #f8f9fa; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 13px; gap: 10px;">
                         <span>Total Sales: ₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                        <span>Refunds / Exchanges: ₱ ${totalRefunds.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                         <span>Purchases: ₱ ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                         <span>Income: ₱ ${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                         <span>Orders: ${totalOrders}</span>
@@ -676,8 +723,21 @@
 
             rows.forEach(row => {
                 html += '<tr>';
-                row.forEach(cell => {
-                    html += `<td style="border: 1px solid #ddd; padding: 8px;">${cell}</td>`;
+                row.forEach((cell, index) => {
+                    let tdStyle = 'border: 1px solid #ddd; padding: 8px;';
+                    if (currentReportType === 'sales') {
+                        // Amount Column
+                        if (index === 4) {
+                            tdStyle += ' text-align: right; font-variant-numeric: tabular-nums;';
+                        }
+                        // Status Column
+                        if (index === 5) {
+                            if (cell === 'Refunded') tdStyle += ' color: #d32f2f; font-weight: bold;';
+                            else if (cell === 'Exchanged') tdStyle += ' color: #f57c00; font-weight: bold;';
+                            else tdStyle += ' font-weight: bold; color: #333;';
+                        }
+                    }
+                    html += `<td style="${tdStyle}">${cell}</td>`;
                 });
                 html += '</tr>';
             });
@@ -689,7 +749,7 @@
 
             // Dynamically add a page margin just for this PDF report
             const printStyle = document.createElement('style');
-            printStyle.innerHTML = '@media print { @page { margin: 15mm !important; } }';
+            printStyle.innerHTML = '@media print { @page { margin: 15mm 0.5in !important; } }';
             document.head.appendChild(printStyle);
 
             // Allow DOM to update then trigger print

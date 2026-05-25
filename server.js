@@ -1219,18 +1219,20 @@ app.get('/api/reports/sales', (req, res) => {
 
     const sql = `
         SELECT 
-            DATE(st.transDateTime) AS day,
-            COUNT(DISTINCT st.transactionID) AS orders,
+            st.transDateTime,
+            st.transactionCode,
+            CONCAT(u.firstName, ' ', u.lastName) AS cashier,
+            st.paymentStatus,
             COALESCE(SUM(si.quantity), 0) AS productsSold,
-            COALESCE(SUM(st.totalAmount), 0) AS sales,
+            st.totalAmount AS sales,
             COALESCE(SUM(COALESCE(p.initialPrice, 0) * si.quantity), 0) AS expenses
         FROM sales_transaction st
         LEFT JOIN sales_item si ON st.transactionID = si.transactionID
         LEFT JOIN product p ON si.productID = p.productID
+        LEFT JOIN users u ON st.userID = u.userID
         WHERE DATE(st.transDateTime) BETWEEN ? AND ?
-          AND st.paymentStatus != 'Refunded'
-        GROUP BY DATE(st.transDateTime)
-        ORDER BY day ASC
+        GROUP BY st.transactionID
+        ORDER BY st.transDateTime ASC
     `;
 
     db.query(sql, [from, to], (err, results) => {
