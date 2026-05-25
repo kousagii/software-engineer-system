@@ -1338,7 +1338,7 @@ app.get('/api/reports/stocks', (req, res) => {
     });
 });
 // Losses / Defective Report
-// Combines: (1) defective units from PO receipts, (2) manual stock write-offs from inventory_record
+// Combines: (1) defective units from PO receipts, (2) manual stock write-offs from inventory_record, (3) defective returns from refunds/exchanges
 app.get('/api/reports/losses', (req, res) => {
     const { from, to } = req.query;
     if (!from || !to) return res.status(400).json({ error: 'Date range required' });
@@ -1377,6 +1377,22 @@ app.get('/api/reports/losses', (req, res) => {
           AND DATE(ir.inventoryDate) BETWEEN ? AND ?
     `;
 
+    // Source 3: Defective returns from refunds/exchanges
+    const returnDefSql = `
+        SELECT
+            DATE(st.transDateTime) AS lossDate,
+            'Return Defective' AS source,
+            'return' AS sourceType,
+            COALESCE(si.productName, p.productName) AS product,
+            ABS(si.quantity) AS qtyLost,
+            CONCAT(st.paymentStatus, ' - Txn: ', st.transactionCode) AS reason
+        FROM sales_item si
+        JOIN sales_transaction st ON si.transactionID = st.transactionID
+        LEFT JOIN product p ON si.productID = p.productID
+        WHERE si.returnStatus = 'DEFECTIVE'
+          AND DATE(st.transDateTime) BETWEEN ? AND ?
+    `;
+
     db.query(poSql, [from, to], (err1, poResults) => {
         if (err1) {
             console.error('Losses PO Query Error:', err1);
@@ -1389,11 +1405,18 @@ app.get('/api/reports/losses', (req, res) => {
                 return res.status(500).json({ error: 'Failed to fetch stock write-off data' });
             }
 
-            const combined = [...poResults, ...adjResults].sort((a, b) =>
-                new Date(b.lossDate) - new Date(a.lossDate)
-            );
+            db.query(returnDefSql, [from, to], (err3, returnResults) => {
+                if (err3) {
+                    console.error('Losses Return Defective Query Error:', err3);
+                    return res.status(500).json({ error: 'Failed to fetch return defective data' });
+                }
 
-            res.json(combined);
+                const combined = [...poResults, ...adjResults, ...returnResults].sort((a, b) =>
+                    new Date(b.lossDate) - new Date(a.lossDate)
+                );
+
+                res.json(combined);
+            });
         });
     });
 });
@@ -1784,8 +1807,11 @@ app.post('/api/processAdjustment', async (req, res) => {
 
         // --- 1. HANDLE RETURNS ---
         for (const item of returns) {
+            // Determine returnStatus based on item condition
+            const returnStatus = (item.condition === 'Defective') ? 'DEFECTIVE' : 'RESELLABLE';
+
             // Only add back to inventory if the item is resellable (not defective)
-            if (item.condition !== 'Defective') {
+            if (returnStatus === 'RESELLABLE') {
                 await db.promise().query(
                     `UPDATE product SET stockQuantity = stockQuantity + ? WHERE productID = ?`,
                     [item.qty, item.productID]
@@ -1794,8 +1820,8 @@ app.post('/api/processAdjustment', async (req, res) => {
 
             // Record in sales_item with negative quantity for reporting clarity
             await db.promise().query(
-                `INSERT INTO sales_item (transactionID, productID, productName, unitPrice, quantity, subtotal) VALUES (?, ?, ?, ?, ?, ?)`,
-                [dbAutoId, item.productID, item.name || null, item.price || 0, -item.qty, -(item.price * item.qty)]
+                `INSERT INTO sales_item (transactionID, productID, productName, unitPrice, quantity, subtotal, returnStatus) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [dbAutoId, item.productID, item.name || null, item.price || 0, -item.qty, -(item.price * item.qty), returnStatus]
             );
         }
 
@@ -1807,7 +1833,7 @@ app.post('/api/processAdjustment', async (req, res) => {
                 [item.qty, item.productID]
             );
 
-            // Record in sales_item as a normal sale entry
+            // Record in sales_item as a normal sale entry (returnStatus stays 'NONE')
             await db.promise().query(
                 `INSERT INTO sales_item (transactionID, productID, productName, unitPrice, quantity, subtotal) VALUES (?, ?, ?, ?, ?, ?)`,
                 [dbAutoId, item.productID, item.name || null, item.price || 0, item.qty, (item.price * item.qty)]

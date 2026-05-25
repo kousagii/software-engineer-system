@@ -342,7 +342,8 @@
                         date: dt.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric', year: 'numeric' }) + ' ' + dt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true }),
                         code: r.transactionCode || '—',
                         cashier: r.cashier || '—',
-                        productsSold: parseInt(r.productsSold) || 0,
+                        productsSoldRaw: parseInt(r.productsSold) || 0,
+                        productsSold: (r.paymentStatus === 'Refunded' || parseInt(r.productsSold) <= 0) ? '--' : (parseInt(r.productsSold) || 0),
                         salesRaw: parseFloat(r.sales) || 0,
                         expensesRaw: parseFloat(r.expenses) || 0,
                         sales: `₱ ${parseFloat(r.sales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -528,7 +529,10 @@
             const totalExpenses = reportData.reduce((sum, r) => sum + parseFloat(r.expensesRaw || 0), 0);
             const totalRevenue = (totalSales - totalRefunds) - totalExpenses;
             const totalOrders = reportData.filter(r => r.status === 'Paid' || parseFloat(r.salesRaw || 0) > 0).length;
-            const totalProductsSold = reportData.reduce((sum, r) => sum + parseInt(r.productsSold || 0), 0);
+            const totalProductsSold = reportData.reduce((sum, r) => {
+                const qty = parseInt(r.productsSoldRaw || 0);
+                return sum + (qty > 0 ? qty : 0);
+            }, 0);
 
             $('summaryTotal').textContent = `₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             $('summaryExpenses').textContent = `₱ ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -612,7 +616,10 @@
                     return sum + (amt < 0 ? Math.abs(amt) : 0);
                 }, 0);
                 const totalOrders = reportData.filter(r => r.status === 'Paid' || parseFloat(r.salesRaw || 0) > 0).length;
-                const totalProductsSold = reportData.reduce((sum, r) => sum + parseInt(r.productsSold || 0), 0);
+                const totalProductsSold = reportData.reduce((sum, r) => {
+                    const qty = parseInt(r.productsSoldRaw || 0);
+                    return sum + (qty > 0 ? qty : 0);
+                }, 0);
                 csv += `Total Sales,₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
                 csv += `Total Refunds / Exchanges,₱ ${totalRefunds.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
                 csv += `Total Orders,${totalOrders}\n`;
@@ -685,7 +692,10 @@
                 const totalExpenses = reportData.reduce((sum, r) => sum + parseFloat(r.expensesRaw || 0), 0);
                 const totalRevenue = (totalSales - totalRefunds) - totalExpenses;
                 const totalOrders = reportData.filter(r => r.status === 'Paid' || parseFloat(r.salesRaw || 0) > 0).length;
-                const totalProductsSold = reportData.reduce((sum, r) => sum + parseInt(r.productsSold || 0), 0);
+                const totalProductsSold = reportData.reduce((sum, r) => {
+                    const qty = parseInt(r.productsSoldRaw || 0);
+                    return sum + (qty > 0 ? qty : 0);
+                }, 0);
                 html += `
                     <div style="display: flex; flex-wrap: wrap; justify-content: space-around; margin-bottom: 20px; font-weight: bold; padding: 10px; background-color: #f8f9fa; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 13px; gap: 10px;">
                         <span>Total Sales: ₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
