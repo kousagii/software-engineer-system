@@ -1467,7 +1467,8 @@ input[type="radio"]:checked+.mode-label {
     max-height: 15mm;
 }
 
-#barcodePrintContainer {
+#barcodePrintContainer,
+#reportPrintContainer {
     display: none;
 }
 
@@ -1543,7 +1544,7 @@ input[type="radio"]:checked+.mode-label {
         margin: 0;
     }
 
-    body> :not(#receiptModal):not(#barcodePrintContainer) {
+    body> :not(#receiptModal):not(#barcodePrintContainer):not(#reportPrintContainer) {
         display: none !important;
     }
 
@@ -1551,6 +1552,34 @@ input[type="radio"]:checked+.mode-label {
         margin: 0;
         padding: 0;
         background: white;
+    }
+
+    /* Report PDF Export */
+    #reportPrintContainer {
+        display: block !important;
+        position: relative;
+        width: 100%;
+        padding: 15mm;
+        font-family: Arial, sans-serif;
+        box-sizing: border-box;
+    }
+
+    #reportPrintContainer table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    #reportPrintContainer th,
+    #reportPrintContainer td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+
+    #reportPrintContainer th {
+        background-color: #f2f2f2 !important;
+        -webkit-print-color-adjust: exact;
     }
 
     /* Receipt Print */
