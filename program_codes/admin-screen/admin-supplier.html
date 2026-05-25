@@ -103,9 +103,16 @@
                         <label>Address</label>
                         <textarea id="supAddress" rows="3" placeholder="Address"></textarea>
 
-                        <label>Terms of Payment</label>
-                        <input type="text" id="supTerms" placeholder="e.g., COD, 30 Days, 90 Days" value="COD"
-                            maxlength="50">
+                        <label>Payment Terms</label>
+                        <select id="supTermsSelect" onchange="toggleCustomTerms()" style="width: 100%; margin-bottom: 10px;">
+                            <option value="COD">COD</option>
+                            <option value="15 Days">15 Days</option>
+                            <option value="30 Days">30 Days</option>
+                            <option value="60 Days">60 Days</option>
+                            <option value="90 Days">90 Days</option>
+                            <option value="Others">Others</option>
+                        </select>
+                        <input type="text" id="supTermsCustom" placeholder="Enter custom term" maxlength="50" style="display: none; width: 100%;">
                     </div>
 
                     <div style="flex: 1;">
@@ -143,6 +150,17 @@
         // --- Utility Helpers ---
         const $ = id => document.getElementById(id);
         const val = (id, v) => v !== undefined ? $(id).value = v : $(id).value;
+
+        function toggleCustomTerms() {
+            const select = $('supTermsSelect');
+            const customInput = $('supTermsCustom');
+            if (select.value === 'Others') {
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+            }
+        }
 
         // --- Modal & Views ---
         function toggleView(view) {
@@ -276,7 +294,18 @@
             val('supContact', s.contactNumber || '');
             val('supEmail', s.email || '');
             val('supAddress', s.address || '');
-            val('supTerms', s.termsOfPayment || 'COD');
+            
+            const predefinedTerms = ['COD', '15 Days', '30 Days', '60 Days', '90 Days'];
+            const savedTerm = s.termsOfPayment || 'COD';
+            if (predefinedTerms.includes(savedTerm)) {
+                val('supTermsSelect', savedTerm);
+                val('supTermsCustom', '');
+                $('supTermsCustom').style.display = 'none';
+            } else {
+                val('supTermsSelect', 'Others');
+                val('supTermsCustom', savedTerm);
+                $('supTermsCustom').style.display = 'block';
+            }
 
             const selectedIDs = (s.productIDs || '').toString().split(',');
             document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = selectedIDs.includes(cb.value));
@@ -323,12 +352,17 @@
         }
 
         async function saveSupplier() {
+            const termsSelect = val('supTermsSelect');
+            const finalTerms = termsSelect === 'Others' ? val('supTermsCustom').trim() : termsSelect;
+
+            if (termsSelect === 'Others' && !finalTerms) return showAlert("Please enter the custom payment term.");
+
             const payload = {
                 supplierName: val('supName'),
                 contactNumber: val('supContact'),
                 email: val('supEmail'),
                 address: val('supAddress'),
-                termsOfPayment: val('supTerms'),
+                termsOfPayment: finalTerms,
                 productIDs: Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => parseInt(cb.value))
             };
 
