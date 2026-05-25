@@ -1223,7 +1223,7 @@ app.get('/api/reports/sales', (req, res) => {
             st.transactionCode,
             CONCAT(u.firstName, ' ', u.lastName) AS cashier,
             st.paymentStatus,
-            COALESCE(SUM(si.quantity), 0) AS productsSold,
+            COALESCE(SUM(CASE WHEN si.quantity > 0 THEN si.quantity ELSE 0 END), 0) AS productsSold,
             st.totalAmount AS sales,
             COALESCE(SUM(COALESCE(p.initialPrice, 0) * si.quantity), 0) AS expenses
         FROM sales_transaction st
