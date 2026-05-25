@@ -1212,27 +1212,24 @@ app.delete('/api/users/:id', (req, res) => {
 
 // --- REPORT API ENDPOINTS ---
 
-// Sales Performance Report
+// Sales Performance Report - grouped by product
 app.get('/api/reports/sales', (req, res) => {
     const { from, to } = req.query;
     if (!from || !to) return res.status(400).json({ error: 'Date range required' });
 
     const sql = `
         SELECT 
-            st.transDateTime,
-            st.transactionCode,
-            CONCAT(u.firstName, ' ', u.lastName) AS cashier,
-            st.paymentStatus,
-            COALESCE(SUM(CASE WHEN si.quantity > 0 THEN si.quantity ELSE 0 END), 0) AS productsSold,
-            st.totalAmount AS sales,
-            COALESCE(SUM(COALESCE(p.initialPrice, 0) * si.quantity), 0) AS expenses
-        FROM sales_transaction st
-        LEFT JOIN sales_item si ON st.transactionID = si.transactionID
+            COALESCE(si.productName, p.productName, CONCAT('Product ID ', si.productID)) AS productName,
+            SUM(CASE WHEN si.quantity > 0 THEN si.quantity ELSE 0 END) AS qtySold,
+            SUM(CASE WHEN si.quantity < 0 THEN ABS(si.quantity) ELSE 0 END) AS qtyReturned,
+            SUM(CASE WHEN si.quantity > 0 THEN si.subtotal ELSE 0 END) AS income
+        FROM sales_item si
+        JOIN sales_transaction st ON si.transactionID = st.transactionID
         LEFT JOIN product p ON si.productID = p.productID
-        LEFT JOIN users u ON st.userID = u.userID
         WHERE DATE(st.transDateTime) BETWEEN ? AND ?
-        GROUP BY st.transactionID
-        ORDER BY st.transDateTime ASC
+          AND st.paymentStatus IN ('Paid', 'Refunded', 'Exchanged')
+        GROUP BY si.productID, COALESCE(si.productName, p.productName, CONCAT('Product ID ', si.productID))
+        ORDER BY income DESC
     `;
 
     db.query(sql, [from, to], (err, results) => {
@@ -1244,34 +1241,118 @@ app.get('/api/reports/sales', (req, res) => {
     });
 });
 
-// User Logs Report - combines inventory_record + activity_log
-app.get('/api/reports/userlogs', (req, res) => {
-    const { from, to, role } = req.query;
+// Sales Summary Report
+app.get('/api/reports/sales-summary', (req, res) => {
+    const { from, to } = req.query;
     if (!from || !to) return res.status(400).json({ error: 'Date range required' });
 
-    let roleFilter = '';
-    if (role === 'admin') roleFilter = "AND u.role = 'Admin'";
-    else if (role === 'sales') roleFilter = "AND u.role = 'SalesStaff'";
-    else if (role === 'inventory') roleFilter = "AND u.role = 'InventoryStaff'";
-
     const sql = `
-        (
+        SELECT 
+            (SELECT SUM(CASE WHEN paymentStatus IN ('Paid', 'Exchanged') THEN totalAmount ELSE 0 END) 
+             FROM sales_transaction WHERE DATE(transDateTime) BETWEEN ? AND ?) AS totalSales,
+            (SELECT SUM(CASE WHEN paymentStatus = 'Refunded' THEN ABS(totalAmount) ELSE 0 END) 
+             FROM sales_transaction WHERE DATE(transDateTime) BETWEEN ? AND ?) AS totalRefunds,
+            (SELECT COUNT(*) 
+             FROM sales_transaction WHERE paymentStatus IN ('Paid', 'Exchanged') AND DATE(transDateTime) BETWEEN ? AND ?) AS totalOrders,
+            (SELECT COALESCE(SUM(COALESCE(p.initialPrice, 0) * si.quantity), 0) 
+             FROM sales_item si JOIN sales_transaction st ON si.transactionID = st.transactionID 
+             LEFT JOIN product p ON si.productID = p.productID 
+             WHERE DATE(st.transDateTime) BETWEEN ? AND ?) AS totalExpenses,
+            (SELECT COALESCE(SUM(CASE WHEN si.quantity > 0 THEN si.quantity ELSE 0 END), 0) 
+             FROM sales_item si JOIN sales_transaction st ON si.transactionID = st.transactionID 
+             WHERE DATE(st.transDateTime) BETWEEN ? AND ?) AS totalProductsSold
+    `;
+
+    db.query(sql, [from, to, from, to, from, to, from, to, from, to], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Failed to generate sales summary' });
+        }
+        res.json(results[0] || {});
+    });
+});
+
+// User Logs Report - combines inventory_record + activity_log with enhanced filtering
+app.get('/api/reports/userlogs', (req, res) => {
+    const { from, to, user, filterBy } = req.query;
+    if (!from || !to) return res.status(400).json({ error: 'Date range required' });
+
+    const userFilter = user ? `AND u.userID = ${parseInt(user)}` : '';
+
+    let activityCategoryFilter = '';
+    let includeActivity = true;
+    let includeInventory = true;
+
+    if (filterBy === 'login') {
+        activityCategoryFilter = "AND al.actionType IN ('Login', 'Logout')";
+        includeInventory = false;
+    } else if (filterBy === 'product') {
+        includeActivity = false;
+    } else if (filterBy === 'supplier') {
+        includeActivity = false;
+    } else if (filterBy === 'po') {
+        activityCategoryFilter = "AND al.actionType IN ('Create Order', 'Update Order', 'Delete Order', 'Receive Order', 'Auto Reorder')";
+        includeInventory = false;
+    } else if (filterBy === 'sales') {
+        activityCategoryFilter = "AND al.actionType IN ('Sale', 'Refund', 'Exchange', 'Sale Transaction')";
+        includeInventory = false;
+    } else if (filterBy === 'system') {
+        activityCategoryFilter = "AND al.actionType NOT IN ('Login', 'Logout', 'Create Order', 'Update Order', 'Delete Order', 'Receive Order', 'Auto Reorder', 'Sale', 'Refund', 'Exchange', 'Sale Transaction')";
+        includeInventory = false; // Usually inventory is just product/supplier
+    }
+
+    const queries = [];
+    const params = [];
+
+    if (includeActivity) {
+        queries.push(`
             SELECT 
                 al.logDateTime AS dateTime,
                 CONCAT(u.firstName, ' ', u.lastName) AS userName,
                 u.role AS userType,
+                al.actionType AS category,
                 CONCAT(al.actionType, IFNULL(CONCAT(' - ', al.details), '')) AS action
             FROM activity_log al
             JOIN users u ON al.userID = u.userID
             WHERE DATE(al.logDateTime) BETWEEN ? AND ?
-            ${roleFilter}
-        )
-        UNION ALL
-        (
+            ${userFilter}
+            ${activityCategoryFilter}
+        `);
+        params.push(from, to);
+
+        // Fetch historical & future Refunds and Exchanges directly from sales_transaction
+        if (filterBy === 'sales' || filterBy === '') {
+            queries.push(`
+                SELECT 
+                    st.transDateTime AS dateTime,
+                    CONCAT(u.firstName, ' ', u.lastName) AS userName,
+                    u.role AS userType,
+                    IF(st.paymentStatus = 'Refunded', 'Refund', 'Exchange') AS category,
+                    CONCAT(IF(st.paymentStatus = 'Refunded', 'Refund', 'Exchange'), ' - Transaction ', st.transactionCode, ' - Amount: ₱', ABS(st.totalAmount)) AS action
+                FROM sales_transaction st
+                JOIN users u ON st.userID = u.userID
+                WHERE DATE(st.transDateTime) BETWEEN ? AND ?
+                AND st.paymentStatus IN ('Refunded', 'Exchanged')
+                ${userFilter}
+            `);
+            params.push(from, to);
+        }
+    }
+
+    if (includeInventory) {
+        let invFilter = '';
+        if (filterBy === 'product') {
+            invFilter = "AND ir.productID IS NOT NULL AND ir.supplierID IS NULL";
+        } else if (filterBy === 'supplier') {
+            invFilter = "AND ir.supplierID IS NOT NULL";
+        }
+
+        queries.push(`
             SELECT 
                 ir.inventoryDate AS dateTime,
                 CONCAT(u.firstName, ' ', u.lastName) AS userName,
                 u.role AS userType,
+                ir.actionType AS category,
                 CONCAT(
                     ir.actionType, ' - ',
                     CASE 
@@ -1287,12 +1368,19 @@ app.get('/api/reports/userlogs', (req, res) => {
             LEFT JOIN product p ON ir.productID = p.productID
             LEFT JOIN supplier s ON ir.supplierID = s.supplierID
             WHERE DATE(ir.inventoryDate) BETWEEN ? AND ?
-            ${roleFilter}
-        )
-        ORDER BY dateTime DESC
-    `;
+            ${userFilter}
+            ${invFilter}
+        `);
+        params.push(from, to);
+    }
 
-    db.query(sql, [from, to, from, to], (err, results) => {
+    if (queries.length === 0) {
+        return res.json([]);
+    }
+
+    const sql = `(${queries.join(') UNION ALL (')}) ORDER BY dateTime DESC`;
+
+    db.query(sql, params, (err, results) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: 'Failed to generate user logs report' });

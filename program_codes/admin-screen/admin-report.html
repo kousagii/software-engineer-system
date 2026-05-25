@@ -68,18 +68,27 @@
                                 <option value="losses">Losses / Defective</option>
                             </select>
                         </div>
-                        <div id="userRoleFilterDiv">
-                            <label>User Role</label>
-                            <select id="userRole" onchange="generateReport()">
-                                <option value="">All Roles</option>
-                                <option value="admin">Admin</option>
-                                <option value="sales">Sales</option>
-                                <option value="inventory">Inventory</option>
+                        <div id="userFilterDiv" style="display: none;">
+                            <label>User</label>
+                            <select id="userFilter" onchange="generateReport()">
+                                <option value="">All Users</option>
+                            </select>
+                        </div>
+                        <div id="logFilterByDiv" style="display: none;">
+                            <label>Filter By</label>
+                            <select id="logFilterBy" onchange="generateReport()">
+                                <option value="">All Activity</option>
+                                <option value="sales">Sales / Returns / Exchanges</option>
+                                <option value="login">Account Log-in / Log-out</option>
+                                <option value="product">Product Management</option>
+                                <option value="supplier">Supplier Management</option>
+                                <option value="po">Purchase Orders (PO)</option>
+                                <option value="system">System / Database / Other</option>
                             </select>
                         </div>
                         <div id="stockStatusFilterDiv" style="display: none;">
                             <label>Stock Status</label>
-                            <select id="stockStatus" onchange="renderReport()">
+                            <select id="stockStatus" onchange="generateReport()">
                                 <option value="">All</option>
                                 <option value="low">Low Stock</option>
                                 <option value="out">Out of Stock</option>
@@ -95,11 +104,32 @@
                         </div>
                         <div id="dateFromDiv">
                             <label>From Date</label>
-                            <input type="date" id="dateFrom">
+                            <input type="date" id="dateFrom" onchange="generateReport()">
                         </div>
                         <div id="dateToDiv">
                             <label>To Date</label>
-                            <input type="date" id="dateTo">
+                            <input type="date" id="dateTo" onchange="generateReport()">
+                        </div>
+                        <div id="salesSortByDiv" style="display: none;">
+                            <label>Sort By</label>
+                            <select id="salesSortBy" onchange="renderReport()">
+                                <option value="income-desc">Income (Highest)</option>
+                                <option value="income-asc">Income (Lowest)</option>
+                                <option value="sold-desc">Products Sold (Highest)</option>
+                                <option value="sold-asc">Products Sold (Lowest)</option>
+                                <option value="returns-desc">Returns (Highest)</option>
+                                <option value="returns-asc">Returns (Lowest)</option>
+                                <option value="product-asc">Product (A-Z)</option>
+                            </select>
+                        </div>
+                        <div id="userLogSortByDiv" style="display: none;">
+                            <label>Sort By</label>
+                            <select id="userLogSortBy" onchange="renderReport()">
+                                <option value="date-desc">Date (Newest First)</option>
+                                <option value="date-asc">Date (Oldest First)</option>
+                                <option value="user-asc">User (A-Z)</option>
+                                <option value="category-asc">Category (A-Z)</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -108,7 +138,7 @@
                     <button class="btn-add hidden" id="btn-auto-reorder-report" onclick="openReorderModal()">
                         Auto Reorder All
                     </button>
-                    <button class="btn-search" id="btn-generate-report" onclick="generateReport()">Generate
+                    <button class="btn-search hidden" id="btn-generate-report" onclick="generateReport()">Generate
                         Report</button>
                 </div>
             </div>
@@ -143,7 +173,8 @@
                 <div class="form-panel center-text p-20"
                     style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
                     <div class="sub-text" style="text-align: center; width: 100%;">Refunds / Exchanges</div>
-                    <h3 id="summaryRefunds" style="margin: 5px 0 0 0; text-align: center; width: 100%; color: #d32f2f;">₱ 0.00</h3>
+                    <h3 id="summaryRefunds" style="margin: 5px 0 0 0; text-align: center; width: 100%; color: #d32f2f;">
+                        ₱ 0.00</h3>
                 </div>
             </div>
 
@@ -151,10 +182,10 @@
                 <table class="data-table">
                     <thead id="report-table-head">
                         <tr>
-                            <th>Day</th>
-                            <th>Total Orders</th>
-                            <th>Products Sold</th>
-                            <th>Sales</th>
+                            <th>Product</th>
+                            <th>No. of Products Sold</th>
+                            <th>No. of Returns</th>
+                            <th>Income (Sales)</th>
                         </tr>
                     </thead>
                     <tbody id="report-table-body">
@@ -204,36 +235,58 @@
         }
 
         function updateReportUI() {
-            const userRoleDiv = $('userRoleFilterDiv');
             const stockStatusDiv = $('stockStatusFilterDiv');
             const lossSourceDiv = $('lossSourceFilterDiv');
             const summaryPanel = $('report-summary');
             const reorderBtn = $('btn-auto-reorder-report');
 
+            const userFilterDiv = $('userFilterDiv');
+            const logFilterByDiv = $('logFilterByDiv');
+            const salesSortByDiv = $('salesSortByDiv');
+            const userLogSortByDiv = $('userLogSortByDiv');
+
             // Hide/show filters based on report type
             if (currentReportType === 'sales') {
-                userRoleDiv.style.display = 'none';
                 stockStatusDiv.style.display = 'none';
                 lossSourceDiv.style.display = 'none';
+                if (userFilterDiv) userFilterDiv.style.display = 'none';
+                if (logFilterByDiv) logFilterByDiv.style.display = 'none';
+                if (userLogSortByDiv) userLogSortByDiv.style.display = 'none';
+                if (salesSortByDiv) {
+                    salesSortByDiv.style.display = 'flex';
+                    salesSortByDiv.style.flexDirection = 'column';
+                    salesSortByDiv.style.gap = '0';
+                }
                 summaryPanel.classList.remove('hidden');
                 summaryPanel.classList.add('flex');
                 if (reorderBtn) reorderBtn.classList.add('hidden');
                 $('report-table-head').innerHTML = `
                     <tr>
-                        <th>Date & Time</th>
-                        <th>Transaction Code</th>
-                        <th>Cashier</th>
-                        <th>Products Sold</th>
-                        <th>Amount</th>
-                        <th>Status</th>
+                        <th>Product</th>
+                        <th>No. of Products Sold</th>
+                        <th>No. of Returns</th>
+                        <th>Income (Sales)</th>
                     </tr>
                 `;
             } else if (currentReportType === 'userlogs') {
-                userRoleDiv.style.display = 'flex';
-                userRoleDiv.style.flexDirection = 'column';
-                userRoleDiv.style.gap = '0';
                 stockStatusDiv.style.display = 'none';
                 lossSourceDiv.style.display = 'none';
+                if (userFilterDiv) {
+                    userFilterDiv.style.display = 'flex';
+                    userFilterDiv.style.flexDirection = 'column';
+                    userFilterDiv.style.gap = '0';
+                }
+                if (logFilterByDiv) {
+                    logFilterByDiv.style.display = 'flex';
+                    logFilterByDiv.style.flexDirection = 'column';
+                    logFilterByDiv.style.gap = '0';
+                }
+                if (salesSortByDiv) salesSortByDiv.style.display = 'none';
+                if (userLogSortByDiv) {
+                    userLogSortByDiv.style.display = 'flex';
+                    userLogSortByDiv.style.flexDirection = 'column';
+                    userLogSortByDiv.style.gap = '0';
+                }
                 summaryPanel.classList.add('hidden');
                 summaryPanel.classList.remove('flex');
                 if (reorderBtn) reorderBtn.classList.add('hidden');
@@ -241,15 +294,19 @@
                     <tr>
                         <th>Date &amp; Time</th>
                         <th>User</th>
+                        <th>Category</th>
                         <th>Action Performed</th>
                     </tr>
                 `;
             } else if (currentReportType === 'stocks') {
-                userRoleDiv.style.display = 'none';
                 stockStatusDiv.style.display = 'flex';
                 stockStatusDiv.style.flexDirection = 'column';
                 stockStatusDiv.style.gap = '0';
                 lossSourceDiv.style.display = 'none';
+                if (userFilterDiv) userFilterDiv.style.display = 'none';
+                if (logFilterByDiv) logFilterByDiv.style.display = 'none';
+                if (salesSortByDiv) salesSortByDiv.style.display = 'none';
+                if (userLogSortByDiv) userLogSortByDiv.style.display = 'none';
                 summaryPanel.classList.add('hidden');
                 summaryPanel.classList.remove('flex');
                 if (reorderBtn) reorderBtn.classList.remove('hidden');
@@ -265,11 +322,14 @@
                     </tr>
                 `;
             } else if (currentReportType === 'losses') {
-                userRoleDiv.style.display = 'none';
                 stockStatusDiv.style.display = 'none';
                 lossSourceDiv.style.display = 'flex';
                 lossSourceDiv.style.flexDirection = 'column';
                 lossSourceDiv.style.gap = '0';
+                if (userFilterDiv) userFilterDiv.style.display = 'none';
+                if (logFilterByDiv) logFilterByDiv.style.display = 'none';
+                if (salesSortByDiv) salesSortByDiv.style.display = 'none';
+                if (userLogSortByDiv) userLogSortByDiv.style.display = 'none';
                 summaryPanel.classList.add('hidden');
                 summaryPanel.classList.remove('flex');
                 if (reorderBtn) reorderBtn.classList.add('hidden');
@@ -302,7 +362,6 @@
 
             const needsDates = currentReportType !== 'stocks';
             if (needsDates && (!dateFrom || !dateTo)) {
-                showAlert('Please select both From and To dates.');
                 return;
             }
 
@@ -310,13 +369,14 @@
         }
 
         async function loadReportData() {
-            const roleParam = currentReportType === 'userlogs' ? `&role=${val('userRole')}` : '';
+            const userParam = currentReportType === 'userlogs' ? `&user=${val('userFilter')}` : '';
+            const logFilterByParam = currentReportType === 'userlogs' ? `&filterBy=${val('logFilterBy')}` : '';
             const stockParam = currentReportType === 'stocks' ? `&status=${val('stockStatus')}` : '';
             const noDates = currentReportType === 'stocks';
             const dateParams = noDates ? '' : `from=${val('dateFrom')}&to=${val('dateTo')}`;
 
             try {
-                const response = await fetch(`/api/reports/${currentReportType}?${dateParams}${roleParam}${stockParam}`);
+                const response = await fetch(`/api/reports/${currentReportType}?${dateParams}${userParam}${logFilterByParam}${stockParam}`);
 
                 if (!response.ok) {
                     showAlert('Failed to load report data. Server returned an error.');
@@ -337,17 +397,15 @@
             currentPage = 1;
             if (currentReportType === 'sales') {
                 reportData = reportData.map(r => {
-                    const dt = new Date(r.transDateTime);
+                    const qtySold = parseInt(r.qtySold) || 0;
+                    const qtyReturned = parseInt(r.qtyReturned) || 0;
+                    const income = parseFloat(r.income) || 0;
                     return {
-                        date: dt.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric', year: 'numeric' }) + ' ' + dt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true }),
-                        code: r.transactionCode || '—',
-                        cashier: r.cashier || '—',
-                        productsSoldRaw: parseInt(r.productsSold) || 0,
-                        productsSold: (r.paymentStatus === 'Refunded' || parseInt(r.productsSold) <= 0) ? '--' : (parseInt(r.productsSold) || 0),
-                        salesRaw: parseFloat(r.sales) || 0,
-                        expensesRaw: parseFloat(r.expenses) || 0,
-                        sales: `₱ ${parseFloat(r.sales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                        status: r.paymentStatus || 'Paid'
+                        productName: r.productName || '—',
+                        qtySold,
+                        qtyReturned,
+                        incomeRaw: income,
+                        income: `₱ ${income.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                     };
                 });
             } else if (currentReportType === 'userlogs') {
@@ -357,12 +415,15 @@
                     if (r.userType === 'Admin') roleLabel = 'Admin';
                     else if (r.userType === 'SalesStaff') roleLabel = 'Sales';
                     else if (r.userType === 'InventoryStaff') roleLabel = 'Inventory';
+                    const cat = r.category || r.action || '—';
                     return {
                         date: dt.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric', year: 'numeric' }),
                         time: dt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true }),
                         userName: r.userName || '—',
                         userType: roleLabel,
-                        action: r.action || '—'
+                        category: cat,
+                        action: r.action || '—',
+                        dateTime: r.dateTime
                     };
                 });
             } else if (currentReportType === 'losses') {
@@ -391,7 +452,7 @@
 
             renderReport();
             if (currentReportType === 'sales') {
-                updateSummary();
+                updateSalesSummary();
             }
             if (currentReportType === 'losses') {
                 updateLossesSummary();
@@ -403,17 +464,7 @@
             const limit = 10;
             let filteredData = [...reportData];
 
-            if (currentReportType === 'userlogs') {
-                const roleFilter = val('userRole');
-                if (roleFilter) {
-                    filteredData = filteredData.filter(log => {
-                        if (roleFilter === 'admin') return log.userType === 'Admin';
-                        if (roleFilter === 'sales') return log.userType === 'Sales';
-                        if (roleFilter === 'inventory') return log.userType === 'Inventory';
-                        return true;
-                    });
-                }
-            } else if (currentReportType === 'stocks') {
+            if (currentReportType === 'stocks') {
                 const stockFilter = val('stockStatus');
                 if (stockFilter) {
                     filteredData = filteredData.filter(item => item.status === (stockFilter === 'low' ? 'Low Stock' : 'Out of Stock'));
@@ -425,8 +476,39 @@
                 }
             }
 
-            // Display newest first in the UI table (exports still use the original chronological order)
-            if (currentReportType !== 'stocks') {
+            // Apply Sorting
+            if (currentReportType === 'sales') {
+                const sortBy = val('salesSortBy') || 'income-desc';
+                filteredData.sort((a, b) => {
+                    const salesA = parseFloat(a.incomeRaw) || 0;
+                    const salesB = parseFloat(b.incomeRaw) || 0;
+                    const qtySoldA = parseFloat(a.qtySold) || 0;
+                    const qtySoldB = parseFloat(b.qtySold) || 0;
+                    const qtyRetA = parseFloat(a.qtyReturned) || 0;
+                    const qtyRetB = parseFloat(b.qtyReturned) || 0;
+                    const prodA = a.productName || '';
+                    const prodB = b.productName || '';
+
+                    if (sortBy === 'income-desc') return salesB - salesA;
+                    if (sortBy === 'income-asc') return salesA - salesB;
+                    if (sortBy === 'sold-desc') return qtySoldB - qtySoldA;
+                    if (sortBy === 'sold-asc') return qtySoldA - qtySoldB;
+                    if (sortBy === 'returns-desc') return qtyRetB - qtyRetA;
+                    if (sortBy === 'returns-asc') return qtyRetA - qtyRetB;
+                    if (sortBy === 'product-asc') return prodA.localeCompare(prodB);
+                    return 0;
+                });
+            } else if (currentReportType === 'userlogs') {
+                const sortBy = val('userLogSortBy') || 'date-desc';
+                filteredData.sort((a, b) => {
+                    if (sortBy === 'date-desc') return new Date(b.dateTime) - new Date(a.dateTime);
+                    if (sortBy === 'date-asc') return new Date(a.dateTime) - new Date(b.dateTime);
+                    if (sortBy === 'user-asc') return (a.userName || '').localeCompare(b.userName || '');
+                    if (sortBy === 'category-asc') return (a.category || '').localeCompare(b.category || '');
+                    return 0;
+                });
+            } else if (currentReportType === 'losses') {
+                // Keep the default UI chronological reversal for losses
                 filteredData.reverse();
             }
 
@@ -439,22 +521,19 @@
             const paginatedData = filteredData.slice(startIndex, endIndex);
 
             if (currentReportType === 'sales') {
-                tbody.innerHTML = paginatedData.map(r => {
-                    let statusColor = '#333';
-                    if (r.status === 'Refunded') statusColor = '#d32f2f';
-                    else if (r.status === 'Exchanged') statusColor = '#f57c00';
-                    return `
-                    <tr>
-                        <td>${r.date}</td>
-                        <td>${r.code}</td>
-                        <td>${r.cashier}</td>
-                        <td>${r.productsSold}</td>
-                        <td>${r.sales}</td>
-                        <td style="color: ${statusColor}; font-weight: bold;">${r.status}</td>
-                    </tr>
-                `}).join('') || '<tr><td colspan="6" class="center-text">No data available.</td></tr>';
-            } else if (currentReportType === 'userlogs') {
                 tbody.innerHTML = paginatedData.map(r => `
+                    <tr>
+                        <td><strong>${r.productName}</strong></td>
+                        <td class="center-text">${r.qtySold}</td>
+                        <td class="center-text" style="color: ${r.qtyReturned > 0 ? '#d32f2f' : 'inherit'}">${r.qtyReturned}</td>
+                        <td>${r.income}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="4" class="center-text">No data available.</td></tr>';
+            } else if (currentReportType === 'userlogs') {
+                tbody.innerHTML = paginatedData.map(r => {
+                    const catClass = getCategoryClass(r.category);
+                    const catLabel = getCategoryLabel(r.category);
+                    return `
                     <tr>
                         <td>
                             <div class="datetime-cell">
@@ -468,9 +547,10 @@
                                 <span class="user-type">${r.userType}</span>
                             </div>
                         </td>
+                        <td><span class="log-category-badge ${catClass}">${catLabel}</span></td>
                         <td>${r.action}</td>
                     </tr>
-                `).join('') || '<tr><td colspan="3" class="center-text">No data available.</td></tr>';
+                `}).join('') || '<tr><td colspan="4" class="center-text">No data available.</td></tr>';
             } else if (currentReportType === 'stocks') {
                 tbody.innerHTML = paginatedData.map(r => {
                     const isOut = r.status === 'Out of Stock';
@@ -515,31 +595,77 @@
             // Could add a summary card for total losses in the future
         }
 
-        function updateSummary() {
+        // Helper: map DB category/actionType to a badge class based on action type
+        function getCategoryClass(cat) {
+            if (!cat) return 'log-cat-other';
+            const c = cat.toLowerCase();
+            if (c.includes('add') || c.includes('sale') || c.includes('create') || c.includes('receive')) return 'log-cat-green';
+            if (c.includes('edit') || c.includes('update') || c.includes('switch') || c.includes('role')) return 'log-cat-blue';
+            if (c.includes('delete') || c.includes('refund')) return 'log-cat-red';
+            if (c.includes('archive') || c.includes('exchange')) return 'log-cat-orange';
+            if (c.includes('login') || c.includes('logout')) return 'log-cat-login';
+            return 'log-cat-other';
+        }
+
+        function getCategoryLabel(cat) {
+            if (!cat) return 'Other';
+            const c = cat.toLowerCase();
+            if (c.includes('login')) return 'Log-in';
+            if (c.includes('logout')) return 'Log-out';
+            if (c.includes('switch')) return 'Role Switch';
+
+            if (c.includes('product') && c.includes('add')) return 'Add';
+            if (c.includes('product') && c.includes('edit')) return 'Edit';
+            if (c.includes('product') && c.includes('arch')) return 'Archive';
+            if (c.includes('product') && c.includes('delete')) return 'Delete';
+
+            if (c.includes('supplier') && c.includes('add')) return 'Add';
+            if (c.includes('supplier') && c.includes('edit')) return 'Edit';
+            if (c.includes('supplier') && c.includes('arch')) return 'Archive';
+            if (c.includes('supplier') && c.includes('delete')) return 'Delete';
+
+            if (c.includes('order') || c.includes('po')) {
+                if (c.includes('create') || c.includes('receive')) return 'Create';
+                if (c.includes('delete')) return 'Delete';
+                if (c.includes('update') || c.includes('edit')) return 'Edit';
+                return 'Re-order';
+            }
+            if (c.includes('stock')) return 'Stock Action';
+
+            if (c.includes('sale') && !c.includes('transaction')) return 'Sales';
+            if (c.includes('refund')) return 'Refund';
+            if (c.includes('exchange')) return 'Exchange';
+
+            if (c.includes('backup') || c.includes('restore') || c.includes('settings')) return 'System';
+
+            return cat;
+        }
+
+        async function updateSalesSummary() {
             if (currentReportType !== 'sales') return;
 
-            const totalSales = reportData.reduce((sum, r) => {
-                const amt = parseFloat(r.salesRaw || 0);
-                return sum + (amt > 0 ? amt : 0);
-            }, 0);
-            const totalRefunds = reportData.reduce((sum, r) => {
-                const amt = parseFloat(r.salesRaw || 0);
-                return sum + (amt < 0 ? Math.abs(amt) : 0);
-            }, 0);
-            const totalExpenses = reportData.reduce((sum, r) => sum + parseFloat(r.expensesRaw || 0), 0);
-            const totalRevenue = (totalSales - totalRefunds) - totalExpenses;
-            const totalOrders = reportData.filter(r => r.status === 'Paid' || parseFloat(r.salesRaw || 0) > 0).length;
-            const totalProductsSold = reportData.reduce((sum, r) => {
-                const qty = parseInt(r.productsSoldRaw || 0);
-                return sum + (qty > 0 ? qty : 0);
-            }, 0);
+            try {
+                const dateParams = `from=${val('dateFrom')}&to=${val('dateTo')}`;
+                const res = await fetch(`/api/reports/sales-summary?${dateParams}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const totalSales = parseFloat(data.totalSales || 0);
+                    const totalRefunds = parseFloat(data.totalRefunds || 0);
+                    const totalExpenses = parseFloat(data.totalExpenses || 0);
+                    const totalRevenue = totalSales - totalRefunds - totalExpenses;
+                    const totalOrders = parseInt(data.totalOrders || 0);
+                    const totalProductsSold = parseInt(data.totalProductsSold || 0);
 
-            $('summaryTotal').textContent = `₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            $('summaryExpenses').textContent = `₱ ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            $('summaryRevenue').textContent = `₱ ${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            $('summaryOrders').textContent = totalOrders;
-            $('summaryProductsSold').textContent = totalProductsSold;
-            $('summaryRefunds').textContent = `₱ ${totalRefunds.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    $('summaryTotal').textContent = `₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    $('summaryExpenses').textContent = `₱ ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    $('summaryRevenue').textContent = `₱ ${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    $('summaryOrders').textContent = totalOrders;
+                    $('summaryProductsSold').textContent = totalProductsSold;
+                    $('summaryRefunds').textContent = `₱ ${totalRefunds.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                }
+            } catch (e) {
+                console.error('Error fetching sales summary:', e);
+            }
         }
 
         function updatePaginationUI(totalItems, totalPages) {
@@ -569,11 +695,11 @@
             let rows = [];
 
             if (currentReportType === 'sales') {
-                headers = ['Date & Time', 'Transaction Code', 'Cashier', 'Products Sold', 'Amount', 'Status'];
-                rows = reportData.map(r => [r.date, r.code, r.cashier, r.productsSold, r.sales, r.status]);
+                headers = ['Product', 'No. of Products Sold', 'No. of Returns', 'Income (Sales)'];
+                rows = reportData.map(r => [r.productName, r.qtySold, r.qtyReturned, r.income]);
             } else if (currentReportType === 'userlogs') {
-                headers = ['Date', 'Time', 'User', 'Role', 'Action Performed'];
-                rows = reportData.map(r => [r.date, r.time, r.userName, r.userType, r.action]);
+                headers = ['Date', 'Time', 'User', 'Role', 'Category', 'Action Performed'];
+                rows = reportData.map(r => [r.date, r.time, r.userName, r.userType, getCategoryLabel(r.category), r.action]);
             } else if (currentReportType === 'stocks') {
                 headers = ['Category', 'Product Name', 'Stock Level', 'Threshold', 'Status'];
                 rows = reportData.map(r => [r.category, r.product, r.stocks, r.threshold, r.status]);
@@ -607,23 +733,13 @@
 
             // Add summary for sales
             if (currentReportType === 'sales') {
-                const totalSales = reportData.reduce((sum, r) => {
-                    const amt = parseFloat(r.salesRaw || 0);
-                    return sum + (amt > 0 ? amt : 0);
-                }, 0);
-                const totalRefunds = reportData.reduce((sum, r) => {
-                    const amt = parseFloat(r.salesRaw || 0);
-                    return sum + (amt < 0 ? Math.abs(amt) : 0);
-                }, 0);
-                const totalOrders = reportData.filter(r => r.status === 'Paid' || parseFloat(r.salesRaw || 0) > 0).length;
-                const totalProductsSold = reportData.reduce((sum, r) => {
-                    const qty = parseInt(r.productsSoldRaw || 0);
-                    return sum + (qty > 0 ? qty : 0);
-                }, 0);
-                csv += `Total Sales,₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
-                csv += `Total Refunds / Exchanges,₱ ${totalRefunds.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n`;
-                csv += `Total Orders,${totalOrders}\n`;
-                csv += `Total Products Sold,${totalProductsSold}\n\n`;
+                const totalQtySold = reportData.reduce((sum, r) => sum + (parseInt(r.qtySold) || 0), 0);
+                const totalReturns = reportData.reduce((sum, r) => sum + (parseInt(r.qtyReturned) || 0), 0);
+                const totalIncome = reportData.reduce((sum, r) => sum + (parseFloat(r.incomeRaw) || 0), 0);
+                csv += `Total Products,${reportData.length}\n`;
+                csv += `Total Qty Sold,${totalQtySold}\n`;
+                csv += `Total Returns,${totalReturns}\n`;
+                csv += `Total Income,₱ ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n\n`;
             }
 
             // Escape CSV fields
@@ -681,29 +797,15 @@
             `;
 
             if (currentReportType === 'sales') {
-                const totalSales = reportData.reduce((sum, r) => {
-                    const amt = parseFloat(r.salesRaw || 0);
-                    return sum + (amt > 0 ? amt : 0);
-                }, 0);
-                const totalRefunds = reportData.reduce((sum, r) => {
-                    const amt = parseFloat(r.salesRaw || 0);
-                    return sum + (amt < 0 ? Math.abs(amt) : 0);
-                }, 0);
-                const totalExpenses = reportData.reduce((sum, r) => sum + parseFloat(r.expensesRaw || 0), 0);
-                const totalRevenue = (totalSales - totalRefunds) - totalExpenses;
-                const totalOrders = reportData.filter(r => r.status === 'Paid' || parseFloat(r.salesRaw || 0) > 0).length;
-                const totalProductsSold = reportData.reduce((sum, r) => {
-                    const qty = parseInt(r.productsSoldRaw || 0);
-                    return sum + (qty > 0 ? qty : 0);
-                }, 0);
+                const totalQtySold = reportData.reduce((sum, r) => sum + (parseInt(r.qtySold) || 0), 0);
+                const totalReturns = reportData.reduce((sum, r) => sum + (parseInt(r.qtyReturned) || 0), 0);
+                const totalIncome = reportData.reduce((sum, r) => sum + (parseFloat(r.incomeRaw) || 0), 0);
                 html += `
                     <div style="display: flex; flex-wrap: wrap; justify-content: space-around; margin-bottom: 20px; font-weight: bold; padding: 10px; background-color: #f8f9fa; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 13px; gap: 10px;">
-                        <span>Total Sales: ₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                        <span>Refunds / Exchanges: ₱ ${totalRefunds.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                        <span>Purchases: ₱ ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                        <span>Income: ₱ ${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                        <span>Orders: ${totalOrders}</span>
-                        <span>Products Sold: ${totalProductsSold}</span>
+                        <span>Unique Products: ${reportData.length}</span>
+                        <span>Total Qty Sold: ${totalQtySold}</span>
+                        <span>Total Returns: ${totalReturns}</span>
+                        <span>Total Income: ₱ ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </div>
                 `;
             } else if (currentReportType === 'losses') {
@@ -736,15 +838,13 @@
                 row.forEach((cell, index) => {
                     let tdStyle = 'border: 1px solid #ddd; padding: 8px;';
                     if (currentReportType === 'sales') {
-                        // Amount Column
-                        if (index === 4) {
+                        // Income column (index 3)
+                        if (index === 3) {
                             tdStyle += ' text-align: right; font-variant-numeric: tabular-nums;';
                         }
-                        // Status Column
-                        if (index === 5) {
-                            if (cell === 'Refunded') tdStyle += ' color: #d32f2f; font-weight: bold;';
-                            else if (cell === 'Exchanged') tdStyle += ' color: #f57c00; font-weight: bold;';
-                            else tdStyle += ' font-weight: bold; color: #333;';
+                        // Returns column (index 2) - highlight if > 0
+                        if (index === 2 && parseInt(cell) > 0) {
+                            tdStyle += ' color: #d32f2f; font-weight: bold;';
                         }
                     }
                     html += `<td style="${tdStyle}">${cell}</td>`;
@@ -783,7 +883,7 @@
             // Both Admin and Staff can view the Losses report
         };
 
-        document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", async () => {
             const today = new Date();
             const from = new Date(today);
             from.setDate(today.getDate() - 7);
@@ -798,6 +898,21 @@
 
             $('dateFrom').value = formatDate(from);
             $('dateTo').value = formatDate(today);
+
+            // Load users for the user filter dropdown
+            try {
+                const usersRes = await fetch('/api/users');
+                if (usersRes.ok) {
+                    const users = await usersRes.json();
+                    const sel = $('userFilter');
+                    users.forEach(u => {
+                        const opt = document.createElement('option');
+                        opt.value = u.userID;
+                        opt.textContent = `${u.firstName} ${u.lastName}`;
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch (e) { console.warn('Could not load users for filter:', e); }
 
             updateReportUI();
             generateReport();
