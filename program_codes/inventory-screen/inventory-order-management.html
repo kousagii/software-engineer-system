@@ -9,9 +9,24 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.default.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <style>
-        .ts-control { border-radius: 4px; border: 1px solid var(--border-color, #ccc); padding: 8px 12px; font-family: inherit; font-size: 0.9rem; }
-        .ts-dropdown { border-radius: 4px; font-size: 0.9rem; }
-        .ts-wrapper { flex: 1; width: 100%; min-width: 0; }
+        .ts-control {
+            border-radius: 4px;
+            border: 1px solid var(--border-color, #ccc);
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .ts-dropdown {
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .ts-wrapper {
+            flex: 1;
+            width: 100%;
+            min-width: 0;
+        }
     </style>
 </head>
 
@@ -21,9 +36,61 @@
     <div id="custom-modal" class="modal-overlay hidden">
         <div class="modal-box">
             <p id="modal-message"></p>
-            <div id="modal-actions"></div>
+            <div id="modal-actions" class="modal-actions mt-15 flex-end-gap"></div>
         </div>
     </div>
+
+    <!-- Payment Process Modal -->
+    <div id="payment-modal" class="modal-overlay hidden">
+        <div class="modal-box" style="width: 400px;">
+            <h3>Process Payment</h3>
+            <p class="sub-text mt-5" style="color:#666;">Select the payment method and enter the reference number.</p>
+
+            <div class="mt-15" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: #666;">Total Amount Due:</span>
+                    <strong id="modal-payment-amount" style="font-size: 1.1rem; color: var(--primary);">₱0.00</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #666;">Due Date:</span>
+                    <strong id="modal-payment-due">N/A</strong>
+                </div>
+            </div>
+
+            <div class="form-group mt-15">
+                <label>Amount Paid (₱) <span class="required">*</span></label>
+                <input type="number" id="paymentAmountInput" class="w-full" step="0.01" min="0">
+            </div>
+
+            <div class="form-group mt-15">
+                <label>Payment Method <span class="required">*</span></label>
+                <select id="paymentMethodSelect" class="w-full">
+                    <option value="Cash">Cash</option>
+                    <option value="Check">Check</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="E-Wallet">E-Wallet</option>
+                </select>
+            </div>
+
+            <div class="form-group mt-15">
+                <label>Reference Number (Optional)</label>
+                <input type="text" id="paymentReferenceInput" class="w-full" placeholder="e.g. Check #, Transaction ID">
+            </div>
+
+            <div class="form-group mt-15">
+                <label>Payment Date</label>
+                <input type="date" id="paymentDateInput" class="w-full">
+            </div>
+
+            <div id="payment-modal-actions" class="mt-15 flex-gap-10" style="display: flex; justify-content: center;">
+                <button class="modal-btn btn-cancel" style="flex: 1; margin: 0;"
+                    onclick="closePaymentModal()">Cancel</button>
+                <button class="modal-btn btn-create" id="btn-submit-payment" style="flex: 1; margin: 0;">Confirm
+                    Payment</button>
+            </div>
+        </div>
+    </div>
+
 
     <main class="dashboard-main">
 
@@ -45,13 +112,21 @@
                 </div>
                 <div class="toolbar-right">
                     <div class="toolbar-group">
-                        <label>Status</label>
+                        <label>Order Status</label>
                         <select id="statusFilter">
                             <option value="All">All</option>
                             <option value="Pending">Pending</option>
                             <option value="Partially Completed">Partially Completed</option>
                             <option value="Completed">Completed</option>
                             <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label>Payment Status</label>
+                        <select id="paymentStatusFilter">
+                            <option value="All">All</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
                         </select>
                     </div>
                     <div class="sort-group">
@@ -82,6 +157,7 @@
                             <th>Products</th>
                             <th>Qty</th>
                             <th>Status</th>
+                            <th>Payment</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -112,8 +188,13 @@
                     <label>Supplier</label>
                     <select id="supplierSelect" onchange="handleSupplierChange()" class="w-full"></select>
 
+                    <p id="supplierTermsDisplay" class="sub-text mt-5"
+                        style="color: #666; font-style: italic; display: none;">Payment Terms: <span
+                            id="supplierTermsValue"></span></p>
+
                     <label class="mt-15">Contact Information</label>
-                    <input type="text" id="supplierContact" placeholder="09xxxxxxxxx or email@example.com" class="w-full" maxlength="100">
+                    <input type="text" id="supplierContact" placeholder="09xxxxxxxxx or email@example.com"
+                        class="w-full" maxlength="100">
 
                     <label class="mt-15">Shipment Information</label>
                     <textarea id="shipmentInfo" rows="4" placeholder="Address, ETA, courier details"
@@ -124,6 +205,12 @@
                         <option value="Pending">Pending</option>
                         <option value="Cancelled">Cancelled</option>
                     </select>
+
+                    <div id="paymentInfoBlock" class="mt-15"
+                        style="display:none; background: #e6ffed; padding: 12px; border-radius: 4px; border: 1px solid #c3e6cb;">
+                        <h4 style="margin: 0 0 5px 0; color: #155724; font-size: 0.95rem;">Payment Details</h4>
+                        <p id="paymentInfoText" style="margin: 0; font-size: 0.85rem; color: #155724;"></p>
+                    </div>
                 </div>
 
                 <div class="form-panel">
@@ -142,9 +229,11 @@
                     </div>
 
                     <!-- Danger zone: delete only visible in edit mode -->
-                    <div id="delete-zone" style="display:none; margin-top:18px; border-top:1px solid #eee; padding-top:14px;">
+                    <div id="delete-zone"
+                        style="display:none; margin-top:18px; border-top:1px solid #eee; padding-top:14px;">
                         <p class="sub-text" style="margin:0 0 8px 0; color: #888;">⚠ Danger Zone</p>
-                        <button class="btn-delete" style="width: 100%; margin: 0;" onclick="deleteCurrentOrder()">Delete This Order</button>
+                        <button class="btn-delete" style="width: 100%; margin: 0;" onclick="deleteCurrentOrder()">Delete
+                            This Order</button>
                     </div>
                 </div>
             </div>
@@ -282,6 +371,15 @@
                     $('orderStatus').disabled = false;
                 }
 
+                if (order.paymentStatus === 'Completed') {
+                    $('paymentInfoBlock').style.display = 'block';
+                    const amtStr = order.amountPaid != null ? '₱' + parseFloat(order.amountPaid).toLocaleString(undefined, { minimumFractionDigits: 2 }) : 'Full Amount';
+                    const dateStr = order.paymentDate ? new Date(order.paymentDate).toLocaleDateString() : 'Unknown';
+                    $('paymentInfoText').innerText = `Paid ${amtStr} via ${order.paymentMethod || 'Unknown'} on ${dateStr}`;
+                } else {
+                    $('paymentInfoBlock').style.display = 'none';
+                }
+
                 if (order.items && order.items.length > 0) {
                     // Pass the isCompleted status to every item row
                     order.items.forEach(it => addItemRow(it.productID, it.qty, isCompleted));
@@ -315,14 +413,14 @@
             const row = document.createElement('div');
             row.className = 'item-row';
             row.style.alignItems = 'start';
-            
+
             // Generate a unique ID for the select to init TomSelect
             const selId = 'prod-sel-' + Math.random().toString(36).substr(2, 9);
 
             const sel = document.createElement('select');
             sel.id = selId;
             sel.className = 'flex-1 m-0';
-            sel.disabled = disabled; 
+            sel.disabled = disabled;
 
             const qin = document.createElement('input');
             qin.type = 'number';
@@ -344,7 +442,7 @@
             }
 
             $('itemsContainer').appendChild(row);
-            
+
             // Wait for DOM insertion before initializing TomSelect
             setTimeout(() => {
                 updateItemSelectOptions();
@@ -357,7 +455,7 @@
                 }
             }, 10);
         }
-        
+
         let supplierSelectInstance = null;
 
         // --- Supplier & Product Logic ---
@@ -411,20 +509,20 @@
 
         function updateItemSelectOptions() {
             let allowed = getAllowedProductsForCurrentSupplier();
-            
+
             // Sort: low stock first, then alphabetically by name
             allowed.sort((a, b) => {
                 const stockA = parseInt(a.stockQuantity) || 0;
                 const lowA = parseInt(a.lowStockThreshold) || 10;
                 const isLowA = stockA <= lowA;
-                
+
                 const stockB = parseInt(b.stockQuantity) || 0;
                 const lowB = parseInt(b.lowStockThreshold) || 10;
                 const isLowB = stockB <= lowB;
-                
+
                 if (isLowA && !isLowB) return -1;
                 if (!isLowA && isLowB) return 1;
-                
+
                 const nameA = a.productName || '';
                 const nameB = b.productName || '';
                 return nameA.localeCompare(nameB);
@@ -447,7 +545,7 @@
                 if (curVal && allowed.some(p => String(p.productID) === String(curVal))) {
                     sel.value = curVal;
                 }
-                
+
                 if (sel.tomselect) {
                     sel.tomselect.sync();
                 }
@@ -547,6 +645,11 @@
             const status = val('statusFilter');
             if (status !== 'All') data = data.filter(o => o.status === status);
 
+            const paymentStatus = val('paymentStatusFilter');
+            if (paymentStatus && paymentStatus !== 'All') {
+                data = data.filter(o => o.paymentStatus === paymentStatus);
+            }
+
             const sort = val('sortMode');
             if (sort === 'dateAsc') data.sort((a, b) => new Date(a.orderDate) - new Date(b.orderDate));
             else if (sort === 'status') data.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
@@ -585,6 +688,17 @@
                 const isComp = o.status === 'Completed';
                 const canEdit = o.status === 'Pending';
 
+                const payStatus = o.paymentStatus || 'Pending';
+                const payClass = payStatus === 'Completed' ? 'status-completed' : 'status-pending';
+
+                // Format Order Date to multiple lines
+                const orderDateObj = new Date(o.orderDate || o.createdAt || '');
+                const orderDateStr = orderDateObj.toLocaleDateString();
+                const orderTimeStr = orderDateObj.toLocaleTimeString();
+
+                // Due Date is provided by backend API
+                let dueDateStr = o.dueDate || 'N/A';
+
                 let actionButtons = '';
                 if (canEdit) {
                     actionButtons += `<button class="btn-edit" onclick="openForm(${o.orderID})">Edit</button>`;
@@ -596,18 +710,90 @@
                     actionButtons += ` <button class="btn-success" onclick="openReceiveForm(${o.orderID})">Receive</button>`;
                 }
 
+                const totalAmount = (o.items || []).reduce((s, it) => s + (parseInt(it.qty) || 0) * (parseFloat(it.unitCost) || 0), 0);
+
+                if (payStatus === 'Completed') {
+                    if (canEdit) {
+                        const amtStr = o.amountPaid != null ? '₱' + parseFloat(o.amountPaid).toLocaleString(undefined, { minimumFractionDigits: 2 }) : 'Full Amount';
+                        actionButtons += ` <button class="btn-view" style="background-color:#4a5568;" onclick="showAlert('Paid ${amtStr} via ' + '${o.paymentMethod || 'Unknown'}' + ' on ' + '${o.paymentDate ? new Date(o.paymentDate).toLocaleDateString() : 'Unknown'}')">View Payment</button>`;
+                    }
+                } else {
+                    actionButtons += ` <button class="btn-view" style="background-color:#4a5568;" onclick="openPaymentModal(${o.orderID}, ${totalAmount}, '${dueDateStr}')">Process Payment</button>`;
+                }
+
                 return `
       <tr>
         <td>#${o.orderID}</td>
-        <td>${new Date(o.orderDate || o.createdAt || '').toLocaleString()}</td>
+        <td>
+            <div>${orderDateStr}</div>
+            <div style="font-size: 0.8rem; color: #666; margin-top: 2px;">${orderTimeStr}</div>
+        </td>
         <td>${o.supplierName || ''}</td>
         <td><div class="order-products-col">${productsHtml}</div></td>
         <td>${totalQty}</td>
         <td><span class="status-badge ${statusClass}">${o.status || 'Pending'}</span></td>
+        <td>
+            <span class="status-badge ${payClass}">${payStatus}</span>
+            <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">Due: ${dueDateStr}</div>
+        </td>
         <td><div class="action-btns">${actionButtons}</div></td>
       </tr>
     `;
-            }).join('') || '<tr><td colspan="7" class="center-text">No orders found.</td></tr>';
+            }).join('') || '<tr><td colspan="8" class="center-text">No orders found.</td></tr>';
+        }
+
+        // --- Payment Processing ---
+        let paymentOrderId = null;
+        function openPaymentModal(id, amount, dueDate) {
+            paymentOrderId = id;
+
+            $('modal-payment-amount').textContent = '₱' + (parseFloat(amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            $('modal-payment-due').textContent = dueDate || 'N/A';
+
+            $('paymentAmountInput').value = parseFloat(amount) || 0;
+            $('paymentMethodSelect').value = 'Cash';
+            $('paymentReferenceInput').value = '';
+            $('paymentDateInput').value = new Date().toISOString().split('T')[0];
+
+            $('btn-submit-payment').onclick = submitPayment;
+            $('payment-modal').classList.add('flex');
+        }
+
+        function closePaymentModal() {
+            $('payment-modal').classList.remove('flex');
+            paymentOrderId = null;
+        }
+
+        async function submitPayment() {
+            if (!paymentOrderId) return;
+
+            const method = $('paymentMethodSelect').value;
+            const ref = $('paymentReferenceInput').value;
+            const date = $('paymentDateInput').value;
+            const amt = $('paymentAmountInput').value;
+
+            try {
+                const res = await fetch(`/api/orders/${paymentOrderId}/payment`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        paymentMethod: method,
+                        paymentReference: ref,
+                        paymentDate: date,
+                        amountPaid: amt
+                    })
+                });
+                if (res.ok) {
+                    closePaymentModal();
+                    loadOrders();
+                    showAlert("Payment processed successfully!");
+                } else {
+                    const data = await res.json();
+                    showAlert("Failed to process payment: " + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                showAlert("Error processing payment.");
+            }
         }
 
         // --- Receiving Logic ---
@@ -704,7 +890,7 @@
 
                 items.push({
                     productID: recInput.getAttribute('data-pid'),
-                    receivedQty: totalReceived, 
+                    receivedQty: totalReceived,
                     defectiveQty: defVal
                 });
             });
@@ -802,6 +988,7 @@
             await loadOrders();
             $('searchInput').addEventListener('keyup', () => { currentPage = 1; processData(); });
             $('statusFilter').addEventListener('change', () => { currentPage = 1; processData(); });
+            $('paymentStatusFilter').addEventListener('change', () => { currentPage = 1; processData(); });
             $('sortMode').addEventListener('change', () => { currentPage = 1; processData(); });
             $('showLimit').addEventListener('change', () => { currentPage = 1; processData(); });
         });

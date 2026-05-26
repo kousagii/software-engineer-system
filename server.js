@@ -675,7 +675,7 @@ app.delete('/api/suppliers/:id', (req, res) => {
 // GET all orders with their items
 app.get('/api/orders', (req, res) => {
     const sql = `
-        SELECT po.*, s.supplierName
+        SELECT po.*, s.supplierName, s.termsOfPayment
         FROM purchase_order po
         LEFT JOIN supplier s ON po.supplierID = s.supplierID
         ORDER BY po.orderID DESC
@@ -709,17 +709,42 @@ app.get('/api/orders', (req, res) => {
                 itemsByOrder[it.orderID].push({ productID: it.productID, productName: it.productName, qty: it.quantity, receivedQty: it.receivedQty, defectiveQty: it.defectiveQty, unitCost: it.unitCost });
             });
 
-            const result = orders.map(o => ({
-                orderID: o.orderID,
-                userID: o.userID,
-                supplierID: o.supplierID,
-                supplierName: o.supplierName,
-                orderDate: o.orderDateTime || o.orderDate || null,
-                status: o.status,
-                contact: o.contact || null,
-                shipmentInfo: o.shipmentInfo || null,
-                items: itemsByOrder[o.orderID] || []
-            }));
+            const result = orders.map(o => {
+                const orderDate = o.orderDateTime || o.orderDate || null;
+                const terms = o.termsOfPayment || 'COD';
+                
+                // Calculate due date based on order date and terms
+                let dueDateStr = 'N/A';
+                if (orderDate) {
+                    let days = 0;
+                    if (terms.includes('Days')) {
+                        const match = terms.match(/(\d+)\s*Days/i);
+                        if (match) days = parseInt(match[1]);
+                    }
+                    const dDate = new Date(orderDate);
+                    dDate.setDate(dDate.getDate() + days);
+                    dueDateStr = dDate.toLocaleDateString();
+                }
+
+                return {
+                    orderID: o.orderID,
+                    userID: o.userID,
+                    supplierID: o.supplierID,
+                    supplierName: o.supplierName,
+                    orderDate: orderDate,
+                    dueDate: dueDateStr,
+                    status: o.status,
+                    paymentStatus: o.paymentStatus || 'Pending',
+                    paymentMethod: o.paymentMethod || null,
+                    paymentReference: o.paymentReference || null,
+                    paymentDate: o.paymentDate || null,
+                    amountPaid: o.amountPaid || null,
+                    termsOfPayment: terms,
+                    contact: o.contact || null,
+                    shipmentInfo: o.shipmentInfo || null,
+                    items: itemsByOrder[o.orderID] || []
+                };
+            });
 
             res.json(result);
         });
@@ -730,14 +755,14 @@ app.get('/api/orders', (req, res) => {
 app.post('/api/orders', (req, res) => {
     const userID = req.session && req.session.user ? req.session.user.id : null;
     if (!userID) return res.status(401).json({ error: "Please log in to create an order" });
-    const { supplierID, contact, shipmentInfo, status, items } = req.body;
+    const { supplierID, contact, shipmentInfo, status, paymentStatus, items } = req.body;
 
     if (!supplierID) return res.status(400).json({ error: "supplierID is required" });
 
     const orderDateTime = new Date();
-    const insertSql = `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo) VALUES (?, ?, ?, ?, ?, ?)`;
+    const insertSql = `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo, paymentStatus) VALUES (?, ?, ?, ?, ?, ?, ?)`;
 
-    db.query(insertSql, [userID, supplierID, orderDateTime, status || 'Pending', contact || null, shipmentInfo || null], (err, result) => {
+    db.query(insertSql, [userID, supplierID, orderDateTime, status || 'Pending', contact || null, shipmentInfo || null, paymentStatus || 'Pending'], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: "Failed to create order" });
@@ -830,7 +855,8 @@ app.put('/api/orders/:id', async (req, res) => {
             SET supplierID = ?,
                 status = ?,
                 contact = ?,
-                shipmentInfo = ?
+                shipmentInfo = ?,
+                paymentStatus = ?
             WHERE orderID = ?
         `;
 
@@ -839,6 +865,7 @@ app.put('/api/orders/:id', async (req, res) => {
             status || 'Pending',
             contact || null,
             shipmentInfo || null,
+            req.body.paymentStatus || 'Pending',
             id
         ]);
 
@@ -975,6 +1002,23 @@ app.put('/api/orders/:id/receive', async (req, res) => {
         await db.promise().query('ROLLBACK');
         console.error('RECEIVE ORDER ERROR:', error);
         res.status(500).json({ error: "Failed to receive order." });
+    }
+});
+
+// PUT update payment status of an order
+app.put('/api/orders/:id/payment', async (req, res) => {
+    const { id } = req.params;
+    const { paymentMethod, paymentReference, paymentDate, amountPaid } = req.body;
+
+    try {
+        await db.promise().query(
+            `UPDATE purchase_order SET paymentStatus = 'Completed', paymentMethod = ?, paymentReference = ?, paymentDate = ?, amountPaid = ? WHERE orderID = ?`,
+            [paymentMethod, paymentReference || null, paymentDate || new Date(), amountPaid || null, id]
+        );
+        res.json({ message: "Payment processed successfully" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to process payment" });
     }
 });
 
