@@ -1611,16 +1611,14 @@ app.get('/api/transactions', (req, res) => {
         SELECT st.transactionID, st.transactionCode, st.transDateTime,
                st.totalAmount, st.paymentMethod, st.paymentStatus,
                st.cashReceived, st.digitalAmount, st.discountAmount,
+               st.customerName, st.contactInfo, st.address, st.dueDate,
                u.firstName, u.lastName
         FROM sales_transaction st
         LEFT JOIN users u ON st.userID = u.userID
     `;
     const params = [];
 
-    if (sessionUserID) {
-        sql += ` WHERE st.userID = ? `;
-        params.push(sessionUserID);
-    }
+    // No user filter — all staff can see all transactions for settlement purposes
 
     sql += ` ORDER BY st.transDateTime DESC LIMIT ? `;
     params.push(limit);
@@ -1660,6 +1658,139 @@ app.get('/api/transactions/:id/items', (req, res) => {
 });
 
 
+// Settle payment for Unpaid/Partial transaction
+app.put('/api/transactions/:id/pay', (req, res) => {
+    const { id } = req.params;
+    const { paymentMethod, referenceNumber, cashAmount, digitalAmount } = req.body;
+    const sessionUserID = req.session?.user?.id;
+
+    if (!sessionUserID) return res.status(401).json({ error: "Unauthorized" });
+
+    const cAmt = parseFloat(cashAmount) || 0;
+    const dAmt = parseFloat(digitalAmount) || 0;
+    const totalNewPaid = cAmt + dAmt;
+
+    if (totalNewPaid <= 0) return res.status(400).json({ error: "Invalid payment amount" });
+
+    db.query(`SELECT totalAmount, cashReceived, digitalAmount, transactionCode FROM sales_transaction WHERE transactionID = ?`, [id], (err, results) => {
+        if (err || results.length === 0) return res.status(500).json({ error: "Failed to fetch transaction" });
+
+        const txn = results[0];
+        const total = parseFloat(txn.totalAmount);
+        let cash = parseFloat(txn.cashReceived || 0) + cAmt;
+        let digital = parseFloat(txn.digitalAmount || 0) + dAmt;
+
+        // Add 0.01 tolerance for floating point
+        const totalPaid = cash + digital;
+        const newStatus = (totalPaid >= (total - 0.01)) ? 'Paid' : 'Partial';
+
+        let sqlUpdate = `UPDATE sales_transaction SET cashReceived = ?, digitalAmount = ?, paymentStatus = ?`;
+        let params = [cash, digital, newStatus];
+
+        if (referenceNumber) {
+            sqlUpdate += `, referenceNumber = CONCAT_WS(', ', NULLIF(referenceNumber, ''), ?)`;
+            params.push(referenceNumber);
+        }
+
+        sqlUpdate += ` WHERE transactionID = ?`;
+        params.push(id);
+
+        db.query(sqlUpdate, params, (updateErr, updateRes) => {
+            if (updateErr) return res.status(500).json({ error: "Failed to update payment" });
+
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Payment Settled', ?)`,
+                [sessionUserID, `Settled payment (Cash: ₱${cAmt.toFixed(2)}, Digital: ₱${dAmt.toFixed(2)}) for TXN: ${txn.transactionCode} (Status: ${newStatus})`]
+            );
+
+            res.json({ message: "Payment updated successfully", paymentStatus: newStatus });
+        });
+    });
+});
+
+// Get installments for a transaction
+app.get('/api/transactions/:id/installments', (req, res) => {
+    const { id } = req.params;
+    const sql = `
+        SELECT i.* 
+        FROM installment_schedules i
+        JOIN sales_transaction st ON i.transactionCode = st.transactionCode
+        WHERE st.transactionID = ? 
+        ORDER BY i.dueDate ASC
+    `;
+    db.query(sql, [id], (err, results) => {
+        if (err) return res.status(500).json({ error: "Failed to fetch installments" });
+        res.json(results);
+    });
+});
+
+// Pay a specific installment
+app.put('/api/transactions/:id/installments/:scheduleId/pay', (req, res) => {
+    const { id, scheduleId } = req.params;
+    const { paymentMethod, referenceNumber, cashAmount, digitalAmount } = req.body;
+    const sessionUserID = req.session?.user?.id;
+
+    if (!sessionUserID) return res.status(401).json({ error: "Unauthorized" });
+
+    const cAmt = parseFloat(cashAmount) || 0;
+    const dAmt = parseFloat(digitalAmount) || 0;
+    const totalNewPaid = cAmt + dAmt;
+
+    if (totalNewPaid <= 0) return res.status(400).json({ error: "Invalid payment amount" });
+
+    db.query(`
+        SELECT i.amountDue, i.status 
+        FROM installment_schedules i
+        JOIN sales_transaction st ON i.transactionCode = st.transactionCode
+        WHERE i.scheduleID = ? AND st.transactionID = ?
+    `, [scheduleId, id], (err, instRes) => {
+        if (err || instRes.length === 0) return res.status(500).json({ error: "Failed to fetch installment" });
+        
+        const inst = instRes[0];
+        if (inst.status === 'Paid') return res.status(400).json({ error: "Installment is already paid" });
+
+        // Update the installment
+        let sqlInst = `UPDATE installment_schedules SET status = 'Paid', paidDate = NOW(), paymentMethod = ?, referenceNumber = ? WHERE scheduleID = ?`;
+        db.query(sqlInst, [paymentMethod, referenceNumber || null, scheduleId], (updErr) => {
+            if (updErr) return res.status(500).json({ error: "Failed to update installment" });
+
+            // Now update the main sales_transaction
+            db.query(`SELECT totalAmount, cashReceived, digitalAmount, transactionCode FROM sales_transaction WHERE transactionID = ?`, [id], (stErr, stRes) => {
+                if (stErr || stRes.length === 0) return res.status(500).json({ error: "Failed to fetch main transaction" });
+                
+                const txn = stRes[0];
+                const total = parseFloat(txn.totalAmount);
+                let cash = parseFloat(txn.cashReceived || 0) + cAmt;
+                let digital = parseFloat(txn.digitalAmount || 0) + dAmt;
+                
+                const totalPaid = cash + digital;
+                const newStatus = (totalPaid >= (total - 0.01)) ? 'Paid' : 'Partial';
+
+                let sqlTxn = `UPDATE sales_transaction SET cashReceived = ?, digitalAmount = ?, paymentStatus = ?`;
+                let paramsTxn = [cash, digital, newStatus];
+
+                if (referenceNumber) {
+                    sqlTxn += `, referenceNumber = CONCAT_WS(', ', NULLIF(referenceNumber, ''), ?)`;
+                    paramsTxn.push(referenceNumber);
+                }
+
+                sqlTxn += ` WHERE transactionID = ?`;
+                paramsTxn.push(id);
+
+                db.query(sqlTxn, paramsTxn, (txUpdErr) => {
+                    if (txUpdErr) return res.status(500).json({ error: "Failed to update main transaction payment" });
+
+                    db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Payment Settled', ?)`,
+                        [sessionUserID, `Settled Installment of ₱${totalNewPaid.toFixed(2)} for TXN: ${txn.transactionCode} (Status: ${newStatus})`]
+                    );
+
+                    res.json({ message: "Installment paid successfully", paymentStatus: newStatus });
+                });
+            });
+        });
+    });
+});
+
+
 // Optimized Complete Transaction (Handles Sale + Stock in one logic flow)
 app.post('/api/saveTransaction', (req, res) => {
     const sessionUserID = req.session?.user?.id || null;
@@ -1674,7 +1805,12 @@ app.post('/api/saveTransaction', (req, res) => {
         discountAmount,
         paymentStatus,
         cashReceived,
-        digitalAmount
+        digitalAmount,
+        customerName,
+        contactInfo,
+        address,
+        dueDate,
+        installments
     } = req.body;
 
     const finalUserID = userID || sessionUserID;
@@ -1719,8 +1855,8 @@ app.post('/api/saveTransaction', (req, res) => {
 
             const sqlTxn = `
                 INSERT INTO sales_transaction 
-                (transactionCode, userID, transDateTime, totalAmount, paymentMethod, referenceNumber, discountAmount, paymentStatus, cashReceived, digitalAmount) 
-                VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?)
+                (transactionCode, userID, transDateTime, totalAmount, paymentMethod, referenceNumber, discountAmount, paymentStatus, cashReceived, digitalAmount, customerName, contactInfo, address, dueDate) 
+                VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             const txnParams = [
@@ -1732,7 +1868,11 @@ app.post('/api/saveTransaction', (req, res) => {
                 discountAmount || 0.00,
                 paymentStatus || 'Paid',
                 cashReceived || 0.00,
-                digitalAmount || 0.00
+                digitalAmount || 0.00,
+                customerName || null,
+                contactInfo || null,
+                address || null,
+                dueDate || null
             ];
 
             db.query(sqlTxn, txnParams, (err, result) => {
@@ -1760,28 +1900,48 @@ app.post('/api/saveTransaction', (req, res) => {
                         return db.rollback(() => res.status(500).json({ error: "Failed to save items: " + itemErr.message }));
                     }
 
-                    const updatePromises = items.map(item => {
-                        return new Promise((resolve, reject) => {
-                            db.query(`UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`,
-                                [item.qty, item.productID], (sErr, sRes) => {
-                                    if (sErr) reject(sErr); else resolve(sRes);
-                                });
-                        });
-                    });
-
-                    Promise.all(updatePromises)
-                        .then(() => {
-                            db.commit(cErr => {
-                                if (cErr) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
-                                db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Sale', ?)`,
-                                    [finalUserID, `Transaction ${newTransactionCode} - Amount: ₱${parseFloat(totalAmount).toFixed(2)} - ${paymentMethod}`]);
-                                res.status(201).json({ message: "Transaction completed successfully.", transactionCode: newTransactionCode });
+                    const finalizeTransaction = () => {
+                        const updatePromises = items.map(item => {
+                            return new Promise((resolve, reject) => {
+                                db.query(`UPDATE product SET stockQuantity = stockQuantity - ? WHERE productID = ?`,
+                                    [item.qty, item.productID], (sErr, sRes) => {
+                                        if (sErr) reject(sErr); else resolve(sRes);
+                                    });
                             });
-                        })
-                        .catch(pErr => {
-                            console.error("❌ STOCK ERROR:", pErr.message);
-                            db.rollback(() => res.status(500).json({ error: "Stock update failed" }));
                         });
+
+                        Promise.all(updatePromises)
+                            .then(() => {
+                                db.commit(cErr => {
+                                    if (cErr) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
+                                    db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Sale', ?)`,
+                                        [finalUserID, `Transaction ${newTransactionCode} - Amount: ₱${parseFloat(totalAmount).toFixed(2)} - ${paymentMethod}`]);
+                                    res.status(201).json({ message: "Transaction completed successfully.", transactionCode: newTransactionCode });
+                                });
+                            })
+                            .catch(pErr => {
+                                console.error("❌ STOCK ERROR:", pErr.message);
+                                db.rollback(() => res.status(500).json({ error: "Stock update failed" }));
+                            });
+                    };
+
+                    if (installments && installments.length > 0) {
+                        const instValues = installments.map(inst => [
+                            newTransactionCode,
+                            inst.dueDate,
+                            parseFloat(inst.amountDue) || 0
+                        ]);
+                        const sqlInst = `INSERT INTO installment_schedules (transactionCode, dueDate, amountDue) VALUES ?`;
+                        db.query(sqlInst, [instValues], (instErr) => {
+                            if (instErr) {
+                                console.error("❌ DB ERROR (Installments):", instErr.message);
+                                return db.rollback(() => res.status(500).json({ error: "Failed to save installments: " + instErr.message }));
+                            }
+                            finalizeTransaction();
+                        });
+                    } else {
+                        finalizeTransaction();
+                    }
                 });
             });
         }); // End count query

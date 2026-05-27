@@ -110,56 +110,147 @@
     </main>
 
     <div class="modal-overlay" id="paymentModal" style="display: none;">
-        <div class="modal-box modal-accent">
+        <div class="modal-box modal-accent" id="paymentModalBox">
             <h3 class="m-0 text-left">Finalize Payment</h3>
 
-            <div class="dashed-total-box mt-15 text-center">
-                <p class="m-0">Total Payable</p>
-                <strong class="f-24">₱ <span id="modalTotal">0.00</span></strong>
-            </div>
+            <div id="paymentModalContent" style="margin-top: 15px;">
 
-            <div class="text-left my-15">
-                <label for="paymentMode" class="d-block mb-5">Payment Method</label>
-                <select id="paymentMode" class="payment-select" onchange="handlePaymentMode()">
-                    <option value="Cash">Cash</option>
-                    <option value="GCash">GCash</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                </select>
-            </div>
+                <div class="dashed-total-box text-center">
+                    <p class="m-0">Total Payable</p>
+                    <strong class="f-24">₱ <span id="modalTotal">0.00</span></strong>
+                </div>
 
-            <div id="digitalPaymentDetails" class="digital-panel-blue" style="display: none;">
-                <div class="mb-10">
-                    <label for="digitalAmount" class="digital-label-blue">Amount Paid (Digital)</label>
-                    <input type="number" id="digitalAmount" min="0" step="0.01" placeholder="0.00" class="digital-input"
+                <div class="text-left my-15">
+                    <label for="paymentMode" class="d-block mb-5">Payment Method</label>
+                    <select id="paymentMode" class="payment-select" onchange="handlePaymentMode()">
+                        <option value="Cash">Cash</option>
+                        <option value="GCash">GCash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Pay Later">Pay Later</option>
+                    </select>
+                </div>
+
+                <div id="digitalPaymentDetails" class="digital-panel-blue" style="display: none;">
+                    <div class="mb-10">
+                        <label for="digitalAmount" class="digital-label-blue">Amount Paid (Digital)</label>
+                        <input type="number" id="digitalAmount" min="0" step="0.01" placeholder="0.00" class="digital-input"
+                            oninput="calculateChange()">
+                    </div>
+                    <div>
+                        <label for="referenceNumber" class="digital-label-blue">Reference / Trace Number</label>
+                        <input type="text" id="referenceNumber" placeholder="Enter Ref No." class="digital-input">
+                    </div>
+                </div>
+
+                <!-- Pay Later 2-Column Layout -->
+                <div id="payLaterWrapper" style="display: none; gap: 20px; align-items: flex-start;">
+                    <!-- Left: Customer & Payment Details -->
+                    <div style="flex: 1; min-width: 250px;">
+                        <div id="payLaterDetails" class="digital-panel-blue" style="background-color: #fff3cd; border-color: #ffe69c;">
+                            <div style="font-weight: 600; font-size: 14px; color: #92400e; margin-bottom: 10px;">📋 Customer & Payment Details</div>
+                            <div class="mb-10">
+                                <label for="plCustomerName" class="digital-label-blue" style="color: #664d03;">Customer Name *</label>
+                                <input type="text" id="plCustomerName" placeholder="Enter name" class="digital-input">
+                            </div>
+                            <div class="mb-10">
+                                <label for="plContactInfo" class="digital-label-blue" style="color: #664d03;">Contact Number</label>
+                                <input type="text" id="plContactInfo" placeholder="Enter contact" class="digital-input">
+                            </div>
+                            <div class="mb-10">
+                                <label for="plAddress" class="digital-label-blue" style="color: #664d03;">Address</label>
+                                <input type="text" id="plAddress" placeholder="Enter address" class="digital-input">
+                            </div>
+                            <div class="mb-10">
+                                <label for="plDeposit" class="digital-label-blue" style="color: #664d03;">Deposit Received (Optional)</label>
+                                <input type="number" id="plDeposit" min="0" step="0.01" placeholder="0.00" class="digital-input" oninput="calculateChange(); updateInstallmentSchedule();">
+                            </div>
+                            <div>
+                                <label for="plCashGiven" class="digital-label-blue" style="color: #664d03;">Cash Given</label>
+                                <input type="number" id="plCashGiven" min="0" step="0.01" placeholder="0.00" class="digital-input" oninput="calculateChange()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Payment Schedule -->
+                    <div style="flex: 1; min-width: 280px;">
+                        <div class="digital-panel-blue" style="background-color: #fff3cd; border-color: #ffe69c;">
+                            <div style="font-weight: 600; font-size: 14px; color: #92400e; margin-bottom: 10px;">📅 Payment Schedule</div>
+                            <div class="mb-10">
+                                <label class="digital-label-blue" style="color: #664d03; display: block; margin-bottom: 5px;">Payment Terms</label>
+                                <select id="plPaymentTerms" class="payment-select" onchange="toggleInstallmentView()" style="width: 100%; border-color: #ffe69c;">
+                                    <option value="Single">Single Payment</option>
+                                    <option value="Installment">Installment Plan</option>
+                                </select>
+                            </div>
+
+                            <div id="plSingleDateSection" class="mb-10">
+                                <label for="plDueDate" class="digital-label-blue" style="color: #664d03;">Due Date *</label>
+                                <input type="date" id="plDueDate" class="digital-input">
+                            </div>
+
+                            <div id="plInstallmentSection" style="display: none;">
+                                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                    <div style="flex: 1;">
+                                        <label for="plInstallmentCount" class="digital-label-blue" style="color: #664d03;">Terms (Months/Weeks)</label>
+                                        <input type="number" id="plInstallmentCount" min="2" max="36" value="3" class="digital-input" oninput="updateInstallmentSchedule()">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label for="plInstallmentFreq" class="digital-label-blue" style="color: #664d03;">Frequency</label>
+                                        <select id="plInstallmentFreq" class="payment-select" style="width: 100%; border-color: #ffe69c;" onchange="setDefaultStartDate(); updateInstallmentSchedule()">
+                                            <option value="Monthly">Monthly</option>
+                                            <option value="Bi-Weekly">Bi-Weekly</option>
+                                            <option value="Weekly">Weekly</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-10">
+                                    <label for="plInstallmentStart" class="digital-label-blue" style="color: #664d03;">First Payment Date *</label>
+                                    <input type="date" id="plInstallmentStart" class="digital-input" onchange="updateInstallmentSchedule()">
+                                </div>
+                                <div class="dashed-total-box mt-10 p-10" style="background: white; border-color: #ffe69c;">
+                                    <table style="width: 100%; text-align: left; font-size: 13px;" id="installmentTable">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Due Date</th>
+                                                <th class="text-right">Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="installmentTableBody">
+                                            <!-- Generated rows -->
+                                        </tbody>
+                                    </table>
+                                    <div style="text-align: right; margin-top: 10px; font-weight: bold; color: #b91c1c;">
+                                        Total Scheduled: ₱ <span id="installmentTotalScheduled">0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-left" id="cashSection">
+                    <div class="cash-label-row">
+                        <label for="cashInput" class="m-0 label-bold">Cash Received</label>
+                        <span id="cashOptionalBadge" class="optional-badge" style="display: none;">Optional</span>
+                    </div>
+
+                    <input type="number" id="cashInput" min="0" step="0.01" placeholder="0.00" class="cash-input"
                         oninput="calculateChange()">
-                </div>
-                <div>
-                    <label for="referenceNumber" class="digital-label-blue">Reference / Trace Number</label>
-                    <input type="text" id="referenceNumber" placeholder="Enter Ref No." class="digital-input">
-                </div>
-            </div>
 
-            <div class="section-left">
-                <div class="cash-label-row">
-                    <label for="cashInput" class="m-0 label-bold">Cash Received</label>
-                    <span id="cashOptionalBadge" class="optional-badge" style="display: none;">Optional</span>
+                    <p id="cashHelpText" class="cash-help-text" style="display: none;">Leave empty if paid fully via
+                        Digital.</p>
                 </div>
 
-                <input type="number" id="cashInput" min="0" step="0.01" placeholder="0.00" class="cash-input"
-                    oninput="calculateChange()">
+                <div id="changeBox" class="change-box">
+                    <p class="change-label">Change</p>
+                    <strong class="change-val">₱ <span id="changeAmount">0.00</span></strong>
+                </div>
 
-                <p id="cashHelpText" class="cash-help-text" style="display: none;">Leave empty if paid fully via
-                    Digital.</p>
-            </div>
-
-            <div id="changeBox" class="change-box">
-                <p class="change-label">Change</p>
-                <strong class="change-val">₱ <span id="changeAmount">0.00</span></strong>
-            </div>
-
-            <div class="flex-gap-10">
-                <button id="confirmBtn" class="btn-confirm" onclick="confirmPayment()">Confirm Payment</button>
-                <button class="btn-cancel-large" onclick="closeModal('paymentModal')">Cancel</button>
+                <div class="flex-gap-10">
+                    <button id="confirmBtn" class="btn-confirm" onclick="confirmPayment()">Confirm Payment</button>
+                    <button class="btn-cancel-large" onclick="closeModal('paymentModal')">Cancel</button>
+                </div>
             </div>
         </div>
     </div>
@@ -501,14 +592,40 @@
             const mode = el("paymentMode").value;
             const total = parseFloat(el("modalTotal").innerText.replace(/,/g, ''));
             const digitalPanel = el("digitalPaymentDetails");
+            const payLaterWrapper = el("payLaterWrapper");
+            const cashSection = el("cashSection");
+            const changeBox = el("changeBox");
             const optionalBadge = el("cashOptionalBadge");
             const helpText = el("cashHelpText");
+            const modalBox = el("paymentModalBox");
 
-            if (mode !== "Cash") {
+            if (mode === "Pay Later") {
+                // --- PAY LATER MODE ---
+                modalBox.style.maxWidth = "900px";
+                modalBox.style.width = "95%";
+                digitalPanel.style.display = "none";
+                cashSection.style.display = "none";
+                changeBox.style.display = "block";
+                payLaterWrapper.style.display = "flex";
+                
+                el("referenceNumber").value = "";
+                el("digitalAmount").value = "";
+                el("cashInput").value = "";
+                
+                calculateChange();
+                setTimeout(() => el("plCustomerName").focus(), 100);
+            } else if (mode !== "Cash") {
                 // --- DIGITAL MODE ---
+                modalBox.style.maxWidth = "";
+                modalBox.style.width = "";
                 digitalPanel.style.display = "block";
+                cashSection.style.display = "block";
+                changeBox.style.display = "block";
+                payLaterWrapper.style.display = "none";
+                
                 el("digitalAmount").value = total.toFixed(2);
                 el("cashInput").value = "";
+                el("plDeposit").value = "";
 
                 optionalBadge.style.display = "inline-block";
                 helpText.style.display = "block";
@@ -517,10 +634,17 @@
                 setTimeout(() => el("referenceNumber").focus(), 100);
             } else {
                 // --- CASH MODE ---
+                modalBox.style.maxWidth = "";
+                modalBox.style.width = "";
                 digitalPanel.style.display = "none";
+                cashSection.style.display = "block";
+                changeBox.style.display = "block";
+                payLaterWrapper.style.display = "none";
+                
                 el("referenceNumber").value = "";
                 el("digitalAmount").value = "";
                 el("cashInput").value = "";
+                el("plDeposit").value = "";
 
                 optionalBadge.style.display = "none";
                 helpText.style.display = "none";
@@ -536,9 +660,22 @@
 
             el("paymentMode").value = "Cash";
             el("digitalPaymentDetails").style.display = "none";
+            el("payLaterWrapper").style.display = "none";
+            el("cashSection").style.display = "block";
+            el("changeBox").style.display = "block";
+            el("paymentModalBox").style.maxWidth = "";
+            el("paymentModalBox").style.width = "";
+            
             el("referenceNumber").value = "";
             el("digitalAmount").value = "";
             el("cashInput").value = "";
+            el("plCustomerName").value = "";
+            el("plContactInfo").value = "";
+            el("plAddress").value = "";
+            el("plDueDate").value = "";
+            el("plDeposit").value = "";
+            el("plCashGiven").value = "";
+            
             el("changeAmount").innerText = "0.00";
             el("changeBox").style.background = "#e7f3e8";
             el("cashOptionalBadge").style.display = "none";
@@ -553,6 +690,21 @@
         function calculateChange() {
             const total = parseFloat(el("modalTotal").innerText.replace(/,/g, ''));
             const mode = el("paymentMode").value;
+
+            if (mode === "Pay Later") {
+                const deposit = parseFloat(el("plDeposit").value) || 0;
+                if (deposit > 0) {
+                    el("changeBox").style.display = "block";
+                    const given = parseFloat(el("plCashGiven").value) || 0;
+                    const change = given - deposit;
+                    el("changeAmount").innerText = Math.max(0, change).toLocaleString(undefined, { minimumFractionDigits: 2 });
+                    el("changeBox").style.background = change >= 0 ? "#e7f3e8" : "#fee2e2";
+                } else {
+                    el("changeAmount").innerText = "0.00";
+                    el("changeBox").style.background = "#e7f3e8";
+                }
+                return;
+            }
 
             let cash = parseFloat(el("cashInput").value) || 0;
             let digital = 0;
@@ -579,16 +731,175 @@
             calculateChange();
         });
 
+        function toggleInstallmentView() {
+            const term = el("plPaymentTerms").value;
+            if (term === "Installment") {
+                el("plSingleDateSection").style.display = "none";
+                el("plInstallmentSection").style.display = "block";
+                
+                // Always set the default start date based on frequency
+                setDefaultStartDate();
+                updateInstallmentSchedule();
+            } else {
+                el("plSingleDateSection").style.display = "block";
+                el("plInstallmentSection").style.display = "none";
+            }
+        }
+
+        function setDefaultStartDate() {
+            const freq = el("plInstallmentFreq").value;
+            const date = new Date();
+            
+            if (freq === "Monthly") {
+                date.setMonth(date.getMonth() + 1);
+            } else if (freq === "Bi-Weekly") {
+                date.setDate(date.getDate() + 14);
+            } else if (freq === "Weekly") {
+                date.setDate(date.getDate() + 7);
+            }
+            
+            el("plInstallmentStart").value = date.toLocaleDateString('en-CA');
+        }
+
+        let currentInstallments = [];
+
+        function updateInstallmentSchedule() {
+            const term = el("plPaymentTerms").value;
+            if (term !== "Installment") return;
+
+            const totalText = el("modalTotal").innerText.replace(/,/g, '');
+            const total = parseFloat(totalText) || 0;
+            const deposit = parseFloat(el("plDeposit").value) || 0;
+            const balance = Math.max(0, total - deposit);
+
+            const count = parseInt(el("plInstallmentCount").value) || 1;
+            const freq = el("plInstallmentFreq").value;
+            const startStr = el("plInstallmentStart").value;
+
+            const tbody = el("installmentTableBody");
+            tbody.innerHTML = "";
+            currentInstallments = [];
+
+            if (balance <= 0 || count < 1 || !startStr) {
+                el("installmentTotalScheduled").innerText = "0.00";
+                return;
+            }
+
+            const baseAmount = Math.floor((balance / count) * 100) / 100;
+            let remaining = balance;
+            let currentDate = new Date(startStr);
+
+            let tableHTML = "";
+
+            for (let i = 1; i <= count; i++) {
+                let amt = (i === count) ? parseFloat(remaining.toFixed(2)) : baseAmount;
+                remaining -= amt;
+
+                const dateISO = currentDate.toLocaleDateString('en-CA');
+                currentInstallments.push({
+                    dueDate: dateISO,
+                    amountDue: amt
+                });
+
+                tableHTML += `
+                    <tr>
+                        <td>${i}</td>
+                        <td><input type="date" value="${dateISO}" style="width: 110px; padding: 2px; border: 1px solid #ccc; font-size: 11px;" onchange="editInstallment(${i-1}, 'date', this.value)"></td>
+                        <td class="text-right">
+                            ₱<input type="number" min="0" step="0.01" value="${amt.toFixed(2)}" style="width: 70px; padding: 2px; border: 1px solid #ccc; text-align: right; font-size: 11px;" onchange="editInstallment(${i-1}, 'amount', this.value)">
+                        </td>
+                    </tr>
+                `;
+
+                if (freq === "Monthly") {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                } else if (freq === "Bi-Weekly") {
+                    currentDate.setDate(currentDate.getDate() + 14);
+                } else if (freq === "Weekly") {
+                    currentDate.setDate(currentDate.getDate() + 7);
+                }
+            }
+
+            tbody.innerHTML = tableHTML;
+            recalculateInstallmentTotal();
+        }
+
+        function editInstallment(index, field, value) {
+            if (field === 'date') {
+                currentInstallments[index].dueDate = value;
+            } else if (field === 'amount') {
+                currentInstallments[index].amountDue = parseFloat(value) || 0;
+            }
+            recalculateInstallmentTotal();
+        }
+
+        function recalculateInstallmentTotal() {
+            const sum = currentInstallments.reduce((acc, inst) => acc + inst.amountDue, 0);
+            el("installmentTotalScheduled").innerText = sum.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            const total = parseFloat(el("modalTotal").innerText.replace(/,/g, '')) || 0;
+            const deposit = parseFloat(el("plDeposit").value) || 0;
+            const balance = Math.max(0, total - deposit);
+            
+            if (Math.abs(sum - balance) > 0.05) {
+                el("installmentTotalScheduled").style.color = "red";
+            } else {
+                el("installmentTotalScheduled").style.color = "#16a34a";
+            }
+        }
+
         async function confirmPayment() {
             const totalText = el("modalTotal").innerText.replace(/,/g, '');
             const total = parseFloat(totalText);
             const paymentMethod = el("paymentMode").value;
 
-            const rawCash = parseFloat(el("cashInput").value) || 0;
+            let rawCash = 0;
             let digital = 0;
             let referenceNum = "";
+            let installmentsToSave = [];
+            let paymentStatus = "Paid";
 
-            if (paymentMethod !== "Cash") {
+            if (paymentMethod === "Pay Later") {
+                const customerName = el("plCustomerName").value.trim();
+                if (!customerName) {
+                    showToast("Customer Name is required for Pay Later.", true);
+                    el("plCustomerName").focus();
+                    return;
+                }
+                
+                const term = el("plPaymentTerms").value;
+                if (term === "Installment") {
+                    const balance = total - (parseFloat(el("plDeposit").value) || 0);
+                    const sum = currentInstallments.reduce((acc, inst) => acc + inst.amountDue, 0);
+                    if (Math.abs(sum - balance) > 0.05) {
+                        return showToast("Installment total must equal remaining balance.", true);
+                    }
+                    if (currentInstallments.length === 0) {
+                        return showToast("Invalid installment schedule.", true);
+                    }
+                    for (const inst of currentInstallments) {
+                        if (!inst.dueDate) return showToast("All installments must have a due date.", true);
+                    }
+                    installmentsToSave = currentInstallments;
+                } else {
+                    if (!el("plDueDate").value) {
+                        showToast("Please select a Due Date.", true);
+                        el("plDueDate").focus();
+                        return;
+                    }
+                }
+                
+                rawCash = parseFloat(el("plDeposit").value) || 0;
+                const given = parseFloat(el("plCashGiven").value) || 0;
+                if (rawCash > 0 && given < rawCash) {
+                    showToast("Insufficient cash given for deposit.", true);
+                    el("plCashGiven").focus();
+                    return;
+                }
+                
+                paymentStatus = rawCash > 0 ? "Partial" : "Unpaid";
+                
+            } else if (paymentMethod !== "Cash") {
+                rawCash = parseFloat(el("cashInput").value) || 0;
                 digital = parseFloat(el("digitalAmount").value) || 0;
                 referenceNum = el("referenceNumber").value.trim();
 
@@ -597,19 +908,21 @@
                     el("referenceNumber").focus();
                     return;
                 }
+            } else {
+                rawCash = parseFloat(el("cashInput").value) || 0;
             }
 
             const totalPaid = rawCash + digital;
 
-            if (totalPaid < total) {
+            if (paymentMethod !== "Pay Later" && totalPaid < total) {
                 showToast("Insufficient payment amount.", true);
                 if (paymentMethod === "Cash") { el("cashInput").focus(); }
                 else { el("digitalAmount").focus(); }
                 return;
             }
 
-            const change = totalPaid - total;
-            const adjustedCash = rawCash - change;
+            const change = paymentMethod === "Pay Later" ? 0 : totalPaid - total;
+            const adjustedCash = paymentMethod === "Pay Later" ? rawCash : rawCash - change;
 
             const transactionID = generateTransactionID("UT");
             const confirmBtn = el("confirmBtn");
@@ -619,17 +932,26 @@
             const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
             const discountAmount = subtotal - total;
 
+            let finalDueDate = el("plDueDate").value || null;
+            if (paymentMethod === "Pay Later" && el("plPaymentTerms").value === "Installment" && installmentsToSave.length > 0) {
+                finalDueDate = installmentsToSave[installmentsToSave.length - 1].dueDate;
+            }
+
             const transactionData = {
                 transactionId: transactionID,
-
                 timestamp: new Date().toISOString(),
                 totalAmount: total,
                 paymentMethod: paymentMethod,
                 referenceNumber: referenceNum,
-                paymentStatus: 'Paid',
+                paymentStatus: paymentStatus,
                 discountAmount: discountAmount,
                 cashReceived: adjustedCash,
                 digitalAmount: digital,
+                customerName: el("plCustomerName").value.trim(),
+                contactInfo: el("plContactInfo").value.trim(),
+                address: el("plAddress").value.trim(),
+                dueDate: finalDueDate,
+                installments: installmentsToSave,
                 items: [...cart]
             };
 
@@ -721,6 +1043,24 @@
         <span>Change:</span> 
         <span>₱${Math.max(0, data.change).toFixed(2)}</span>
     </div>`;
+
+            if (data.paymentMethod === 'Pay Later') {
+                paymentDetailsHTML += `<div style="border-top: 1px dashed #ccc; margin-top: 10px; padding-top: 10px; font-size: 0.9em; text-align: left;">`;
+                paymentDetailsHTML += `<strong>Pay Later Details:</strong><br>`;
+                paymentDetailsHTML += `Customer: ${data.customerName || 'N/A'}<br>`;
+                
+                if (data.installments && data.installments.length > 0) {
+                    paymentDetailsHTML += `<div style="margin-top: 5px;"><strong>Installment Schedule:</strong></div>`;
+                    paymentDetailsHTML += `<table style="width: 100%; text-align: left; margin-top: 5px; font-size: 0.85em;">`;
+                    data.installments.forEach((inst, index) => {
+                        paymentDetailsHTML += `<tr><td>Term ${index+1}:</td><td>${new Date(inst.dueDate).toLocaleDateString('en-PH')}</td><td style="text-align: right;">₱${inst.amountDue.toFixed(2)}</td></tr>`;
+                    });
+                    paymentDetailsHTML += `</table>`;
+                } else if (data.dueDate) {
+                    paymentDetailsHTML += `Due Date: ${new Date(data.dueDate).toLocaleDateString('en-PH')}<br>`;
+                }
+                paymentDetailsHTML += `</div>`;
+            }
 
             paymentDetailsHTML += '</div>';
 

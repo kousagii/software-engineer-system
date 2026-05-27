@@ -69,6 +69,19 @@
                     <h3 class="mt-0" id="stat-refunds" style="color:var(--red-main);">—</h3>
                 </div>
             </div>
+
+            <div class="form-panel dash-stat-card">
+                <div class="dash-stat-icon" style="background:#fef3c7;">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#d97706" stroke-width="1.8"/>
+                        <path d="M12 6V12L16 14" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="dash-stat-info">
+                    <div class="sub-text">Unpaid / Partial</div>
+                    <h3 class="mt-0" id="stat-unpaid" style="color:#d97706;">—</h3>
+                </div>
+            </div>
         </div>
 
         <div class="table-container">
@@ -77,8 +90,7 @@
                     <label for="searchInput"
                         style="margin:0; font-size:13px; font-weight:600; white-space:nowrap;">Search:</label>
                     <input type="text" id="searchInput" placeholder="Search transaction code..." class="search-input"
-                        style="margin:0; max-width:280px;" oninput="applyFilters()">
-                    <button class="btn-create" onclick="applyFilters()" style="margin:0;">Search</button>
+                        style="margin:0; max-width:280px;" oninput="performSearch()">
                 </div>
                 <div class="toolbar-right">
                     <div class="toolbar-group">
@@ -86,8 +98,11 @@
                         <select id="filterStatus" onchange="applyFilters()" style="margin:0; width:auto;">
                             <option value="all">All</option>
                             <option value="Paid">Paid</option>
+                            <option value="Unpaid">Unpaid</option>
+                            <option value="Partial">Partial Payment</option>
                             <option value="Refunded">Refunded</option>
                             <option value="Exchanged">Exchanged</option>
+                            <option value="pay_later_group">View All Pay Later</option>
                         </select>
                     </div>
                     <div class="toolbar-group">
@@ -144,7 +159,13 @@
                 <p class="mt-10">TXN: <strong id="hist-receipt-txn">---</strong></p>
                 <p id="hist-receipt-orig-row" style="display:none;">Orig: <strong id="hist-receipt-orig">---</strong>
                 </p>
-                <p>Date: <span id="hist-receipt-date">---</span></p>
+                <div id="hist-receipt-customer-details" style="display:none; text-align: left; background: #fff3cd; padding: 10px; margin-top: 10px; border-radius: 4px; font-size: 0.9em;">
+                    <p class="m-0">Customer: <strong id="hist-receipt-customer">---</strong></p>
+                    <p class="m-0" id="hist-receipt-contact-row">Contact: <span id="hist-receipt-contact">---</span></p>
+                    <p class="m-0" id="hist-receipt-address-row">Address: <span id="hist-receipt-address">---</span></p>
+                    <p class="m-0 mt-5">Due Date: <strong id="hist-receipt-due" style="color: #b91c1c;">---</strong></p>
+                </div>
+                <p class="mt-10">Date: <span id="hist-receipt-date">---</span></p>
                 <p>Method: <strong id="hist-receipt-method">---</strong></p>
                 <p id="hist-receipt-split-row" style="display:none;">Cash: <strong id="hist-receipt-cash">---</strong> | Digital: <strong id="hist-receipt-digital">---</strong></p>
             </div>
@@ -177,6 +198,177 @@
             <div class="no-print flex-col-gap-10 mt-15">
                 <button class="btn-receipt-action" onclick="window.print()">Print Receipt</button>
                 <button class="btn-receipt-cancel" onclick="el('receiptModal').style.display='none'">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Settlement Receipt for Printing -->
+    <div class="modal-overlay" id="settlementReceiptModal" style="display: none;">
+        <div class="receipt-container" id="printableSettlementReceipt">
+            <div class="receipt-header">
+                <h2>UDICON TRADING</h2>
+                <p>Payment Settlement Receipt</p>
+                <p class="mt-10">TXN: <strong id="sr-txn">---</strong></p>
+                <p>Date: <span id="sr-date">---</span></p>
+            </div>
+
+            <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px;">
+                <p class="m-0" style="margin-bottom: 5px;">Customer: <strong id="sr-customer">---</strong></p>
+                <p class="m-0" style="margin-bottom: 5px;">Method: <strong id="sr-method">---</strong></p>
+                <p class="m-0" id="sr-ref-row" style="display:none; margin-bottom: 5px;">Ref: <span id="sr-ref"></span></p>
+            </div>
+
+            <div class="receipt-totals" style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px;">
+                <div><span>Amount Paid:</span> <span id="sr-paid">₱0.00</span></div>
+                <div class="grand-total"><span>Remaining Bal:</span> <span id="sr-balance">₱0.00</span></div>
+            </div>
+
+            <div class="receipt-qr-row">
+                <div class="qr-text-col" style="text-align: center; width: 100%;">
+                    <p class="qr-thank-you">Thank you for your payment!</p>
+                </div>
+            </div>
+
+            <div class="no-print flex-col-gap-10 mt-15">
+                <button class="btn-receipt-action" onclick="window.print()">Print Receipt</button>
+                <button class="btn-receipt-cancel" onclick="el('settlementReceiptModal').style.display='none'">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settle Payment Modal -->
+    <div class="modal-overlay" id="settleModal" style="display: none;">
+        <div class="modal-box modal-accent" style="max-height: 90vh; overflow-y: auto;">
+            <h3 class="m-0 text-left">Settle Payment</h3>
+            <p id="settleTxnCode" style="margin-bottom: 5px; font-weight: bold;"></p>
+            <p id="settleCustomerName" style="margin-top: 0; margin-bottom: 0; color: #555; font-size: 14px;"></p>
+            <p id="settleDueDate" style="margin-top: 5px; color: #b91c1c; font-size: 13px; font-weight: 500;"></p>
+            
+            <div class="dashed-total-box mt-15 text-center">
+                <p class="m-0">Remaining Balance</p>
+                <strong class="f-24" style="color: #b91c1c;">₱ <span id="settleBalance">0.00</span></strong>
+            </div>
+
+            <!-- Installment Schedule Section -->
+            <div id="settleInstallmentSection" style="display: none;">
+                <div style="margin: 15px 0 10px; font-weight: 600; font-size: 14px;">📅 Installment Schedule</div>
+                <table style="width: 100%; font-size: 16px; border-collapse: collapse;" id="settleInstallmentTable">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb;">
+                            <th style="padding: 6px 4px; text-align: left;">#</th>
+                            <th style="padding: 6px 4px; text-align: left;">Due Date</th>
+                            <th style="padding: 6px 4px; text-align: right;">Amount</th>
+                            <th style="padding: 6px 4px; text-align: center;">Status</th>
+                            <th style="padding: 6px 4px; text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="settleInstallmentBody"></tbody>
+                </table>
+
+                <!-- Installment Payment Form (hidden by default, shown when 'Pay' clicked) -->
+                <div id="instPaymentForm" style="display: none; margin-top: 15px; padding: 15px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: #92400e;">Pay Installment #<span id="instPayNum"></span> — ₱<span id="instPayAmount">0.00</span></div>
+                    <input type="hidden" id="instPayScheduleId">
+                    <input type="hidden" id="instPayAmountVal">
+
+                    <div class="text-left mb-10">
+                        <label for="instPayMode" class="d-block mb-5" style="font-size: 13px;">Payment Method</label>
+                        <select id="instPayMode" class="payment-select" onchange="handleInstPayMode()" style="width: 100%;">
+                            <option value="Cash">Cash</option>
+                            <option value="GCash">GCash</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                        </select>
+                    </div>
+
+                    <div id="instDigitalPanel" class="digital-panel-blue" style="display: none;">
+                        <div class="mb-10">
+                            <label for="instDigitalAmount" class="digital-label-blue">Amount Paid (Digital)</label>
+                            <input type="number" id="instDigitalAmount" min="0" step="0.01" placeholder="0.00" class="digital-input" oninput="calculateInstChange()">
+                        </div>
+                        <div>
+                            <label for="instReference" class="digital-label-blue">Reference / Trace Number</label>
+                            <input type="text" id="instReference" placeholder="Enter Ref No." class="digital-input">
+                        </div>
+                    </div>
+
+                    <div id="instCashSection" class="text-left my-10">
+                        <div class="cash-label-row">
+                            <label for="instCashAmount" class="m-0 label-bold" style="font-size: 13px;">Amount to Pay (Cash)</label>
+                            <span id="instCashOptionalBadge" class="optional-badge" style="display: none;">Optional</span>
+                        </div>
+                        <input type="number" id="instCashAmount" min="0" step="0.01" class="cash-input" style="width: 100%;" oninput="calculateInstChange()">
+
+                        <div class="mt-10">
+                            <label for="instCashGiven" class="d-block mb-5" style="font-size: 13px;">Cash Given</label>
+                            <input type="number" id="instCashGiven" min="0" step="0.01" class="cash-input" style="width: 100%;" oninput="calculateInstChange()">
+                        </div>
+
+                        <div class="change-box mt-10" id="instChangeBox">
+                            <p class="change-label">Change</p>
+                            <strong class="change-val">₱ <span id="instChangeAmount">0.00</span></strong>
+                        </div>
+                    </div>
+
+                    <div class="flex-gap-10" style="margin-top: 10px;">
+                        <button id="instConfirmBtn" class="btn-confirm" onclick="submitInstallmentPayment()">Confirm Payment</button>
+                        <button class="btn-cancel-large" onclick="cancelInstPayment()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Regular (non-installment) Settle Section -->
+            <div id="settleRegularSection">
+                <div class="text-left my-15">
+                    <label for="settlePaymentMode" class="d-block mb-5">Payment Method</label>
+                    <select id="settlePaymentMode" class="payment-select" onchange="handleSettleMode()">
+                        <option value="Cash">Cash</option>
+                        <option value="GCash">GCash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                    </select>
+                </div>
+
+                <div id="settleDigitalPaymentDetails" class="digital-panel-blue" style="display: none;">
+                    <div class="mb-10">
+                        <label for="settleDigitalAmount" class="digital-label-blue">Amount Paid (Digital)</label>
+                        <input type="number" id="settleDigitalAmount" min="0" step="0.01" placeholder="0.00" class="digital-input" oninput="calculateSettleChange()">
+                    </div>
+                    <div>
+                        <label for="settleReference" class="digital-label-blue">Reference / Trace Number</label>
+                        <input type="text" id="settleReference" placeholder="Enter Ref No." class="digital-input">
+                    </div>
+                </div>
+
+                <div id="settleCashSection" class="text-left my-15">
+                    <div class="cash-label-row">
+                        <label for="settleAmount" class="m-0 label-bold">Amount to Pay (Cash)</label>
+                        <span id="settleCashOptionalBadge" class="optional-badge" style="display: none;">Optional</span>
+                    </div>
+                    <input type="number" id="settleAmount" min="0" step="0.01" class="cash-input" style="width: 100%;" oninput="calculateSettleChange()">
+                    
+                    <p id="settleCashHelpText" class="cash-help-text" style="display: none;">Leave empty if paid fully via Digital.</p>
+
+                    <div class="mt-15">
+                        <label for="settleCashGiven" class="d-block mb-5">Cash Given</label>
+                        <input type="number" id="settleCashGiven" min="0" step="0.01" class="cash-input" style="width: 100%;" oninput="calculateSettleChange()">
+                    </div>
+
+                    <div class="change-box mt-10" id="settleChangeBox">
+                        <p class="change-label">Change</p>
+                        <strong class="change-val">₱ <span id="settleChangeAmount">0.00</span></strong>
+                    </div>
+                </div>
+
+                <div class="flex-gap-10">
+                    <button id="settleConfirmBtn" class="btn-confirm" onclick="submitSettlePayment()">Confirm Payment</button>
+                    <button class="btn-cancel-large" onclick="closeModal('settleModal')">Cancel</button>
+                </div>
+            </div>
+
+            <input type="hidden" id="settleTxnId">
+
+            <!-- Close button for installment mode (no confirm, user pays per installment) -->
+            <div id="settleInstCloseSection" style="display: none; margin-top: 15px;">
+                <button class="btn-cancel-large" onclick="closeModal('settleModal')" style="width: 100%;">Close</button>
             </div>
         </div>
     </div>
@@ -217,7 +409,11 @@
 
             filteredTransactions = allTransactions.filter(txn => {
                 // Status filter
-                if (statusFilter !== 'all' && txn.paymentStatus !== statusFilter) return false;
+                if (statusFilter === 'pay_later_group') {
+                    if (txn.paymentStatus !== 'Unpaid' && txn.paymentStatus !== 'Partial') return false;
+                } else if (statusFilter !== 'all' && txn.paymentStatus !== statusFilter) {
+                    return false;
+                }
 
                 // Date filter
                 if (dateFrom || dateTo) {
@@ -292,9 +488,14 @@
                 salesLabel.textContent = 'All Sales';
             }
 
+            // Unpaid / Partial
+            const unpaidCount = filteredTransactions
+                .filter(t => t.paymentStatus === 'Unpaid' || t.paymentStatus === 'Partial').length;
+
             el("stat-count").textContent = totalCount;
             el("stat-sales").textContent = fmtPeso(dateSales);
             el("stat-refunds").textContent = fmtPeso(totalRefunds);
+            el("stat-unpaid").textContent = unpaidCount;
         }
 
         function performSearch() {
@@ -326,15 +527,25 @@
                     let statusClass = 'status-instock';
                     if (txn.paymentStatus === 'Refunded') statusClass = 'status-outstock';
                     else if (txn.paymentStatus === 'Exchanged') statusClass = 'status-lowstock';
+                    else if (txn.paymentStatus === 'Unpaid') statusClass = 'status-outstock';
+                    else if (txn.paymentStatus === 'Partial') statusClass = 'status-lowstock';
 
                     let displayMethod = txn.paymentMethod || '—';
                     if (parseFloat(txn.cashReceived || 0) > 0 && parseFloat(txn.digitalAmount || 0) > 0) {
                         displayMethod = `SPLIT (${txn.paymentMethod} & Cash)`;
                     }
 
+                    let txnCodeHTML = `<strong>${txn.transactionCode || '—'}</strong>`;
+                    if ((txn.paymentStatus === 'Unpaid' || txn.paymentStatus === 'Partial') && txn.customerName) {
+                        txnCodeHTML += `<br><small style="color: #b91c1c;">${txn.customerName}</small>`;
+                        if (txn.dueDate) {
+                            txnCodeHTML += `<br><small style="color: #b91c1c;">Due: ${new Date(txn.dueDate).toLocaleDateString('en-PH')}</small>`;
+                        }
+                    }
+
                     return `
                     <tr>
-                        <td><strong>${txn.transactionCode || '—'}</strong></td>
+                        <td>${txnCodeHTML}</td>
                         <td>
                             <div class="datetime-cell">
                                 <span class="date-label">${dateStr}</span>
@@ -349,7 +560,10 @@
                             <span class="status-pill ${statusClass}">${txn.paymentStatus || '—'}</span>
                         </td>
                         <td class="center-text">
-                            <button class="btn-view" onclick="showReceipt(${txn.transactionID})" style="margin:0;">View Receipt</button>
+                            <div style="display: flex; gap: 5px; justify-content: center;">
+                                <button class="btn-view" onclick="showReceipt(${txn.transactionID})" style="margin:0;">View Receipt</button>
+                                ${(txn.paymentStatus === 'Unpaid' || txn.paymentStatus === 'Partial') ? `<button class="btn-edit" onclick="openSettleModal(${txn.transactionID})" style="margin:0; background-color: #f97316; border-color: #f97316; color: white;">Settle</button>` : ''}
+                            </div>
                         </td>
                     </tr>`;
                 }).join('');
@@ -379,22 +593,37 @@
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
                 closeModal('receiptModal');
+                closeModal('settlementReceiptModal');
+                closeModal('settleModal');
                 return;
             }
 
             if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                if (el('receiptModal').style.display === 'flex' || el('settlementReceiptModal').style.display === 'flex' || el('settleModal').style.display === 'flex') return;
                 const activeTag = document.activeElement.tagName.toLowerCase();
                 if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
                 el("searchInput").focus();
             }
         });
 
-        el("searchInput").addEventListener("keydown", e => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                performSearch();
+        function showSettlementReceipt(txnCode, customer, method, ref, amountPaid, remainingBalance) {
+            el("sr-txn").innerText = txnCode;
+            el("sr-date").innerText = new Date().toLocaleString('en-PH');
+            el("sr-customer").innerText = customer || 'N/A';
+            el("sr-method").innerText = method;
+            
+            if (ref) {
+                el("sr-ref-row").style.display = "block";
+                el("sr-ref").innerText = ref;
+            } else {
+                el("sr-ref-row").style.display = "none";
             }
-        });
+            
+            el("sr-paid").innerText = `₱${amountPaid.toFixed(2)}`;
+            el("sr-balance").innerText = `₱${remainingBalance.toFixed(2)}`;
+            
+            el('settlementReceiptModal').style.display = 'flex';
+        }
 
         function showReceipt(transactionID) {
             return new Promise((resolve, reject) => {
@@ -435,6 +664,30 @@
                 el('hist-receipt-orig-row').style.display = '';
             } else {
                 el('hist-receipt-orig-row').style.display = 'none';
+            }
+
+            // Show/hide pay later customer details
+            if (txn.paymentStatus === 'Unpaid' || txn.paymentStatus === 'Partial') {
+                el('hist-receipt-customer').textContent = txn.customerName || 'N/A';
+                
+                if (txn.contactInfo) {
+                    el('hist-receipt-contact').textContent = txn.contactInfo;
+                    el('hist-receipt-contact-row').style.display = 'block';
+                } else {
+                    el('hist-receipt-contact-row').style.display = 'none';
+                }
+                
+                if (txn.address) {
+                    el('hist-receipt-address').textContent = txn.address;
+                    el('hist-receipt-address-row').style.display = 'block';
+                } else {
+                    el('hist-receipt-address-row').style.display = 'none';
+                }
+                
+                el('hist-receipt-due').textContent = txn.dueDate ? new Date(txn.dueDate).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
+                el('hist-receipt-customer-details').style.display = 'block';
+            } else {
+                el('hist-receipt-customer-details').style.display = 'none';
             }
 
             const discountAmt = parseFloat(txn.discountAmount || 0);
@@ -480,6 +733,301 @@
                     resolve(); // Resolve anyway so it can still print what we have
                 });
             });
+        }
+
+        function handleSettleMode() {
+            const mode = el("settlePaymentMode").value;
+            const digitalPanel = el("settleDigitalPaymentDetails");
+            const optionalBadge = el("settleCashOptionalBadge");
+            const helpText = el("settleCashHelpText");
+            const balanceText = el("settleBalance").innerText.replace(/,/g, '');
+            const balance = parseFloat(balanceText) || 0;
+
+            if (mode !== "Cash") {
+                digitalPanel.style.display = "block";
+                optionalBadge.style.display = "inline-block";
+                helpText.style.display = "block";
+                el("settleDigitalAmount").value = balance.toFixed(2);
+                el("settleAmount").value = "";
+                el("settleCashGiven").value = "";
+            } else {
+                digitalPanel.style.display = "none";
+                optionalBadge.style.display = "none";
+                helpText.style.display = "none";
+                el("settleReference").value = "";
+                el("settleDigitalAmount").value = "";
+                el("settleAmount").value = balance.toFixed(2);
+            }
+            calculateSettleChange();
+        }
+
+        function calculateSettleChange() {
+            const cashToPay = parseFloat(el("settleAmount").value) || 0;
+            const given = parseFloat(el("settleCashGiven").value) || 0;
+            const change = given - cashToPay;
+            
+            el("settleChangeAmount").innerText = Math.max(0, change).toLocaleString(undefined, { minimumFractionDigits: 2 });
+            el("settleChangeBox").style.background = change >= 0 ? "#e7f3e8" : "#fee2e2";
+        }
+
+        async function openSettleModal(transactionID) {
+            const txn = allTransactions.find(t => t.transactionID === transactionID);
+            if (!txn) return showToast("Transaction not found", true);
+
+            const total = parseFloat(txn.totalAmount || 0);
+            const cash = parseFloat(txn.cashReceived || 0);
+            const digital = parseFloat(txn.digitalAmount || 0);
+            
+            const totalPaid = cash + digital;
+            const balance = total - totalPaid;
+
+            el("settleTxnId").value = transactionID;
+            el("settleTxnCode").textContent = "TXN: " + (txn.transactionCode || '—');
+            el("settleCustomerName").textContent = txn.customerName || 'No Name';
+            el("settleBalance").textContent = balance.toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+            // Fetch installments
+            try {
+                const res = await fetch(`/api/transactions/${transactionID}/installments`);
+                const installments = await res.json();
+
+                let displayDueDate = txn.dueDate;
+                if (!displayDueDate && installments && installments.length > 0) {
+                    displayDueDate = installments[installments.length - 1].dueDate;
+                }
+
+                if (displayDueDate) {
+                    const formattedDue = new Date(displayDueDate).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+                    el("settleDueDate").textContent = "Due Date: " + formattedDue;
+                    el("settleDueDate").style.display = "block";
+                } else {
+                    el("settleDueDate").style.display = "none";
+                }
+
+                if (installments && installments.length > 0) {
+                    // Show installment view, hide regular
+                    el("settleInstallmentSection").style.display = "block";
+                    el("settleRegularSection").style.display = "none";
+                    el("settleInstCloseSection").style.display = "block";
+                    el("instPaymentForm").style.display = "none";
+                    renderInstallmentTable(installments);
+                } else {
+                    // Show regular settle view
+                    el("settleInstallmentSection").style.display = "none";
+                    el("settleRegularSection").style.display = "block";
+                    el("settleInstCloseSection").style.display = "none";
+                    el("settleAmount").value = balance.toFixed(2);
+                    el("settlePaymentMode").value = "Cash";
+                    el("settleReference").value = "";
+                    el("settleCashGiven").value = "";
+                    el("settleChangeAmount").innerText = "0.00";
+                    el("settleChangeBox").style.background = "#e7f3e8";
+                    handleSettleMode();
+                }
+            } catch (e) {
+                // Fallback to regular settle on error
+                el("settleInstallmentSection").style.display = "none";
+                el("settleRegularSection").style.display = "block";
+                el("settleInstCloseSection").style.display = "none";
+                el("settleAmount").value = balance.toFixed(2);
+                el("settlePaymentMode").value = "Cash";
+                handleSettleMode();
+            }
+
+            el("settleModal").style.display = "flex";
+        }
+
+        function renderInstallmentTable(installments) {
+            const tbody = el("settleInstallmentBody");
+            tbody.innerHTML = installments.map((inst, i) => {
+                const dueDate = new Date(inst.dueDate).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+                const amount = parseFloat(inst.amountDue).toLocaleString(undefined, { minimumFractionDigits: 2 });
+                const isPaid = inst.status === 'Paid';
+                const paidInfo = isPaid && inst.paidDate ? `<br><small style="color:#666;">${new Date(inst.paidDate).toLocaleDateString('en-PH')}</small>` : '';
+
+                return `<tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="padding: 8px 4px;">${i + 1}</td>
+                    <td style="padding: 8px 4px;">${dueDate}</td>
+                    <td style="padding: 8px 4px; text-align: right;">₱${amount}</td>
+                    <td style="padding: 8px 4px; text-align: center;">
+                        <span class="status-pill ${isPaid ? 'status-instock' : 'status-outstock'}">${inst.status}</span>
+                        ${paidInfo}
+                    </td>
+                    <td style="padding: 10px 4px; text-align: center;">
+                        ${isPaid ? '—' : `<button class="btn-edit" onclick="startInstPayment(${inst.scheduleID}, ${i + 1}, ${inst.amountDue})" style="margin:0; padding: 6px 14px; font-size: 14px; background-color: #f97316; border-color: #f97316; color: white;">Pay</button>`}
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function startInstPayment(scheduleId, num, amount) {
+            el("instPayScheduleId").value = scheduleId;
+            el("instPayNum").textContent = num;
+            el("instPayAmount").textContent = parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2 });
+            el("instPayAmountVal").value = amount;
+            el("instPayMode").value = "Cash";
+            el("instCashAmount").value = parseFloat(amount).toFixed(2);
+            el("instDigitalAmount").value = "";
+            el("instReference").value = "";
+            el("instCashGiven").value = "";
+            el("instChangeAmount").innerText = "0.00";
+            el("instChangeBox").style.background = "#e7f3e8";
+            handleInstPayMode();
+            el("instPaymentForm").style.display = "block";
+            el("instPaymentForm").scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelInstPayment() {
+            el("instPaymentForm").style.display = "none";
+        }
+
+        function handleInstPayMode() {
+            const mode = el("instPayMode").value;
+            const instAmt = parseFloat(el("instPayAmountVal").value) || 0;
+            if (mode !== "Cash") {
+                el("instDigitalPanel").style.display = "block";
+                el("instCashOptionalBadge").style.display = "inline-block";
+                el("instDigitalAmount").value = instAmt.toFixed(2);
+                el("instCashAmount").value = "";
+                el("instCashGiven").value = "";
+            } else {
+                el("instDigitalPanel").style.display = "none";
+                el("instCashOptionalBadge").style.display = "none";
+                el("instDigitalAmount").value = "";
+                el("instReference").value = "";
+                el("instCashAmount").value = instAmt.toFixed(2);
+            }
+            calculateInstChange();
+        }
+
+        function calculateInstChange() {
+            const cashToPay = parseFloat(el("instCashAmount").value) || 0;
+            const given = parseFloat(el("instCashGiven").value) || 0;
+            const change = given - cashToPay;
+            el("instChangeAmount").innerText = Math.max(0, change).toLocaleString(undefined, { minimumFractionDigits: 2 });
+            el("instChangeBox").style.background = change >= 0 ? "#e7f3e8" : "#fee2e2";
+        }
+
+        async function submitInstallmentPayment() {
+            const txnId = el("settleTxnId").value;
+            const scheduleId = el("instPayScheduleId").value;
+            const mode = el("instPayMode").value;
+
+            let cashAmount = 0;
+            let digitalAmount = 0;
+            let ref = "";
+
+            if (mode !== "Cash") {
+                digitalAmount = parseFloat(el("instDigitalAmount").value) || 0;
+                cashAmount = parseFloat(el("instCashAmount").value) || 0;
+                ref = el("instReference").value.trim();
+                if (!ref && digitalAmount > 0) return showToast("Reference number is required", true);
+            } else {
+                cashAmount = parseFloat(el("instCashAmount").value) || 0;
+            }
+
+            const totalNewPaid = cashAmount + digitalAmount;
+            if (totalNewPaid <= 0) return showToast("Invalid payment amount", true);
+
+            const given = parseFloat(el("instCashGiven").value) || 0;
+            if (cashAmount > 0 && given < cashAmount) {
+                return showToast("Insufficient cash given", true);
+            }
+
+            const btn = el("instConfirmBtn");
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+
+            try {
+                const res = await fetch(`/api/transactions/${txnId}/installments/${scheduleId}/pay`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cashAmount, digitalAmount, paymentMethod: mode, referenceNumber: ref })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to pay installment');
+
+                showToast("Installment paid successfully");
+                el("instPaymentForm").style.display = "none";
+
+                // Reload and re-render
+                await loadTransactions();
+                
+                // Show settlement receipt
+                const txnCode = el("settleTxnCode").innerText.replace("TXN: ", "");
+                const custName = el("settleCustomerName").innerText;
+                const totalPaid = cashAmount + digitalAmount;
+                const remainingBal = parseFloat(el("settleBalance").innerText.replace(/,/g, '')) - totalPaid;
+                
+                showSettlementReceipt(txnCode, custName, mode, ref, totalPaid, Math.max(0, remainingBal));
+                
+                // Keep the settle modal open behind it if there are more installments, otherwise close it
+                if (remainingBal <= 0) closeModal('settleModal');
+                else openSettleModal(parseInt(txnId));
+            } catch (e) {
+                showToast(e.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Confirm Payment";
+            }
+        }
+
+        async function submitSettlePayment() {
+            const id = el("settleTxnId").value;
+            const mode = el("settlePaymentMode").value;
+            
+            let cashAmount = 0;
+            let digitalAmount = 0;
+            let ref = "";
+
+            if (mode !== "Cash") {
+                digitalAmount = parseFloat(el("settleDigitalAmount").value) || 0;
+                cashAmount = parseFloat(el("settleAmount").value) || 0;
+                ref = el("settleReference").value.trim();
+
+                if (!ref && digitalAmount > 0) return showToast("Reference number is required", true);
+            } else {
+                cashAmount = parseFloat(el("settleAmount").value) || 0;
+            }
+
+            const totalNewPaid = cashAmount + digitalAmount;
+            if (totalNewPaid <= 0) return showToast("Invalid payment amount", true);
+
+            const given = parseFloat(el("settleCashGiven").value) || 0;
+            if (cashAmount > 0 && given < cashAmount) {
+                return showToast("Insufficient cash given", true);
+            }
+
+            const btn = el("settleConfirmBtn");
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+
+            try {
+                const res = await fetch(`/api/transactions/${id}/pay`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cashAmount, digitalAmount, paymentMethod: mode, referenceNumber: ref })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to settle payment');
+                
+                showToast("Payment settled successfully");
+                closeModal('settleModal');
+                await loadTransactions();
+
+                const txnCode = el("settleTxnCode").innerText.replace("TXN: ", "");
+                const custName = el("settleCustomerName").innerText;
+                const totalPaid = cashAmount + digitalAmount;
+                const remainingBal = parseFloat(el("settleBalance").innerText.replace(/,/g, '')) - totalPaid;
+                
+                showSettlementReceipt(txnCode, custName, mode, ref, totalPaid, Math.max(0, remainingBal));
+            } catch (e) {
+                showToast(e.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Confirm Payment";
+            }
         }
 
         window.addEventListener('DOMContentLoaded', () => {
