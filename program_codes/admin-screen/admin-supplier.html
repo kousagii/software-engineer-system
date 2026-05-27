@@ -104,7 +104,8 @@
                         <textarea id="supAddress" rows="3" placeholder="Address"></textarea>
 
                         <label>Payment Terms</label>
-                        <select id="supTermsSelect" onchange="toggleCustomTerms()" style="width: 100%; margin-bottom: 10px;">
+                        <select id="supTermsSelect" onchange="toggleCustomTerms()"
+                            style="width: 100%; margin-bottom: 10px;">
                             <option value="COD">COD</option>
                             <option value="15 Days">15 Days</option>
                             <option value="30 Days">30 Days</option>
@@ -112,7 +113,8 @@
                             <option value="90 Days">90 Days</option>
                             <option value="Others">Others</option>
                         </select>
-                        <input type="text" id="supTermsCustom" placeholder="Enter custom term" maxlength="50" style="display: none; width: 100%;">
+                        <input type="text" id="supTermsCustom" placeholder="Enter custom term" maxlength="50"
+                            style="display: none; width: 100%;">
                     </div>
 
                     <div style="flex: 1;">
@@ -294,7 +296,7 @@
             val('supContact', s.contactNumber || '');
             val('supEmail', s.email || '');
             val('supAddress', s.address || '');
-            
+
             const predefinedTerms = ['COD', '15 Days', '30 Days', '60 Days', '90 Days'];
             const savedTerm = s.termsOfPayment || 'COD';
             if (predefinedTerms.includes(savedTerm)) {
