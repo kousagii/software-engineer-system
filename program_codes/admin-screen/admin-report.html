@@ -113,13 +113,13 @@
                         <div id="salesSortByDiv" style="display: none;">
                             <label>Sort By</label>
                             <select id="salesSortBy" onchange="renderReport()">
-                                <option value="income-desc">Income (Highest)</option>
-                                <option value="income-asc">Income (Lowest)</option>
+                                <option value="income-desc">Sales (Highest)</option>
+                                <option value="income-asc">Sales (Lowest)</option>
                                 <option value="sold-desc">Products Sold (Highest)</option>
                                 <option value="sold-asc">Products Sold (Lowest)</option>
                                 <option value="returns-desc">Returns (Highest)</option>
                                 <option value="returns-asc">Returns (Lowest)</option>
-                                <option value="product-asc">Product (A-Z)</option>
+                                <option value="product-asc">Product (A-Z)< /option>
                             </select>
                         </div>
                         <div id="userLogSortByDiv" style="display: none;">
@@ -265,7 +265,7 @@
                         <th>Product</th>
                         <th>No. of Products Sold</th>
                         <th>No. of Returns</th>
-                        <th>Income (Sales)</th>
+                        <th>Sales</th>
                     </tr>
                 `;
             } else if (currentReportType === 'userlogs') {

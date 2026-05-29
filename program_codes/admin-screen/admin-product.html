@@ -160,6 +160,8 @@
                     <thead>
                         <tr>
                             <th>Product</th>
+                            <th>Category</th>
+                            <th>Brand</th>
                             <th>Description</th>
                             <th>Price</th>
                             <th>Stocks</th>
@@ -168,7 +170,7 @@
                     </thead>
                     <tbody id="product-table-body">
                         <tr>
-                            <td colspan="5" class="center-text">Loading products...</td>
+                            <td colspan="7" class="center-text">Loading products...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -485,6 +487,8 @@
                             </div>
                         </div>
                     </td>
+                    <td class="sub-text">${p.category || 'N/A'}</td>
+                    <td class="sub-text">${p.brand || 'N/A'}</td>
                     <td class="sub-text">${p.productDescription || ''}</td>
                     <td>₱${parseFloat(p.price).toFixed(2)}</td>
                     <td>${p.stockQuantity}</td>
@@ -492,7 +496,7 @@
                         ${actionCell}
                     </td>
                 </tr>`;
-            }).join('') || '<tr><td colspan="5" class="center-text">No products found.</td></tr>';
+            }).join('') || '<tr><td colspan="7" class="center-text">No products found.</td></tr>';
         }
 
         function generateBarcode() {
@@ -1532,7 +1536,7 @@
                 const res = await fetch('/api/products');
                 productList = await res.json();
                 processData();
-            } catch { $('product-table-body').innerHTML = '<tr><td colspan="5" class="center-text">Error loading data.</td></tr>'; }
+            } catch { $('product-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error loading data.</td></tr>'; }
         }
 
         function deleteCurrentProduct() {

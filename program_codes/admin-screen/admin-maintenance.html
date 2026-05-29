@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance | Udicon Trading</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+
+<body>
+    <div id="sidebar"></div>
+
+    <!-- Custom Alert Modal -->
+    <div id="custom-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div id="modal-message"></div>
+            <div id="modal-actions"></div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast"></div>
+
+    <!-- Backup Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Schedule Settings</h3>
+            <form id="settings-form">
+                <div>
+                    <label for="full-schedule">Full Backup Frequency</label>
+                    <select id="full-schedule" required>
+                        <option value="0 0 * * *">Daily at Midnight (Recommended)</option>
+                        <option value="0 12 * * *">Daily at Noon</option>
+                        <option value="0 0 * * 0">Weekly (Every Sunday)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="inc-schedule">Incremental Backup Frequency</label>
+                    <select id="inc-schedule" required>
+                        <option value="30 * * * *">Every Hour (Recommended)</option>
+                        <option value="0 */3 * * *">Every 3 Hours</option>
+                        <option value="0 */6 * * *">Every 6 Hours</option>
+                    </select>
+                </div>
+                <div class="align-right">
+                    <button type="button" class="modal-btn btn-cancel" id="cancel-settings-btn">Cancel</button>
+                    <button type="submit" class="modal-btn btn-ok">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Backup Delete Modal -->
+    <div id="delete-backup-modal" class="modal-overlay">
+        <div class="modal-box">
+            <p>Are you sure you want to delete this backup file? This cannot be undone.</p>
+            <div>
+                <button id="cancel-delete-backup-btn" class="modal-btn btn-cancel">Cancel</button>
+                <button id="confirm-delete-backup-btn" class="modal-btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Add/Edit Modal -->
+    <div id="product-form-modal" class="maint-form-modal">
+        <div class="maint-form-box">
+            <div class="maint-form-header">
+                <h3 id="product-form-title">Add Product</h3>
+                <button class="maint-form-close" onclick="closeProductForm()">×</button>
+            </div>
+            <form id="product-form" onsubmit="return false;">
+                <label>Name</label>
+                <input type="text" id="mProdName" placeholder="e.g. Pliers" required>
+
+                <div class="maint-form-row">
+                    <div>
+                        <label>Category</label>
+                        <select id="mProdCategory">
+                            <option value="Tools">Tools</option>
+                            <option value="Cement">Cement</option>
+                            <option value="Wood">Wood</option>
+                            <option value="Roofing">Roofing</option>
+                            <option value="Bricks">Bricks</option>
+                            <option value="Paints">Paints</option>
+                            <option value="Electrical">Electrical</option>
+                            <option value="Plumbing">Plumbing</option>
+                            <option value="Steel">Steel</option>
+                            <option value="Safety &amp; PPE">Safety &amp; PPE</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Brand</label>
+                        <input type="text" id="mProdBrand" placeholder="e.g. Stanley">
+                    </div>
+                </div>
+
+                <div class="maint-form-row">
+                    <div>
+                        <label>Stock Quantity</label>
+                        <input type="number" id="mProdStock" placeholder="25" min="0" value="0">
+                    </div>
+                    <div>
+                        <label>Low Stock Threshold</label>
+                        <input type="number" id="mProdLowStock" placeholder="10" min="0" value="10">
+                    </div>
+                </div>
+
+                <div class="maint-form-row">
+                    <div>
+                        <label>Purchase Price (₱)</label>
+                        <input type="number" id="mProdInitialPrice" placeholder="120" min="0" step="0.01">
+                    </div>
+                    <div>
+                        <label>Selling Price (₱)</label>
+                        <input type="number" id="mProdPrice" placeholder="180" min="0" step="0.01">
+                    </div>
+                </div>
+
+                <label>Description</label>
+                <textarea id="mProdDescription" rows="3" placeholder="Product description"></textarea>
+
+                <div class="maint-form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeProductForm()">Cancel</button>
+                    <button type="button" class="btn-create" id="btn-save-product" onclick="saveProduct()">Add
+                        Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supplier Add/Edit Modal -->
+    <div id="supplier-form-modal" class="maint-form-modal">
+        <div class="maint-form-box maint-form-box-wide">
+            <div class="maint-form-header">
+                <h3 id="supplier-form-title">Add Supplier</h3>
+                <button class="maint-form-close" onclick="closeSupplierForm()">×</button>
+            </div>
+            <form id="supplier-form" onsubmit="return false;">
+                <div class="maint-form-row">
+                    <div>
+                        <label>Name</label>
+                        <input type="text" id="mSupName" placeholder="Supplier Name" maxlength="100" required>
+
+                        <label>Contact Number</label>
+                        <input type="tel" id="mSupContact" placeholder="09135513434" maxlength="11"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
+
+                        <label>Email</label>
+                        <input type="email" id="mSupEmail" placeholder="supplier@gmail.com">
+
+                        <label>Address</label>
+                        <textarea id="mSupAddress" rows="2" placeholder="Address"></textarea>
+
+                        <label>Payment Terms</label>
+                        <select id="mSupTermsSelect" onchange="toggleMaintCustomTerms()">
+                            <option value="COD">COD</option>
+                            <option value="15 Days">15 Days</option>
+                            <option value="30 Days">30 Days</option>
+                            <option value="60 Days">60 Days</option>
+                            <option value="90 Days">90 Days</option>
+                            <option value="Others">Others</option>
+                        </select>
+                        <input type="text" id="mSupTermsCustom" placeholder="Enter custom term" maxlength="50"
+                            class="hidden">
+                    </div>
+                    <div>
+                        <label>Product List</label>
+                        <input type="text" id="mSupProductSearch" placeholder="Search products..."
+                            onkeyup="filterMaintSupplierProducts()">
+                        <div class="maint-product-select-box" id="maint-product-checkbox-container">
+                            <p class="sub-text center-text">Loading products...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="maint-form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeSupplierForm()">Cancel</button>
+                    <button type="button" class="btn-create" id="btn-save-supplier" onclick="saveSupplier()">Add
+                        Supplier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <main class="dashboard-main">
+        <div class="page-header">
+            <h2>Maintenance</h2>
+        </div>
+
+        <!-- Main Tab Bar -->
+        <div class="maint-tab-bar">
+            <button class="maint-tab-btn active-tab" id="tab-products" onclick="switchMainTab('products')">
+                Products <span class="tab-count" id="products-count">0</span>
+            </button>
+            <button class="maint-tab-btn" id="tab-suppliers" onclick="switchMainTab('suppliers')">
+                Suppliers <span class="tab-count" id="suppliers-count">0</span>
+            </button>
+            <button class="maint-tab-btn" id="tab-backups" onclick="switchMainTab('backups')">
+                Backups
+            </button>
+            <button class="maint-tab-btn" id="tab-archive" onclick="switchMainTab('archive')">
+                Archive
+            </button>
+        </div>
+
+        <!-- ==================== BACKUPS SECTION ==================== -->
+        <div class="maint-section" id="section-backups">
+            <div class="maint-toolbar">
+                <div class="maint-toolbar-left">
+                    <span class="sub-text">Manage database and file backups</span>
+                </div>
+                <div class="maint-toolbar-right">
+                    <button class="btn-create" id="btn-manual-backup">+ Create Manual Backup</button>
+                    <button class="btn-view" id="btn-backup-settings">Backup Settings</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Database</th>
+                            <th>Files</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="backup-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ==================== ARCHIVE SECTION ==================== -->
+        <div class="maint-section" id="section-archive">
+            <div class="maint-sub-tab-bar">
+                <button class="maint-sub-tab-btn active-sub-tab" id="arc-tab-products"
+                    onclick="switchArchiveTab('products')">
+                    Products &nbsp; <span class="tab-count" id="arc-product-count">0</span>
+                </button>
+                <button class="maint-sub-tab-btn" id="arc-tab-suppliers" onclick="switchArchiveTab('suppliers')">
+                    Suppliers &nbsp; <span class="tab-count" id="arc-supplier-count">0</span>
+                </button>
+            </div>
+
+            <div class="maint-toolbar">
+                <div class="maint-toolbar-left">
+                    <label>Search</label>
+                    <input type="text" id="arcSearchInput" placeholder="Search archived items...">
+                </div>
+                <div class="maint-toolbar-right">
+                    <label>Show</label>
+                    <select id="arcShowLimit">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="all">All</option>
+                    </select>
+                    <label>Sort by</label>
+                    <select id="arcSortMode">
+                        <option value="default">Default</option>
+                        <option value="asc">Name (A-Z)</option>
+                        <option value="desc">Name (Z-A)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Archive Products Table -->
+            <div class="table-container" id="arc-products-table-section">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Brand</th>
+                            <th>Barcode</th>
+                            <th>Stock</th>
+                            <th>Price</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="arc-products-table-body">
+                        <tr>
+                            <td colspan="7" class="center-text">Loading archived products...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div id="arc-pagination-controls" class="pagination-container hidden">
+                    <button id="arc-btn-prev" onclick="changeArcPage(-1)">Previous</button>
+                    <span id="arc-page-info">Page 1 of 1</span>
+                    <button id="arc-btn-next" onclick="changeArcPage(1)">Next</button>
+                </div>
+            </div>
+
+            <!-- Archive Suppliers Table -->
+            <div class="table-container hidden" id="arc-suppliers-table-section">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Supplier</th>
+                            <th>Contact Number</th>
+                            <th>Email</th>
+                            <th>Address</th>
+                            <th>Terms of Payment</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="arc-suppliers-table-body">
+                        <tr>
+                            <td colspan="6" class="center-text">Loading archived suppliers...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div id="arc-sup-pagination-controls" class="pagination-container hidden">
+                    <button id="arc-sup-btn-prev" onclick="changeArcSupplierPage(-1)">Previous</button>
+                    <span id="arc-sup-page-info">Page 1 of 1</span>
+                    <button id="arc-sup-btn-next" onclick="changeArcSupplierPage(1)">Next</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== PRODUCTS SECTION ==================== -->
+        <div class="maint-section active" id="section-products">
+            <div class="maint-toolbar">
+                <div class="maint-toolbar-left">
+                    <label>Search</label>
+                    <input type="text" id="prodSearchInput" placeholder="Search products...">
+                </div>
+                <div class="maint-toolbar-right">
+                    <label>Category</label>
+                    <select id="prodCategoryFilter">
+                        <option value="All">All</option>
+                        <option value="Tools">Tools</option>
+                        <option value="Cement">Cement</option>
+                        <option value="Wood">Wood</option>
+                        <option value="Roofing">Roofing</option>
+                        <option value="Bricks">Bricks</option>
+                        <option value="Paints">Paints</option>
+                        <option value="Electrical">Electrical</option>
+                        <option value="Plumbing">Plumbing</option>
+                        <option value="Steel">Steel</option>
+                        <option value="Safety &amp; PPE">Safety &amp; PPE</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <label>Show</label>
+                    <select id="prodShowLimit">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="all">All</option>
+                    </select>
+                    <label>Sort</label>
+                    <select id="prodSortMode">
+                        <option value="default">Default</option>
+                        <option value="az">Name: A-Z</option>
+                        <option value="za">Name: Z-A</option>
+                        <option value="priceLow">Price: Low-High</option>
+                        <option value="priceHigh">Price: High-Low</option>
+                    </select>
+                    <button class="btn-create" onclick="openProductForm()">+ Add Product</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Brand</th>
+                            <th>Purchase Price</th>
+                            <th>Selling Price</th>
+                            <th>Stock</th>
+                            <th class="center-text">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-table-body">
+                        <tr>
+                            <td colspan="7" class="center-text">Loading products...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div id="prod-pagination-controls" class="pagination-container hidden">
+                    <button id="prod-btn-prev" onclick="changeProdPage(-1)">Previous</button>
+                    <span id="prod-page-info">Page 1 of 1</span>
+                    <button id="prod-btn-next" onclick="changeProdPage(1)">Next</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== SUPPLIERS SECTION ==================== -->
+        <div class="maint-section" id="section-suppliers">
+            <div class="maint-toolbar">
+                <div class="maint-toolbar-left">
+                    <label>Search</label>
+                    <input type="text" id="supSearchInput" placeholder="Search suppliers...">
+                </div>
+                <div class="maint-toolbar-right">
+                    <label>Show</label>
+                    <select id="supShowLimit">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="all">All</option>
+                    </select>
+                    <label>Sort by</label>
+                    <select id="supSortMode">
+                        <option value="default">Default</option>
+                        <option value="asc">Name (A-Z)</option>
+                        <option value="desc">Name (Z-A)</option>
+                    </select>
+                    <button class="btn-create" onclick="openSupplierForm()">+ Add Supplier</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Supplier</th>
+                            <th>Contact Number</th>
+                            <th>Email</th>
+                            <th>Address</th>
+                            <th>Terms of Payment</th>
+                            <th>Product List</th>
+                            <th class="center-text">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="suppliers-table-body">
+                        <tr>
+                            <td colspan="7" class="center-text">Loading suppliers...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div id="sup-pagination-controls" class="pagination-container hidden">
+                    <button id="sup-btn-prev" onclick="changeSupPage(-1)">Previous</button>
+                    <span id="sup-page-info">Page 1 of 1</span>
+                    <button id="sup-btn-next" onclick="changeSupPage(1)">Next</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="../authGuard.js"></script>
+    <script>
+        // ======================== UTILITIES ========================
+        const $ = id => document.getElementById(id);
+        const val = (id, v) => v !== undefined ? $(id).value = v : $(id).value;
+
+        const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
+
+        // --- Toast ---
+        function showToast(msg, isError = false) {
+            const toast = $('toast');
+            toast.textContent = msg;
+            toast.className = isError ? 'show error' : 'show';
+            setTimeout(() => { toast.className = ''; }, 3000);
+        }
+
+        // --- Modal ---
+        const closeModal = () => $('custom-modal').classList.remove('flex');
+
+        function showAlert(msg, isConfirm = false, cb = null) {
+            $('modal-message').innerHTML = msg;
+            $('modal-actions').innerHTML = isConfirm
+                ? `<button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
+               <button class="modal-btn btn-ok" id="conf-btn">Confirm</button>`
+                : `<button class="modal-btn btn-ok" onclick="closeModal()">OK</button>`;
+
+            if (cb) {
+                $('conf-btn').onclick = () => { closeModal(); cb(); };
+            }
+            $('custom-modal').classList.add('flex');
+        }
+
+        // ======================== MAIN TAB SWITCHING ========================
+        let currentMainTab = 'products';
+
+        function switchMainTab(tab) {
+            currentMainTab = tab;
+            ['backups', 'archive', 'products', 'suppliers'].forEach(t => {
+                $(`tab-${t}`).classList.toggle('active-tab', t === tab);
+                $(`section-${t}`).classList.toggle('active', t === tab);
+            });
+
+            // Load data for the tab if needed
+            if (tab === 'backups') fetchBackups();
+            if (tab === 'archive') { loadArchiveData(); processArchiveData(); }
+            if (tab === 'products') { loadProducts(); }
+            if (tab === 'suppliers') { loadSuppliers(); }
+        }
+
+        // ======================== BACKUPS TAB ========================
+        let backupToDeleteId = null;
+
+        const btnManualBackup = $('btn-manual-backup');
+        const btnSettings = $('btn-backup-settings');
+        const settingsModal = $('settings-modal');
+        const cancelSettingsBtn = $('cancel-settings-btn');
+        const settingsForm = $('settings-form');
+        const deleteBackupModal = $('delete-backup-modal');
+        const confirmDeleteBackupBtn = $('confirm-delete-backup-btn');
+        const cancelDeleteBackupBtn = $('cancel-delete-backup-btn');
+
+        btnSettings.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/backups/schedule');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.fullSchedule) $('full-schedule').value = data.fullSchedule;
+                    if (data.incSchedule) $('inc-schedule').value = data.incSchedule;
+                }
+            } catch (error) {
+                console.error("Failed to fetch current schedule settings:", error);
+            }
+            settingsModal.style.display = 'flex';
+        });
+
+        cancelSettingsBtn.addEventListener('click', () => {
+            settingsModal.style.display = 'none';
+        });
+
+        cancelDeleteBackupBtn.addEventListener('click', () => {
+            deleteBackupModal.style.display = 'none';
+            backupToDeleteId = null;
+        });
+
+        window.onclick = function (event) {
+            if (event.target == settingsModal) settingsModal.style.display = "none";
+            if (event.target == deleteBackupModal) { deleteBackupModal.style.display = "none"; backupToDeleteId = null; }
+            // Close form modals on overlay click
+            if (event.target == $('product-form-modal')) closeProductForm();
+            if (event.target == $('supplier-form-modal')) closeSupplierForm();
+        };
+
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fullSchedule = $('full-schedule').value;
+            const incSchedule = $('inc-schedule').value;
+            const submitBtn = settingsForm.querySelector('button[type="submit"]');
+
+            submitBtn.innerText = "Saving...";
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/backups/schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fullSchedule, incSchedule })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast("Backup schedules updated successfully!");
+                    settingsModal.style.display = 'none';
+                } else {
+                    showAlert(data.error || "Failed to update schedules.");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                showAlert("Network error updating schedules.");
+            } finally {
+                submitBtn.innerText = "Save";
+                submitBtn.disabled = false;
+            }
+        });
+
+        btnManualBackup.addEventListener('click', async () => {
+            btnManualBackup.innerText = "Generating...";
+            btnManualBackup.disabled = true;
+
+            try {
+                const response = await fetch('/api/backups/manual', { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast(data.message);
+                    fetchBackups();
+                } else {
+                    showAlert(data.error);
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                showAlert("Failed to create backup.");
+            } finally {
+                btnManualBackup.innerText = "+ Create Manual Backup";
+                btnManualBackup.disabled = false;
+            }
+        });
+
+        async function fetchBackups() {
+            try {
+                const response = await fetch('/api/backups');
+                const backups = await response.json();
+                const tableBody = $('backup-table-body');
+
+                tableBody.innerHTML = '';
+
+                if (backups.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="5" class="center-text">No backups found.</td></tr>`;
+                    return;
+                }
+
+                backups.forEach(backup => {
+                    const dateObj = new Date(backup.backupDate);
+                    const formattedDate = dateObj.toLocaleString('en-GB', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit', hour12: true
+                    });
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td>${backup.fileName}</td>
+                    <td>${backup.backupType}</td>
+                    <td><span class="status-pill status-instock">Completed</span></td>
+                    <td><button class="btn-delete" onclick="promptDeleteBackup(${backup.backupID})">Delete</button></td>
+                `;
+                    tableBody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error("Error fetching backups:", error);
+            }
+        }
+
+        window.promptDeleteBackup = function (id) {
+            backupToDeleteId = id;
+            deleteBackupModal.style.display = 'flex';
+        };
+
+        confirmDeleteBackupBtn.addEventListener('click', async () => {
+            if (!backupToDeleteId) return;
+
+            confirmDeleteBackupBtn.innerText = "Deleting...";
+            confirmDeleteBackupBtn.disabled = true;
+
+            try {
+                const response = await fetch(`/api/backups/${backupToDeleteId}`, { method: 'DELETE' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    fetchBackups();
+                } else {
+                    showAlert(data.error);
+                }
+            } catch (error) {
+                console.error("Error deleting backup:", error);
+            } finally {
+                deleteBackupModal.style.display = 'none';
+                backupToDeleteId = null;
+                confirmDeleteBackupBtn.innerText = "Delete";
+                confirmDeleteBackupBtn.disabled = false;
+            }
+        });
+
+        // ======================== ARCHIVE TAB ========================
+        let archivedProducts = [];
+        let archivedSuppliers = [];
+        let arcCurrentTab = 'products';
+        let arcCurrentPage = 1;
+        let arcSupplierPage = 1;
+
+        function switchArchiveTab(tab) {
+            arcCurrentTab = tab;
+            $('arc-tab-products').classList.toggle('active-sub-tab', tab === 'products');
+            $('arc-tab-suppliers').classList.toggle('active-sub-tab', tab === 'suppliers');
+            $('arc-products-table-section').classList.toggle('hidden', tab !== 'products');
+            $('arc-suppliers-table-section').classList.toggle('hidden', tab !== 'suppliers');
+            arcCurrentPage = 1;
+            arcSupplierPage = 1;
+            processArchiveData();
+        }
+
+        function processArchiveData() {
+            if (arcCurrentTab === 'products') processArcProducts();
+            else processArcSuppliers();
+        }
+
+        function processArcProducts() {
+            let data = [...archivedProducts];
+            const query = val('arcSearchInput').toLowerCase();
+            const sort = val('arcSortMode');
+            const limitVal = val('arcShowLimit');
+
+            if (query) {
+                data = data.filter(p =>
+                    (p.productName || '').toLowerCase().includes(query) ||
+                    (p.category || '').toLowerCase().includes(query) ||
+                    (p.brand || '').toLowerCase().includes(query) ||
+                    (p.barcode || '').toLowerCase().includes(query) ||
+                    String(p.productID).includes(query)
+                );
+            }
+
+            if (sort === 'asc') data.sort((a, b) => (a.productName || '').localeCompare(b.productName || ''));
+            else if (sort === 'desc') data.sort((a, b) => (b.productName || '').localeCompare(a.productName || ''));
+
+            let paginatedData;
+            if (limitVal === 'all') {
+                paginatedData = data;
+                updatePaginationUI('arc-pagination-controls', 'arc-page-info', 'arc-btn-prev', 'arc-btn-next', data.length, data.length, arcCurrentPage);
+            } else {
+                const limit = parseInt(limitVal);
+                const totalPages = Math.ceil(data.length / limit);
+                if (arcCurrentPage > totalPages && totalPages > 0) arcCurrentPage = totalPages;
+                const start = (arcCurrentPage - 1) * limit;
+                paginatedData = data.slice(start, start + limit);
+                updatePaginationUI('arc-pagination-controls', 'arc-page-info', 'arc-btn-prev', 'arc-btn-next', data.length, limit, arcCurrentPage);
+            }
+
+            renderArcProductsTable(paginatedData);
+        }
+
+        function processArcSuppliers() {
+            let data = [...archivedSuppliers];
+            const query = val('arcSearchInput').toLowerCase();
+            const sort = val('arcSortMode');
+            const limitVal = val('arcShowLimit');
+
+            if (query) {
+                data = data.filter(s => Object.values(s).some(v => String(v).toLowerCase().includes(query)));
+            }
+
+            if (sort === 'asc') data.sort((a, b) => (a.supplierName || '').localeCompare(b.supplierName || ''));
+            else if (sort === 'desc') data.sort((a, b) => (b.supplierName || '').localeCompare(a.supplierName || ''));
+
+            let paginatedData;
+            if (limitVal === 'all') {
+                paginatedData = data;
+                updatePaginationUI('arc-sup-pagination-controls', 'arc-sup-page-info', 'arc-sup-btn-prev', 'arc-sup-btn-next', data.length, data.length, arcSupplierPage);
+            } else {
+                const limit = parseInt(limitVal);
+                const totalPages = Math.ceil(data.length / limit);
+                if (arcSupplierPage > totalPages && totalPages > 0) arcSupplierPage = totalPages;
+                const start = (arcSupplierPage - 1) * limit;
+                paginatedData = data.slice(start, start + limit);
+                updatePaginationUI('arc-sup-pagination-controls', 'arc-sup-page-info', 'arc-sup-btn-prev', 'arc-sup-btn-next', data.length, limit, arcSupplierPage);
+            }
+
+            renderArcSuppliersTable(paginatedData);
+        }
+
+        function updatePaginationUI(containerId, infoId, prevId, nextId, totalItems, limit, page) {
+            const container = $(containerId);
+            if (limit === 'all' || limit >= totalItems || totalItems === 0) {
+                container.classList.add('hidden');
+                container.classList.remove('flex');
+                return;
+            }
+
+            const totalPages = Math.ceil(totalItems / limit);
+            $(infoId).innerText = `Page ${page} of ${totalPages}`;
+            $(prevId).disabled = page === 1;
+            $(nextId).disabled = page === totalPages;
+
+            container.classList.remove('hidden');
+            container.classList.add('flex');
+        }
+
+        function changeArcPage(dir) { arcCurrentPage += dir; processArcProducts(); }
+        function changeArcSupplierPage(dir) { arcSupplierPage += dir; processArcSuppliers(); }
+
+        function renderArcProductsTable(data) {
+            if (data.length === 0) {
+                $('arc-products-table-body').innerHTML = `
+                <tr><td colspan="7">
+                    <div class="maint-empty-state">
+                        <div class="empty-icon">📦</div>
+                        <p>No archived products found.</p>
+                    </div>
+                </td></tr>`;
+                return;
+            }
+
+            $('arc-products-table-body').innerHTML = data.map(p => {
+                const imgSrc = p.imagePath ? p.imagePath : placeholderImg;
+                const price = parseFloat(p.price || 0).toFixed(2);
+                return `
+                <tr>
+                    <td>
+                        <div class="archive-product-cell">
+                            <img src="${imgSrc}" alt="" class="archive-product-img" onerror="this.src='${placeholderImg}'">
+                            <div class="archive-product-info">
+                                <strong>${p.productName}</strong>
+                                <span class="sub-text">ID: ${p.productID}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="sub-text">${p.category || 'N/A'}</td>
+                    <td class="sub-text">${p.brand || 'N/A'}</td>
+                    <td class="sub-text">${p.barcode || 'N/A'}</td>
+                    <td class="sub-text">${p.stockQuantity || 0}</td>
+                    <td class="sub-text">₱${price}</td>
+                    <td>
+                        <button class="btn-restore" onclick="restoreProduct(${p.productID}, '${(p.productName || '').replace(/'/g, "\\'")}')">Restore</button>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        function renderArcSuppliersTable(data) {
+            if (data.length === 0) {
+                $('arc-suppliers-table-body').innerHTML = `
+                <tr><td colspan="6">
+                    <div class="maint-empty-state">
+                        <div class="empty-icon">🏭</div>
+                        <p>No archived suppliers found.</p>
+                    </div>
+                </td></tr>`;
+                return;
+            }
+
+            $('arc-suppliers-table-body').innerHTML = data.map(s => {
+                const addr = (s.address && s.address.length > 35) ? s.address.substring(0, 35) + '...' : (s.address || 'N/A');
+                return `
+                <tr>
+                    <td><strong>${s.supplierName}</strong><br><small class="sub-text">ID: ${s.supplierID}</small></td>
+                    <td class="sub-text">${s.contactNumber || 'N/A'}</td>
+                    <td class="sub-text">${s.email || 'N/A'}</td>
+                    <td class="sub-text address-cell">${addr}</td>
+                    <td class="sub-text">${s.termsOfPayment || 'COD'}</td>
+                    <td>
+                        <button class="btn-restore" onclick="restoreSupplier(${s.supplierID}, '${(s.supplierName || '').replace(/'/g, "\\'")}')">Restore</button>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        async function loadArchivedProducts() {
+            try {
+                const res = await fetch('/api/archive/products');
+                archivedProducts = await res.json();
+                $('arc-product-count').textContent = archivedProducts.length;
+            } catch {
+                archivedProducts = [];
+                $('arc-product-count').textContent = '0';
+            }
+        }
+
+        async function loadArchivedSuppliers() {
+            try {
+                const res = await fetch('/api/archive/suppliers');
+                archivedSuppliers = await res.json();
+                $('arc-supplier-count').textContent = archivedSuppliers.length;
+            } catch {
+                archivedSuppliers = [];
+                $('arc-supplier-count').textContent = '0';
+            }
+        }
+
+        async function loadArchiveData() {
+            await Promise.all([loadArchivedProducts(), loadArchivedSuppliers()]);
+        }
+
+        function restoreProduct(id, name) {
+            showAlert(`Restore <strong>${name}</strong> back to active products?`, true, async () => {
+                try {
+                    const res = await fetch(`/api/archive/products/${id}/restore`, { method: 'PUT' });
+                    if (res.ok) {
+                        showToast(`"${name}" has been restored!`);
+                        await loadArchiveData();
+                        processArchiveData();
+                        loadProducts(); // refresh product tab
+                    } else {
+                        const result = await res.json();
+                        showToast('Error: ' + result.error, true);
+                    }
+                } catch {
+                    showToast('Failed to connect to the server.', true);
+                }
+            });
+        }
+
+        function restoreSupplier(id, name) {
+            showAlert(`Restore <strong>${name}</strong> back to active suppliers?`, true, async () => {
+                try {
+                    const res = await fetch(`/api/archive/suppliers/${id}/restore`, { method: 'PUT' });
+                    if (res.ok) {
+                        showToast(`"${name}" has been restored!`);
+                        await loadArchiveData();
+                        processArchiveData();
+                        loadSuppliers(); // refresh supplier tab
+                    } else {
+                        const result = await res.json();
+                        showToast('Error: ' + result.error, true);
+                    }
+                } catch {
+                    showToast('Failed to connect to the server.', true);
+                }
+            });
+        }
+
+        // ======================== PRODUCTS TAB ========================
+        let allProducts = [];
+        let prodCurrentPage = 1;
+        let prodEditId = null;
+
+        async function loadProducts() {
+            try {
+                const res = await fetch('/api/products');
+                allProducts = await res.json();
+                $('products-count').textContent = allProducts.length;
+                prodCurrentPage = 1;
+                processProducts();
+            } catch {
+                $('products-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error loading products.</td></tr>';
+            }
+        }
+
+        function processProducts() {
+            let data = [...allProducts];
+            const query = val('prodSearchInput').toLowerCase();
+            const sort = val('prodSortMode');
+            const limitVal = val('prodShowLimit');
+            const category = val('prodCategoryFilter');
+
+            if (query) {
+                data = data.filter(p =>
+                    (p.productName || '').toLowerCase().includes(query) ||
+                    (p.productID || '').toString().includes(query) ||
+                    (p.productDescription || '').toLowerCase().includes(query) ||
+                    (p.barcode || '').includes(query) ||
+                    (p.brand || '').toLowerCase().includes(query)
+                );
+            }
+
+            if (category !== 'All') {
+                data = data.filter(p => p.category === category);
+            }
+
+            if (sort === 'az') data.sort((a, b) => (a.productName || '').localeCompare(b.productName || ''));
+            else if (sort === 'za') data.sort((a, b) => (b.productName || '').localeCompare(a.productName || ''));
+            else if (sort === 'priceLow') data.sort((a, b) => parseFloat(a.price || 0) - parseFloat(b.price || 0));
+            else if (sort === 'priceHigh') data.sort((a, b) => parseFloat(b.price || 0) - parseFloat(a.price || 0));
+
+            const parsedLimit = limitVal === 'all' ? data.length : parseInt(limitVal);
+            const totalPages = Math.ceil(data.length / parsedLimit) || 1;
+            if (prodCurrentPage > totalPages) prodCurrentPage = totalPages;
+            if (prodCurrentPage < 1) prodCurrentPage = 1;
+
+            const startIndex = (prodCurrentPage - 1) * parsedLimit;
+            const paginatedData = data.slice(startIndex, startIndex + parsedLimit);
+
+            renderProductsTable(paginatedData);
+            updatePaginationUI('prod-pagination-controls', 'prod-page-info', 'prod-btn-prev', 'prod-btn-next', data.length, parsedLimit, prodCurrentPage);
+        }
+
+        function changeProdPage(dir) { prodCurrentPage += dir; processProducts(); }
+
+        function renderProductsTable(data) {
+            if (data.length === 0) {
+                $('products-table-body').innerHTML = `
+                <tr><td colspan="7">
+                    <div class="maint-empty-state">
+                        <div class="empty-icon">🏷️</div>
+                        <p>No products found.</p>
+                    </div>
+                </td></tr>`;
+                return;
+            }
+
+            $('products-table-body').innerHTML = data.map(p => {
+                const imgSrc = p.imagePath || placeholderImg;
+                const purchasePrice = parseFloat(p.initialPrice || 0).toFixed(2);
+                const sellingPrice = parseFloat(p.price || 0).toFixed(2);
+                return `
+                <tr>
+                    <td>
+                        <div class="product-name-col">
+                            <img src="${imgSrc}" alt="${p.productName}" onerror="this.onerror=null; this.src='${placeholderImg}';">
+                            <div class="product-info">
+                                <strong>${p.productName}</strong><br>
+                                <span class="sub-text">BC: ${p.barcode || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="sub-text">${p.category || 'N/A'}</td>
+                    <td class="sub-text">${p.brand || 'N/A'}</td>
+                    <td>₱${purchasePrice}</td>
+                    <td>₱${sellingPrice}</td>
+                    <td>${p.stockQuantity}</td>
+                    <td class="center-text">
+                        <div class="action-btns">
+                            <button class="btn-edit" onclick="openProductForm(${p.productID})">Edit</button>
+                            <button class="btn-delete" onclick="deleteProduct(${p.productID}, '${(p.productName || '').replace(/'/g, "\\'")}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        // Product Form Logic
+        function openProductForm(id = null) {
+            prodEditId = id;
+            const form = $('product-form');
+            form.reset();
+
+            if (id) {
+                const p = allProducts.find(x => x.productID === id);
+                if (!p) return;
+                $('product-form-title').textContent = 'Edit Product';
+                $('btn-save-product').textContent = 'Save Changes';
+                val('mProdName', p.productName || '');
+                val('mProdCategory', p.category || 'Tools');
+                val('mProdBrand', p.brand || '');
+                val('mProdStock', p.stockQuantity || 0);
+                val('mProdLowStock', p.lowStockThreshold || 10);
+                val('mProdInitialPrice', p.initialPrice || '');
+                val('mProdPrice', p.price || '');
+                val('mProdDescription', p.productDescription || '');
+            } else {
+                $('product-form-title').textContent = 'Add Product';
+                $('btn-save-product').textContent = 'Add Product';
+            }
+
+            $('product-form-modal').classList.add('flex');
+        }
+
+        function closeProductForm() {
+            $('product-form-modal').classList.remove('flex');
+            prodEditId = null;
+        }
+
+        async function saveProduct() {
+            const name = val('mProdName').trim();
+            if (!name) return showAlert('Please enter the product name.');
+
+            const price = val('mProdPrice');
+            if (!price || parseFloat(price) < 0) return showAlert('Please enter a valid selling price.');
+
+            const payload = {
+                productName: name,
+                category: val('mProdCategory'),
+                brand: val('mProdBrand'),
+                stockQuantity: parseInt(val('mProdStock')) || 0,
+                lowStockThreshold: parseInt(val('mProdLowStock')) || 10,
+                initialPrice: parseFloat(val('mProdInitialPrice')) || 0,
+                price: parseFloat(price),
+                productDescription: val('mProdDescription')
+            };
+
+            const btn = $('btn-save-product');
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+
+            try {
+                const url = prodEditId ? `/api/products/${prodEditId}` : '/api/products';
+                const method = prodEditId ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    showToast(`Product ${prodEditId ? 'updated' : 'created'} successfully!`);
+                    closeProductForm();
+                    loadProducts();
+                } else {
+                    const result = await res.json();
+                    showAlert('Error: ' + (result.error || 'Failed to save product.'));
+                }
+            } catch {
+                showAlert('Failed to connect to the server.');
+            } finally {
+                btn.textContent = prodEditId ? 'Save Changes' : 'Add Product';
+                btn.disabled = false;
+            }
+        }
+
+        function deleteProduct(id, name) {
+            showAlert(`Are you sure you want to delete <strong>${name}</strong>?`, true, async () => {
+                try {
+                    const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        showToast(`"${name}" deleted successfully.`);
+                        loadProducts();
+                        loadArchiveData(); // refresh archive
+                    } else {
+                        const result = await res.json();
+                        showAlert('Error: ' + result.error);
+                    }
+                } catch {
+                    showAlert('Failed to connect to the server.');
+                }
+            });
+        }
+
+        // ======================== SUPPLIERS TAB ========================
+        let allSuppliers = [];
+        let supCurrentPage = 1;
+        let supEditId = null;
+
+        async function loadSuppliers() {
+            try {
+                const res = await fetch('/api/suppliers');
+                allSuppliers = await res.json();
+                $('suppliers-count').textContent = allSuppliers.length;
+                supCurrentPage = 1;
+                processSuppliers();
+            } catch {
+                $('suppliers-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error loading suppliers.</td></tr>';
+            }
+        }
+
+        function processSuppliers() {
+            let data = [...allSuppliers];
+            const query = val('supSearchInput').toLowerCase();
+            const sort = val('supSortMode');
+            const limitVal = val('supShowLimit');
+
+            if (query) {
+                data = data.filter(s => Object.values(s).some(v => String(v).toLowerCase().includes(query)));
+            }
+
+            if (sort === 'asc') data.sort((a, b) => (a.supplierName || '').localeCompare(b.supplierName || ''));
+            else if (sort === 'desc') data.sort((a, b) => (b.supplierName || '').localeCompare(a.supplierName || ''));
+
+            const parsedLimit = limitVal === 'all' ? data.length : parseInt(limitVal);
+            const totalPages = Math.ceil(data.length / parsedLimit) || 1;
+            if (supCurrentPage > totalPages) supCurrentPage = totalPages;
+            if (supCurrentPage < 1) supCurrentPage = 1;
+
+            const startIndex = (supCurrentPage - 1) * parsedLimit;
+            const paginatedData = data.slice(startIndex, startIndex + parsedLimit);
+
+            renderSuppliersTable(paginatedData);
+            updatePaginationUI('sup-pagination-controls', 'sup-page-info', 'sup-btn-prev', 'sup-btn-next', data.length, parsedLimit, supCurrentPage);
+        }
+
+        function changeSupPage(dir) { supCurrentPage += dir; processSuppliers(); }
+
+        function renderSuppliersTable(data) {
+            if (data.length === 0) {
+                $('suppliers-table-body').innerHTML = `
+                <tr><td colspan="7">
+                    <div class="maint-empty-state">
+                        <div class="empty-icon">🏭</div>
+                        <p>No suppliers found.</p>
+                    </div>
+                </td></tr>`;
+                return;
+            }
+
+            $('suppliers-table-body').innerHTML = data.map(s => {
+                const addr = (s.address && s.address.length > 35) ? s.address.substring(0, 35) + '...' : (s.address || 'N/A');
+                const count = s.productIDs ? s.productIDs.toString().split(',').length : 0;
+                const safeName = (s.supplierName || '').replace(/'/g, "\\'");
+                const safeProds = (s.productNames || '').replace(/'/g, "\\'");
+                const terms = s.termsOfPayment || 'COD';
+
+                return `
+                <tr>
+                    <td><strong>${s.supplierName}</strong><br><small class="sub-text">ID: ${s.supplierID}</small></td>
+                    <td class="sub-text">${s.contactNumber || 'N/A'}</td>
+                    <td class="sub-text">${s.email || 'N/A'}</td>
+                    <td class="sub-text address-cell">${addr}</td>
+                    <td class="sub-text">${terms}</td>
+                    <td><button class="btn-view" onclick="viewSupplierProducts('${safeName}', '${safeProds}')">View (${count})</button></td>
+                    <td class="center-text">
+                        <div class="action-btns">
+                            <button class="btn-edit" onclick="openSupplierForm(${s.supplierID})">Edit</button>
+                            <button class="btn-delete" onclick="deleteSupplier(${s.supplierID}, '${safeName}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        function viewSupplierProducts(name, productsStr) {
+            const listItems = productsStr
+                ? productsStr.split(',').map(p => `<li class="modal-list-item">${p.trim()}</li>`).join('')
+                : '<li class="modal-list-item">No products assigned.</li>';
+
+            showAlert(`
+            <h3>Products for ${name}:</h3>
+            <ul class="modal-product-list">
+                ${listItems}
+            </ul>
+        `);
+        }
+
+        // Supplier Form Logic
+        let maintProductList = [];
+
+        async function fetchMaintProducts() {
+            try {
+                const res = await fetch('/api/products');
+                maintProductList = await res.json();
+                const container = $('maint-product-checkbox-container');
+                container.innerHTML = maintProductList.length ? maintProductList.map(p => {
+                    const brandStr = p.brand ? ` (${p.brand})` : '';
+                    return `
+                    <label class="maint-product-checkbox-label">
+                        <input type="checkbox" class="maint-product-cb" value="${p.productID}">
+                        ${p.productName}${brandStr}
+                    </label>
+                `;
+                }).join('') : '<p class="sub-text center-text">No products available.</p>';
+            } catch {
+                console.error("Failed to load products for supplier form.");
+            }
+        }
+
+        function filterMaintSupplierProducts() {
+            const q = val('mSupProductSearch').toLowerCase();
+            document.querySelectorAll('.maint-product-checkbox-label').forEach(label => {
+                const text = label.textContent.toLowerCase();
+                label.style.display = text.includes(q) ? 'flex' : 'none';
+            });
+        }
+
+        function toggleMaintCustomTerms() {
+            const select = $('mSupTermsSelect');
+            const customInput = $('mSupTermsCustom');
+            if (select.value === 'Others') {
+                customInput.classList.remove('hidden');
+            } else {
+                customInput.classList.add('hidden');
+            }
+        }
+
+        function openSupplierForm(id = null) {
+            supEditId = id;
+            const form = $('supplier-form');
+            form.reset();
+            $('mSupTermsCustom').classList.add('hidden');
+
+            fetchMaintProducts().then(() => {
+                if (id) {
+                    const s = allSuppliers.find(x => x.supplierID === id);
+                    if (!s) return;
+                    $('supplier-form-title').textContent = 'Edit Supplier';
+                    $('btn-save-supplier').textContent = 'Save Changes';
+                    val('mSupName', s.supplierName || '');
+                    val('mSupContact', s.contactNumber || '');
+                    val('mSupEmail', s.email || '');
+                    val('mSupAddress', s.address || '');
+
+                    const predefinedTerms = ['COD', '15 Days', '30 Days', '60 Days', '90 Days'];
+                    const savedTerm = s.termsOfPayment || 'COD';
+                    if (predefinedTerms.includes(savedTerm)) {
+                        val('mSupTermsSelect', savedTerm);
+                        $('mSupTermsCustom').classList.add('hidden');
+                    } else {
+                        val('mSupTermsSelect', 'Others');
+                        val('mSupTermsCustom', savedTerm);
+                        $('mSupTermsCustom').classList.remove('hidden');
+                    }
+
+                    const selectedIDs = (s.productIDs || '').toString().split(',');
+                    document.querySelectorAll('.maint-product-cb').forEach(cb => cb.checked = selectedIDs.includes(cb.value));
+                } else {
+                    $('supplier-form-title').textContent = 'Add Supplier';
+                    $('btn-save-supplier').textContent = 'Add Supplier';
+                }
+
+                $('supplier-form-modal').classList.add('flex');
+            });
+        }
+
+        function closeSupplierForm() {
+            $('supplier-form-modal').classList.remove('flex');
+            supEditId = null;
+        }
+
+        async function saveSupplier() {
+            const termsSelect = val('mSupTermsSelect');
+            const finalTerms = termsSelect === 'Others' ? val('mSupTermsCustom').trim() : termsSelect;
+            if (termsSelect === 'Others' && !finalTerms) return showAlert("Please enter the custom payment term.");
+
+            const name = val('mSupName').trim();
+            if (!name) return showAlert("Please fill in the Supplier Name!");
+
+            const contact = val('mSupContact');
+            if (contact && !/^09\d{9}$/.test(contact)) {
+                return showAlert("Contact number must be 11 digits and start with 09.");
+            }
+
+            const email = val('mSupEmail');
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                return showAlert("Please enter a valid email address.");
+            }
+
+            const payload = {
+                supplierName: name,
+                contactNumber: contact,
+                email: email,
+                address: val('mSupAddress'),
+                termsOfPayment: finalTerms,
+                productIDs: Array.from(document.querySelectorAll('.maint-product-cb:checked')).map(cb => parseInt(cb.value))
+            };
+
+            const btn = $('btn-save-supplier');
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+
+            try {
+                const url = supEditId ? `/api/suppliers/${supEditId}` : '/api/suppliers';
+                const method = supEditId ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    showToast(`Supplier ${supEditId ? 'updated' : 'created'} successfully!`);
+                    closeSupplierForm();
+                    loadSuppliers();
+                } else {
+                    const result = await res.json();
+                    showAlert('Error: ' + (result.error || 'Failed to save supplier.'));
+                }
+            } catch {
+                showAlert('Failed to connect to the server.');
+            } finally {
+                btn.textContent = supEditId ? 'Save Changes' : 'Add Supplier';
+                btn.disabled = false;
+            }
+        }
+
+        function deleteSupplier(id, name) {
+            showAlert(`Are you sure you want to delete <strong>${name}</strong>?`, true, async () => {
+                try {
+                    const res = await fetch(`/api/suppliers/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        showToast(`"${name}" deleted successfully.`);
+                        loadSuppliers();
+                        loadArchiveData(); // refresh archive
+                    } else {
+                        const result = await res.json();
+                        showAlert('Error: ' + result.error);
+                    }
+                } catch {
+                    showAlert('Failed to connect to the server.');
+                }
+            });
+        }
+
+        // ======================== INIT ========================
+        document.addEventListener("DOMContentLoaded", async () => {
+            // Load initial data
+            fetchBackups();
+            await loadArchiveData();
+            await loadProducts();
+            await loadSuppliers();
+
+            // Archive search/sort/limit listeners
+            ['arcSearchInput', 'arcSortMode', 'arcShowLimit'].forEach(id => {
+                $(id).addEventListener(id === 'arcSearchInput' ? 'keyup' : 'change', () => {
+                    arcCurrentPage = 1;
+                    arcSupplierPage = 1;
+                    processArchiveData();
+                });
+            });
+
+            // Products search/sort/limit/category listeners
+            ['prodSearchInput', 'prodSortMode', 'prodShowLimit', 'prodCategoryFilter'].forEach(id => {
+                $(id).addEventListener(id === 'prodSearchInput' ? 'keyup' : 'change', () => {
+                    prodCurrentPage = 1;
+                    processProducts();
+                });
+            });
+
+            // Suppliers search/sort/limit listeners
+            ['supSearchInput', 'supSortMode', 'supShowLimit'].forEach(id => {
+                $(id).addEventListener(id === 'supSearchInput' ? 'keyup' : 'change', () => {
+                    supCurrentPage = 1;
+                    processSuppliers();
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -2939,3 +2939,296 @@ input:checked+.slider:before {
     background: #f1f5f9;
     color: #475569;
 }
+
+/* ===================== MAINTENANCE PAGE ===================== */
+
+.maint-tab-bar {
+    display: flex;
+    border: 1px solid var(--border-color);
+    border-radius: var(--rad-md);
+    overflow: hidden;
+    margin-bottom: 20px;
+    background: var(--white);
+}
+
+.maint-tab-btn {
+    margin: 0;
+    border-radius: 0;
+    flex: 1;
+    background: var(--white);
+    color: var(--text-dark);
+    border: none;
+    border-left: 1px solid var(--border-color);
+    padding: 14px 20px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.maint-tab-btn:first-child {
+    border-left: none;
+}
+
+.maint-tab-btn.active-tab {
+    background: var(--bg-dark);
+    color: var(--white);
+}
+
+.maint-tab-btn:hover:not(.active-tab) {
+    background: #eae6e1;
+}
+
+.maint-tab-btn .tab-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.maint-tab-btn .tab-count {
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    margin-left: 4px;
+}
+
+.maint-tab-btn.active-tab .tab-count {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.maint-section {
+    display: none;
+}
+
+.maint-section.active {
+    display: block;
+}
+
+/* Maintenance sub-tab bar (for Archive Products/Suppliers) */
+.maint-sub-tab-bar {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--border-light);
+}
+
+.maint-sub-tab-btn {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #777;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    position: relative;
+    bottom: -2px;
+    width: auto;
+}
+
+.maint-sub-tab-btn.active-sub-tab {
+    color: var(--bg-dark);
+    border-bottom-color: var(--bg-dark);
+}
+
+.maint-sub-tab-btn:hover:not(.active-sub-tab) {
+    color: var(--text-dark);
+    background: transparent;
+}
+
+/* Maintenance form modal */
+.maint-form-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.maint-form-modal.flex {
+    display: flex;
+}
+
+.maint-form-box {
+    background: var(--white);
+    border-radius: var(--rad-lg);
+    width: 600px;
+    max-width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    border-top: 5px solid var(--bg-dark);
+    padding: 28px 32px;
+}
+
+.maint-form-box-wide {
+    width: 750px;
+}
+
+.maint-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.maint-form-header h3 {
+    margin: 0;
+}
+
+.maint-form-close {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    margin: 0;
+    border-radius: 50%;
+    background: var(--btn-gray);
+    color: var(--text-dark);
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+    line-height: 1;
+}
+
+.maint-form-close:hover {
+    background: #ccc;
+}
+
+.maint-form-row {
+    display: flex;
+    gap: 16px;
+}
+
+.maint-form-row > div {
+    flex: 1;
+}
+
+.maint-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+}
+
+.maint-form-actions button {
+    margin: 0;
+    width: auto;
+    padding: 10px 24px;
+}
+
+/* Empty state for maintenance tabs */
+.maint-empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: #999;
+}
+
+.maint-empty-state .empty-icon {
+    font-size: 44px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.maint-empty-state p {
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Toolbar adjustments for maintenance */
+.maint-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.maint-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.maint-toolbar-left input[type="text"] {
+    width: 240px;
+    margin: 0;
+}
+
+.maint-toolbar-left label {
+    margin: 0;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.maint-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.maint-toolbar-right select {
+    width: auto;
+    min-width: 70px;
+    margin: 0;
+}
+
+.maint-toolbar-right label {
+    display: inline;
+    margin: 0;
+    font-weight: 600;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.maint-toolbar-right .btn-create {
+    white-space: nowrap;
+}
+
+/* Product select box for supplier form */
+.maint-product-select-box {
+    background: var(--bg-main);
+    border-radius: var(--rad-md);
+    padding: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 5px;
+    border: 1px solid var(--border-color);
+}
+
+.maint-product-checkbox-label {
+    display: flex;
+    align-items: center;
+    font-weight: normal;
+    margin-top: 4px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.maint-product-checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+    transform: scale(1.1);
+}

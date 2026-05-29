@@ -19,14 +19,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 const adminPages = [
                     'admin-dashboard', 'admin-search', 'admin-product', 'admin-supplier',
                     'inventory-order-management', 'admin-report', 'admin-user-management',
-                    'admin-backup', 'admin-help', 'admin-archive'
+                    'admin-maintenance', 'admin-help', 'admin-backup', 'admin-archive'
                 ];
                 if (adminPages.some(p => currentPath.includes(p))) {
                     isAllowed = true;
                 }
             } else if (userRole === 'Inventory') {
                 const inventoryPages = [
-                    'inventory-screen', 'admin-product', 'admin-supplier', 'admin-search', 'admin-report', 'admin-archive'
+                    'inventory-screen', 'admin-product', 'admin-supplier', 'admin-search', 'admin-report', 'admin-maintenance', 'admin-archive'
                 ];
                 if (inventoryPages.some(p => currentPath.includes(p))) {
                     isAllowed = true;
@@ -132,8 +132,7 @@ function renderSidebar(name, role, availableRoles) {
             <div class="bottom-menu">
                 <div class="menu">
                     <a href="../admin-screen/admin-user-management.html">User Management</a>
-                    <a href="../admin-screen/admin-archive.html">Archive</a>
-                    <a href="../admin-screen/admin-backup.html">Back-up</a>
+                    <a href="../admin-screen/admin-maintenance.html">Maintenance</a>
                     <a href="../admin-screen/admin-help.html">Help</a>
                     ${switchButtonsHTML}
                 </div>
@@ -152,7 +151,7 @@ function renderSidebar(name, role, availableRoles) {
                     <a href="../admin-screen/admin-supplier.html">Supplier</a>
                     <a href="../inventory-screen/inventory-order-management.html">Order Management</a>
                     <a href="../admin-screen/admin-report.html">Reports</a>
-                    <a href="../admin-screen/admin-archive.html">Archive</a>
+                    <a href="../admin-screen/admin-maintenance.html">Maintenance</a>
                 </div>
             </div>
             <div class="bottom-menu">
