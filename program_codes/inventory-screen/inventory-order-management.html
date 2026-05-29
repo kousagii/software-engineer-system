@@ -115,7 +115,8 @@
                         <label>Order Status</label>
                         <select id="statusFilter">
                             <option value="All">All</option>
-                            <option value="Pending">Pending</option>
+                            <option value="To Order">To Order</option>
+                            <option value="Pending Order">Pending Order</option>
                             <option value="Partially Completed">Partially Completed</option>
                             <option value="Completed">Completed</option>
                             <option value="Cancelled">Cancelled</option>
@@ -192,17 +193,21 @@
                         style="color: #666; font-style: italic; display: none;">Payment Terms: <span
                             id="supplierTermsValue"></span></p>
 
-                    <label class="mt-15">Contact Information</label>
-                    <input type="text" id="supplierContact" placeholder="09xxxxxxxxx or email@example.com"
-                        class="w-full" maxlength="100">
+                    <div id="supplierInfoDisplay" class="mt-10"
+                        style="display:none; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px;">
+                        <div style="font-size: 0.9rem; margin-bottom: 5px;"><strong>Contact:</strong> <span
+                                id="dispContact"></span></div>
+                        <div style="font-size: 0.9rem;"><strong>Address:</strong> <span id="dispAddress"></span></div>
+                    </div>
 
-                    <label class="mt-15">Shipment Information</label>
-                    <textarea id="shipmentInfo" rows="4" placeholder="Address, ETA, courier details"
+                    <label class="mt-15">Comments or Special Instructions</label>
+                    <textarea id="shipmentInfo" rows="4" placeholder="Any comments or special instructions..."
                         class="w-full"></textarea>
 
                     <label class="mt-15" id="orderStatusLabel" style="display:none;">Order Status</label>
                     <select id="orderStatus" class="w-full" style="display:none;">
-                        <option value="Pending">Pending</option>
+                        <option value="To Order">To Order</option>
+                        <option value="Pending Order">Pending Order</option>
                         <option value="Cancelled">Cancelled</option>
                     </select>
 
@@ -315,6 +320,136 @@
         }
         function closeModal() { $('custom-modal').classList.remove('flex'); }
 
+        // --- Formatting & View Helpers ---
+        function fmtPeso(val) {
+            return '₱ ' + parseFloat(val || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function viewOrderProducts(encodedStr) {
+            try {
+                const items = JSON.parse(decodeURIComponent(encodedStr));
+                const listItems = items.length ? items.map(p => `<li style="padding: 8px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;"><span>${p.name}</span> <span style="font-weight: bold;">x${p.qty}</span></li>`).join('') : '<li>No products.</li>';
+                showAlert(`<h3 style="margin-bottom:15px; text-align:center;">Products List</h3><ul style="list-style:none; padding:0; margin:0; max-height:300px; overflow-y:auto; text-align:left;">${listItems}</ul>`);
+            } catch (e) { }
+        }
+
+        function printPO(orderId) {
+            const order = orders.find(o => o.orderID == orderId);
+            if (!order) return;
+
+            const subtotal = (order.items || []).reduce((s, it) => s + (parseInt(it.qty) || 0) * (parseFloat(it.unitCost) || 0), 0);
+            const orderDateStr = order.orderDate ? new Date(order.orderDate).toLocaleDateString() : 'N/A';
+
+            const itemsHtml = (order.items || []).map(it => {
+                const prod = products.find(p => String(p.productID) === String(it.productID)) || {};
+                let descParts = [];
+                if (prod.brand) descParts.push(prod.brand);
+                if (prod.variant) descParts.push(prod.variant);
+                let descStr = descParts.join(', ');
+                if (!descStr) descStr = '-';
+
+                return `
+                <tr>
+                    <td class="text-center">${it.qty}</td>
+                    <td>${it.productName}</td>
+                    <td>${descStr}</td>
+                    <td class="text-right">${fmtPeso(it.unitCost)}</td>
+                    <td class="text-right">${fmtPeso(it.qty * it.unitCost)}</td>
+                </tr>`;
+            }).join('');
+
+            const supplier = suppliers.find(s => String(s.supplierID) === String(order.supplierID));
+            let vendorDetails = `<strong>${order.supplierName}</strong><br>`;
+            if (supplier) {
+                if (supplier.address) vendorDetails += `${supplier.address}<br>`;
+                if (supplier.contactNumber) vendorDetails += `Phone: ${supplier.contactNumber}<br>`;
+                if (supplier.email) vendorDetails += `Email: ${supplier.email}<br>`;
+            } else {
+                if (order.contact) vendorDetails += `${order.contact}<br>`;
+            }
+
+            const printHtml = `
+            <div class="print-po-body">
+                <div class="po-container">
+                    <div class="po-header">
+                        <div class="po-company">
+                            <h1>Udicon Trading</h1>
+                            <p>123 Trade St.<br>Manila, PH 1000<br>Phone: (000) 000-0000<br>Fax: (000) 000-0000<br>Website: udicon.com</p>
+                        </div>
+                        <div class="po-title-section">
+                            <h1 class="po-title">PURCHASE ORDER</h1>
+                            <table class="po-meta-table">
+                                <tr><th>DATE</th><td>${orderDateStr}</td></tr>
+                                <tr><th>PO #</th><td>${order.orderID}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="po-addresses">
+                        <div class="po-vendor">
+                            <div class="po-box-title">VENDOR</div>
+                            <p>${vendorDetails}</p>
+                        </div>
+                        <div class="po-shipto">
+                            <div class="po-box-title">SHIP TO</div>
+                            <p>Udicon Trading<br>Udicon Trading<br>123 Trade St.<br>Manila, PH 1000<br>(000) 000-0000</p>
+                        </div>
+                    </div>
+
+                    <table class="po-items-table">
+                        <thead>
+                            <tr>
+                                <th>QTY</th>
+                                <th>UNIT</th>
+                                <th>BRAND</th>
+                                <th>UNIT PRICE</th>
+                                <th>TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                    </table>
+
+                    <div class="po-footer">
+                        <div class="po-comments">
+                            <div class="po-comments-title">Comments or Special Instructions</div>
+                            <div class="po-comments-box">${order.shipmentInfo || ''}</div>
+                        </div>
+                        <div class="po-totals">
+                            <table class="po-totals-table">
+                                <tr><th>SUBTOTAL</th><td>${fmtPeso(subtotal)}</td></tr>
+                                <tr><th>TAX</th><td>-</td></tr>
+                                <tr><th>SHIPPING</th><td>-</td></tr>
+                                <tr><th>OTHER</th><td>-</td></tr>
+                                <tr class="po-total-row"><th>TOTAL</th><td>${fmtPeso(subtotal)}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>`;
+
+            let printContainer = document.getElementById('reportPrintContainer');
+            if (!printContainer) {
+                printContainer = document.createElement('div');
+                printContainer.id = 'reportPrintContainer';
+                document.body.appendChild(printContainer);
+            }
+            printContainer.innerHTML = printHtml;
+
+            // Dynamically add a page margin just for this PDF report
+            const printStyle = document.createElement('style');
+            printStyle.innerHTML = '@media print { @page { margin: 15mm 0.5in !important; } }';
+            document.head.appendChild(printStyle);
+
+            // Allow DOM to update then trigger print
+            setTimeout(() => {
+                window.print();
+                document.head.removeChild(printStyle);
+            }, 100);
+        }
+
         // --- View Toggling ---
         function toggleView(view) {
             $('order-list-view').classList.toggle('hidden', view !== 'order-list-view');
@@ -334,40 +469,43 @@
             clearItems();
 
             const order = id ? orders.find(x => x.orderID == id) : null;
-            const isCompleted = order && (order.status === 'Completed' || order.status === 'Partially Completed');
+            const isReadOnly = order && (order.status === 'Completed' || order.status === 'Partially Completed' || order.status === 'Cancelled' || order.status === 'Pending Order' || order.status === 'Pending');
 
-            toggleInputs(!isCompleted);
+            toggleInputs(!isReadOnly);
 
             if (!id) {
                 $('form-title').innerText = 'Create Purchase Order';
-                val('supplierContact', '');
                 val('shipmentInfo', '');
                 $('orderStatusLabel').style.display = 'none';
                 $('orderStatus').style.display = 'none';
-                val('orderStatus', 'Pending');
+                val('orderStatus', 'To Order');
                 populateSupplierSelect();
                 addItemRow();
             } else {
                 if (!order) return showAlert('Order not found');
 
-                $('form-title').innerText = (isCompleted ? 'View' : 'Edit') + ' Purchase Order #' + id;
+                $('form-title').innerText = (isReadOnly ? 'View' : 'Edit') + ' Purchase Order #' + id;
                 populateSupplierSelect(order.supplierID);
-                val('supplierContact', order.contact || '');
                 val('shipmentInfo', order.shipmentInfo || '');
 
                 $('orderStatusLabel').style.display = 'block';
                 $('orderStatus').style.display = 'block';
-                if (isCompleted || order.status === 'Cancelled') {
-                    if (!['Pending', 'Cancelled'].includes(order.status)) {
+
+                // Ensure the dropdown has the current status if not natively present
+                if (!['To Order', 'Pending Order', 'Cancelled'].includes(order.status)) {
+                    if (!Array.from($('orderStatus').options).some(o => o.value === order.status)) {
                         const opt = document.createElement('option');
                         opt.value = order.status;
                         opt.textContent = order.status;
                         $('orderStatus').appendChild(opt);
                     }
+                }
+
+                if (isReadOnly) {
                     val('orderStatus', order.status);
                     $('orderStatus').disabled = true;
                 } else {
-                    val('orderStatus', order.status || 'Pending');
+                    val('orderStatus', order.status || 'To Order');
                     $('orderStatus').disabled = false;
                 }
 
@@ -381,10 +519,10 @@
                 }
 
                 if (order.items && order.items.length > 0) {
-                    // Pass the isCompleted status to every item row
-                    order.items.forEach(it => addItemRow(it.productID, it.qty, isCompleted));
+                    // Pass the isReadOnly status to every item row
+                    order.items.forEach(it => addItemRow(it.productID, it.qty, isReadOnly));
                 } else {
-                    addItemRow(null, 1, isCompleted);
+                    addItemRow(null, 1, isReadOnly);
                 }
             }
 
@@ -396,7 +534,6 @@
         // Helper to disable/enable all form fields
         function toggleInputs(enabled) {
             $('supplierSelect').disabled = !enabled;
-            $('supplierContact').disabled = !enabled;
             $('shipmentInfo').disabled = !enabled;
             if (supplierSelectInstance) {
                 enabled ? supplierSelectInstance.enable() : supplierSelectInstance.disable();
@@ -481,9 +618,11 @@
             const s = suppliers.find(x => String(x.supplierID) === String(selId));
 
             if (s) {
-                if (resetItems) val('supplierContact', s.contactNumber || s.email || '');
+                $('supplierInfoDisplay').style.display = 'block';
+                $('dispContact').innerText = s.contactNumber || s.email || 'N/A';
+                $('dispAddress').innerText = s.address || 'N/A';
             } else {
-                val('supplierContact', '');
+                $('supplierInfoDisplay').style.display = 'none';
             }
 
             if (resetItems) {
@@ -582,20 +721,14 @@
             const supplierID = val('supplierSelect');
             if (!supplierID) return showAlert('Please select a supplier first.');
 
-            const contact = val('supplierContact').trim();
-            if (contact) {
-                const isPhone = /^09\d{9}$/.test(contact);
-                const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact);
-                if (!isPhone && !isEmail) {
-                    return showAlert('Contact must be a valid 11-digit phone number (e.g., 09135513434) or a valid email address.');
-                }
-            }
+            const s = suppliers.find(x => String(x.supplierID) === String(supplierID));
+            const contact = s ? (s.contactNumber || s.email || '') : '';
 
             const payload = {
                 supplierID: supplierID,
                 contact: contact,
                 shipmentInfo: val('shipmentInfo'),
-                status: val('orderStatus') || 'Pending',
+                status: val('orderStatus') || 'To Order',
                 items: getItemsFromUI()
             };
 
@@ -682,11 +815,12 @@
         function renderTable(data) {
             $('orders-table-body').innerHTML = data.map(o => {
                 const totalQty = (o.items || []).reduce((s, it) => s + (parseInt(it.qty) || 0), 0);
-                const productsHtml = (o.items || []).map(it => `<div class="order-product-item">${it.productName} <span class="text-muted">x${it.qty}</span></div>`).join('');
-                const statusClass = 'status-' + (o.status || 'Pending').toLowerCase().replace(' ', '-');
+                const productsStr = encodeURIComponent(JSON.stringify((o.items || []).map(it => ({ name: it.productName, qty: it.qty }))));
+                const productsHtml = `<button class="btn-view" onclick="viewOrderProducts('${productsStr}')">View</button>`;
+                const statusClass = 'status-' + (o.status || 'To Order').toLowerCase().replace(' ', '-');
 
                 const isComp = o.status === 'Completed';
-                const canEdit = o.status === 'Pending';
+                const canEdit = o.status === 'To Order';
 
                 const payStatus = o.paymentStatus || 'Pending';
                 const payClass = payStatus === 'Completed' ? 'status-completed' : 'status-pending';
@@ -706,7 +840,7 @@
                     actionButtons += `<button class="btn-view" onclick="openForm(${o.orderID})">View</button>`;
                 }
 
-                if (o.status === 'Pending' || o.status === 'Partially Completed') {
+                if (o.status === 'Pending Order' || o.status === 'Partially Completed' || o.status === 'Pending') {
                     actionButtons += ` <button class="btn-success" onclick="openReceiveForm(${o.orderID})">Receive</button>`;
                 }
 
@@ -718,8 +852,11 @@
                         actionButtons += ` <button class="btn-view" style="background-color:#4a5568;" onclick="showAlert('Paid ${amtStr} via ' + '${o.paymentMethod || 'Unknown'}' + ' on ' + '${o.paymentDate ? new Date(o.paymentDate).toLocaleDateString() : 'Unknown'}')">View Payment</button>`;
                     }
                 } else {
-                    actionButtons += ` <button class="btn-view" style="background-color:#4a5568;" onclick="openPaymentModal(${o.orderID}, ${totalAmount}, '${dueDateStr}')">Process Payment</button>`;
+                    if (o.status !== 'To Order' && o.status !== 'Cancelled') {
+                        actionButtons += ` <button class="btn-view" style="background-color:#4a5568;" onclick="openPaymentModal(${o.orderID}, ${totalAmount}, '${dueDateStr}')">Process Payment</button>`;
+                    }
                 }
+                actionButtons += ` <button class="btn-view" onclick="printPO(${o.orderID})">Print</button>`;
 
                 return `
       <tr>
@@ -731,7 +868,7 @@
         <td>${o.supplierName || ''}</td>
         <td><div class="order-products-col">${productsHtml}</div></td>
         <td>${totalQty}</td>
-        <td><span class="status-badge ${statusClass}">${o.status || 'Pending'}</span></td>
+        <td><span class="status-badge ${statusClass}">${o.status || 'To Order'}</span></td>
         <td>
             <span class="status-badge ${payClass}">${payStatus}</span>
             <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">Due: ${dueDateStr}</div>
@@ -838,6 +975,23 @@
             toggleView('receive-order-view');
         }
 
+        function receiveAllItems() {
+            const rows = document.querySelectorAll('#receive-items-body tr');
+            rows.forEach(tr => {
+                const ordered = parseInt(tr.getAttribute('data-ordered')) || 0;
+                const prevReceived = parseInt(tr.getAttribute('data-prev-received')) || 0;
+                const recInput = tr.querySelector('.receive-qty-input');
+                const defInput = tr.querySelector('.defective-qty-input');
+
+                if (recInput && defInput) {
+                    const remaining = Math.max(0, ordered - prevReceived);
+                    recInput.value = remaining;
+                    defInput.value = 0;
+                    updateRemaining(recInput);
+                }
+            });
+        }
+
         function updateRemaining(input) {
             const tr = input.closest('tr');
             const ordered = parseInt(tr.getAttribute('data-ordered')) || 0;
@@ -857,8 +1011,29 @@
         }
 
         async function saveReceiveOrder(status) {
-            const items = [];
             const rows = document.querySelectorAll('#receive-items-body tr');
+
+            if (status === 'Completed') {
+                let hasUnreceived = false;
+                rows.forEach(tr => {
+                    const ordered = parseInt(tr.getAttribute('data-ordered')) || 0;
+                    const prevReceived = parseInt(tr.getAttribute('data-prev-received')) || 0;
+                    const recInput = tr.querySelector('.receive-qty-input');
+                    const defInput = tr.querySelector('.defective-qty-input');
+                    const newRecVal = parseInt(recInput ? recInput.value : 0) || 0;
+                    const defVal = parseInt(defInput ? defInput.value : 0) || 0;
+
+                    if (prevReceived + newRecVal + defVal < ordered) {
+                        hasUnreceived = true;
+                    }
+                });
+
+                if (hasUnreceived) {
+                    receiveAllItems();
+                }
+            }
+
+            const items = [];
             let invalid = false;
 
             rows.forEach(tr => {
@@ -912,6 +1087,7 @@
                     <h3 style="margin: 0 0 10px; color: var(--success, #38a169); font-size: 1.1rem;">Complete Purchase Order?</h3>
                     <p style="margin: 0 0 14px; color: var(--text-muted, #718096); font-size: 0.92rem; line-height: 1.5;">
                         By completing this order, you confirm that:<br>
+                        <strong>• Any remaining quantities will be auto-filled.</strong><br>
                         <strong>• All damaged / defective goods have been resolved.</strong><br>
                         <strong>• All items are received in good condition.</strong>
                     </p>

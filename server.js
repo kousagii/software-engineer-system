@@ -762,7 +762,7 @@ app.post('/api/orders', (req, res) => {
     const orderDateTime = new Date();
     const insertSql = `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo, paymentStatus) VALUES (?, ?, ?, ?, ?, ?, ?)`;
 
-    db.query(insertSql, [userID, supplierID, orderDateTime, status || 'Pending', contact || null, shipmentInfo || null, paymentStatus || 'Pending'], (err, result) => {
+    db.query(insertSql, [userID, supplierID, orderDateTime, status || 'To Order', contact || null, shipmentInfo || null, paymentStatus || 'Pending'], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: "Failed to create order" });
@@ -862,7 +862,7 @@ app.put('/api/orders/:id', async (req, res) => {
 
         await db.promise().query(updateOrderSql, [
             supplierID,
-            status || 'Pending',
+            status || 'To Order',
             contact || null,
             shipmentInfo || null,
             req.body.paymentStatus || 'Pending',
@@ -1098,7 +1098,7 @@ app.get('/api/auto-reorder/preview', async (req, res) => {
     }
 });
 
-// POST auto-reorder: Create Pending purchase orders based on explicit user selections
+// POST auto-reorder: Create To Order purchase orders based on explicit user selections
 app.post('/api/auto-reorder', async (req, res) => {
     const userID = req.session && req.session.user ? req.session.user.id : null;
     if (!userID) return res.status(401).json({ error: 'Please log in to create orders.' });
@@ -1129,7 +1129,7 @@ app.post('/api/auto-reorder', async (req, res) => {
 
         for (const [suppID, data] of Object.entries(bySupplier)) {
             const [orderResult] = await db.promise().query(
-                `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo) VALUES (?, ?, ?, 'Pending', NULL, NULL)`,
+                `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo) VALUES (?, ?, ?, 'To Order', NULL, NULL)`,
                 [userID, suppID, orderDateTime]
             );
             const orderID = orderResult.insertId;
