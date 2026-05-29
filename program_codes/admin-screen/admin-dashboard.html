@@ -94,24 +94,24 @@
 
     </div>
 
-    <!-- CONTENT SPLIT: Recent Sales | Recent Purchase Orders -->
+    <!-- CONTENT SPLIT: Most Bought Items | Pay Later Customers -->
     <div class="split dash-lower-split">
 
-      <!-- RECENT SALES TRANSACTIONS -->
+      <!-- MOST BOUGHT ITEMS -->
       <div class="dash-main-col">
         <div class="table-container">
           <div class="page-header">
-            <h3 class="mt-0">Recent Sales</h3>
+            <h3 class="mt-0">Most Bought Items</h3>
           </div>
           <table class="data-table">
             <thead>
               <tr>
-                <th>Transaction ID</th>
-                <th>Date &amp; Time</th>
-                <th>Total Amount</th>
+                <th>#</th>
+                <th>Product Name</th>
+                <th>Total Sold</th>
               </tr>
             </thead>
-            <tbody id="dash-txn-body">
+            <tbody id="dash-top-products-body">
               <tr>
                 <td colspan="3" class="center-text sub-text">Loading…</td>
               </tr>
@@ -120,22 +120,22 @@
         </div>
       </div>
 
-      <!-- RECENT PURCHASE ORDERS -->
+      <!-- PAY LATER CUSTOMERS -->
       <div class="dash-main-col">
         <div class="table-container">
           <div class="page-header">
-            <h3 class="mt-0">Recent Purchase Orders</h3>
+            <h3 class="mt-0">Pay Later Customers</h3>
           </div>
           <table class="data-table">
             <thead>
               <tr>
-                <th>Order ID</th>
-                <th>Date &amp; Time</th>
-                <th>Amount</th>
+                <th>Transaction</th>
+                <th>Customer</th>
+                <th>Amount Due</th>
                 <th>Status</th>
               </tr>
             </thead>
-            <tbody id="dash-orders-body">
+            <tbody id="dash-pay-later-body">
               <tr>
                 <td colspan="4" class="center-text sub-text">Loading…</td>
               </tr>
@@ -211,22 +211,22 @@
     // --- Modal helper ---
     const customModal = document.getElementById('custom-modal');
     function closeModal() {
-        customModal.style.display = 'none';
+      customModal.style.display = 'none';
     }
     function viewProducts(orderID, productsStr) {
-        const listItems = productsStr ? productsStr.split(', ').map(p => `<li class="modal-list-item">${p}</li>`).join('') : '<li class="modal-list-item">No products.</li>';
-        document.getElementById('modal-message').innerHTML = `
+      const listItems = productsStr ? productsStr.split(', ').map(p => `<li class="modal-list-item">${p}</li>`).join('') : '<li class="modal-list-item">No products.</li>';
+      document.getElementById('modal-message').innerHTML = `
             <h3 style="color: var(--bg-dark); margin-bottom: 20px; text-align: center;">Products for Order PO-${orderID}:</h3>
             <ul class="modal-product-list">
                 ${listItems}
             </ul>
         `;
-        document.getElementById('modal-actions').innerHTML = `
+      document.getElementById('modal-actions').innerHTML = `
             <div style="text-align: center; margin-top: 20px;">
                 <button class="modal-btn btn-ok" onclick="closeModal()">OK</button>
             </div>
         `;
-        customModal.style.display = 'flex';
+      customModal.style.display = 'flex';
     }
 
     // --- Format date ---
@@ -279,59 +279,64 @@
       }
     }
 
-    // --- Recent Sales Transactions ---
-    async function loadRecentTransactions() {
-      const tbody = document.getElementById('dash-txn-body');
-      const data = await safeFetch('/api/transactions?limit=8');
+    // --- Most Bought Items ---
+    async function loadTopProducts() {
+      const tbody = document.getElementById('dash-top-products-body');
+      const data = await safeFetch('/api/dashboard/top-products');
 
       if (!data || !Array.isArray(data) || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="center-text sub-text">No transactions found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="center-text sub-text">No sales data yet.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = data.map(t => {
+      const medals = ['🥇', '🥈', '🥉'];
+      const maxSold = data[0].totalSold;
+
+      tbody.innerHTML = data.map((item, i) => {
+        const rank = i < 3 ? medals[i] : `${i + 1}`;
+        const barWidth = maxSold > 0 ? Math.round((item.totalSold / maxSold) * 100) : 0;
         return `<tr>
-          <td><strong>${t.transactionID}</strong></td>
+          <td><strong>${rank}</strong></td>
           <td>
-            <div class="datetime-cell">
-              <span class="date-label">${new Date(t.transDateTime).toLocaleDateString('en-PH', { dateStyle: 'short' })}</span>
-              <span class="time-label">${new Date(t.transDateTime).toLocaleTimeString('en-PH', { timeStyle: 'short' })}</span>
+            <div style="font-weight:600;">${item.productName}</div>
+            <div style="height:6px;background:#e5e7eb;border-radius:4px;margin-top:4px;overflow:hidden;">
+              <div style="height:100%;width:${barWidth}%;background:linear-gradient(90deg,#16a34a,#4ade80);border-radius:4px;transition:width .4s;"></div>
             </div>
           </td>
-          <td><strong>${fmtPeso(t.totalAmount)}</strong></td>
+          <td><strong>${parseInt(item.totalSold).toLocaleString()} pcs</strong></td>
         </tr>`;
       }).join('');
     }
 
-    // --- Recent Purchase Orders ---
-    async function loadRecentOrders() {
-      const tbody = document.getElementById('dash-orders-body');
-      const data = await safeFetch('/api/orders');
+    // --- Pay Later Customers ---
+    async function loadPayLater() {
+      const tbody = document.getElementById('dash-pay-later-body');
+      const data = await safeFetch('/api/dashboard/pay-later');
 
       if (!data || !Array.isArray(data) || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="center-text sub-text">No purchase orders found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="center-text sub-text">No outstanding balances.</td></tr>';
         return;
       }
 
-      const recent = data.slice(0, 8);
-      tbody.innerHTML = recent.map(o => {
-        const productNames = (o.items && o.items.length > 0)
-          ? o.items.map(i => `${i.productName} - ${i.qty || 0}`).join(', ')
-          : '—';
-        const total = (o.items || []).reduce((s, i) => s + ((parseFloat(i.unitCost) || 0) * (parseInt(i.qty) || 0)), 0);
-        const statusClass = o.status === 'Completed' ? 'status-instock'
-          : o.status === 'Cancelled' ? 'status-outstock'
-            : 'status-lowstock';
+      tbody.innerHTML = data.map(t => {
+        const amountPaid = (parseFloat(t.cashReceived || 0) + parseFloat(t.digitalAmount || 0));
+        const balance = parseFloat(t.totalAmount || 0) - amountPaid;
+        const statusClass = t.paymentStatus === 'Partial' ? 'status-lowstock' : 'status-outstock';
+        const customerLabel = t.customerName ? t.customerName : '<span class="sub-text">Walk-in</span>';
+        const dueDateLabel = t.dueDate
+          ? `<div class="sub-text" style="font-size:11px;">Due: ${new Date(t.dueDate).toLocaleDateString('en-PH', { dateStyle: 'short' })}</div>`
+          : '';
         return `<tr>
-          <td><strong>PO-${o.orderID}</strong></td>
           <td>
-            <div class="datetime-cell">
-              <span class="date-label">${o.orderDate ? new Date(o.orderDate).toLocaleDateString('en-PH', { dateStyle: 'short' }) : '—'}</span>
-              <span class="time-label">${o.orderDate ? new Date(o.orderDate).toLocaleTimeString('en-PH', { timeStyle: 'short' }) : ''}</span>
-            </div>
+            <strong>${t.transactionCode}</strong>
+            ${dueDateLabel}
           </td>
-          <td><strong>${fmtPeso(total)}</strong></td>
-          <td><span class="status-pill ${statusClass}">${o.status}</span></td>
+          <td>
+            <div>${customerLabel}</div>
+            <div class="sub-text" style="font-size:11px;">${t.contactInfo || ''}</div>
+          </td>
+          <td><strong style="color:var(--danger, #dc2626);">${fmtPeso(balance)}</strong></td>
+          <td><span class="status-pill ${statusClass}">${t.paymentStatus}</span></td>
         </tr>`;
       }).join('');
     }
@@ -417,8 +422,8 @@
     // --- Init ---
     document.addEventListener('DOMContentLoaded', () => {
       loadStats();
-      loadRecentTransactions();
-      loadRecentOrders();
+      loadTopProducts();
+      loadPayLater();
     });
   </script>
 

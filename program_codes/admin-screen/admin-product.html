@@ -748,19 +748,9 @@
             currentPrintBarcode = barcode;
             currentPrintName = prod.productName;
 
-            document.getElementById("barcodeProdName").innerText = prod.productName;
-            JsBarcode("#barcodeTarget", barcode, {
-                format: "CODE128",
-                width: 1.2,
-                fontSize: 12,
-                height: 45,
-                margin: 10,
-                displayValue: true,
-                background: "white"
-            });
-
-            document.getElementById("printCopies").value = 1;
-            document.getElementById("barcodeModal").style.display = "flex";
+            // Set up printQueue so triggerPrint() works correctly for single items
+            printQueue = [{ barcode: prod.barcode, name: prod.productName, qty: 1 }];
+            showBarcodeModalContent();
         }
 
         function closeBarcodeModal() {
@@ -783,7 +773,22 @@
         let stockAdjustReason = '';
         let stockUnlocked = false;
 
+        // Per-variant unlock tracking: Map<rowElement, { unlocked: bool, reason: string }>
+        const variantStockState = new Map();
+        let _pendingVariantRow = null; // row element waiting for reason modal
+
         function openStockReasonModal() {
+            _pendingVariantRow = null; // single-product mode
+            $('stockReasonSelect').value = '';
+            $('stockReasonOther').value = '';
+            $('stockReasonOther').style.display = 'none';
+            $('stock-reason-modal').style.display = 'flex';
+        }
+
+        function openVariantStockReason(btn) {
+            const row = btn.closest('tr');
+            if (!row) return;
+            _pendingVariantRow = row;
             $('stockReasonSelect').value = '';
             $('stockReasonOther').value = '';
             $('stockReasonOther').style.display = 'none';
@@ -791,6 +796,7 @@
         }
 
         function closeStockReasonModal() {
+            _pendingVariantRow = null;
             $('stock-reason-modal').style.display = 'none';
         }
 
@@ -803,15 +809,32 @@
             const other = $('stockReasonOther').value.trim();
             if (!selected) return showAlert('Please select a reason for the stock adjustment.');
             if (selected === 'Other' && !other) return showAlert('Please specify the reason.');
-            stockAdjustReason = selected === 'Other' ? other : selected;
-            stockUnlocked = true;
-            // Unlock the stock input
-            $('prodStock').removeAttribute('readonly');
-            $('btn-stock-minus').disabled = false;
-            $('btn-stock-plus').disabled = false;
-            $('btn-adjust-stock').textContent = '✔ Stock Unlocked: ' + stockAdjustReason;
-            $('btn-adjust-stock').style.opacity = '0.7';
-            $('btn-adjust-stock').disabled = true;
+            const reason = selected === 'Other' ? other : selected;
+
+            if (_pendingVariantRow) {
+                // --- Variant row unlock ---
+                const row = _pendingVariantRow;
+                const stockInput = row.querySelector('.variant-stock-input');
+                const adjustBtn = row.querySelector('.variant-adjust-stock-btn');
+                if (stockInput) stockInput.removeAttribute('readonly');
+                if (adjustBtn) {
+                    adjustBtn.textContent = '✔ Unlocked: ' + reason;
+                    adjustBtn.style.opacity = '0.7';
+                    adjustBtn.disabled = true;
+                }
+                variantStockState.set(row, { unlocked: true, reason });
+                _pendingVariantRow = null;
+            } else {
+                // --- Single product unlock ---
+                stockAdjustReason = reason;
+                stockUnlocked = true;
+                $('prodStock').removeAttribute('readonly');
+                $('btn-stock-minus').disabled = false;
+                $('btn-stock-plus').disabled = false;
+                $('btn-adjust-stock').textContent = '✔ Stock Unlocked: ' + reason;
+                $('btn-adjust-stock').style.opacity = '0.7';
+                $('btn-adjust-stock').disabled = true;
+            }
             closeStockReasonModal();
         }
 
@@ -1094,13 +1117,22 @@
             const row = document.createElement('tr');
             row.className = 'combination-row';
             if (productId) row.setAttribute('data-product-id', productId);
+
+            // If this is an existing saved variant, lock stock by default
+            const isExisting = !!productId;
+            const stockReadonly = isExisting ? 'readonly' : '';
+            const adjustBtn = isExisting
+                ? `<br><button type="button" class="btn-back variant-adjust-stock-btn" style="margin-top:4px; width:100%; font-size:0.72rem;" onclick="openVariantStockReason(this)">Adjust Stock</button>`
+                : '';
+
             row.innerHTML = `
                 <td>
                     <input type="text" class="variant-custom-val w-130" value="${variantValue}" placeholder="e.g. Extra Large" oninput="updatePreview()">
                     <input type="hidden" class="variant-bc-input" value="${barcode}">
                 </td>
                 <td>
-                    <input type="number" class="variant-stock-input w-70" value="${baseStock}" min="0" oninput="updatePreview()">
+                    <input type="number" class="variant-stock-input w-70" value="${baseStock}" min="0" oninput="updatePreview()" ${stockReadonly}>
+                    ${adjustBtn}
                 </td>
                 <td>
                     <input type="number" class="variant-init-price-input w-90" value="${baseInitialPrice}" min="0" step="0.01" oninput="updatePreview()">
@@ -1112,6 +1144,11 @@
                     <button type="button" class="btn-danger-sm btn-icon-sm" onclick="removeCombinationRow(this)">✕</button>
                 </td>
             `;
+
+            if (isExisting) {
+                variantStockState.set(row, { unlocked: false, reason: '' });
+            }
+
             tbody.appendChild(row);
             $('combinations-container').style.display = 'block';
             updatePreview();
@@ -1169,13 +1206,17 @@
 
                 if (value && bcInput && stockInput && initPriceInput && priceInput) {
                     const productId = row.getAttribute('data-product-id') || null;
+                    const state = variantStockState.get(row);
+                    const reason = state && state.unlocked ? state.reason : null;
+
                     data.push({
                         productID: productId ? parseInt(productId) : null,
                         value: value,
                         barcode: bcInput.value.trim(),
                         stock: parseInt(stockInput.value) || 0,
                         initialPrice: parseFloat(initPriceInput.value) || 0,
-                        price: parseFloat(priceInput.value) || 0
+                        price: parseFloat(priceInput.value) || 0,
+                        stockAdjustReason: reason
                     });
                 }
             });
@@ -1235,6 +1276,8 @@
             variationOptions = [];
             deletedVariantIds = [];
             convertingFromSingle = null;
+            variantStockState.clear();
+            _pendingVariantRow = null;
             $('variation-options-list').innerHTML = '';
             $('combinations-tbody').innerHTML = '';
             $('combinations-container').style.display = 'none';
@@ -1647,7 +1690,8 @@
                     brand: brand,
                     productDescription: desc,
                     lowStockThreshold: lowStock,
-                    variantOptions: variantOptionsStr
+                    variantOptions: variantOptionsStr,
+                    ...(row.stockAdjustReason ? { stockAdjustReason: row.stockAdjustReason } : {})
                 }));
 
                 const seenVariantNames = new Set();

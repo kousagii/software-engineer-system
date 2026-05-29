@@ -1633,6 +1633,58 @@ app.get('/api/transactions', (req, res) => {
 });
 
 
+// GET top/most bought products (for dashboard)
+app.get('/api/dashboard/top-products', (req, res) => {
+    const sql = `
+        SELECT 
+            COALESCE(si.productName, p.productName, CONCAT('Product #', si.productID)) AS productName,
+            SUM(CASE WHEN si.quantity > 0 THEN si.quantity ELSE 0 END) AS totalSold
+        FROM sales_item si
+        JOIN sales_transaction st ON si.transactionID = st.transactionID
+        LEFT JOIN product p ON si.productID = p.productID
+        WHERE st.paymentStatus IN ('Paid', 'Partial', 'Exchanged')
+          AND si.quantity > 0
+        GROUP BY si.productID, COALESCE(si.productName, p.productName, CONCAT('Product #', si.productID))
+        ORDER BY totalSold DESC
+        LIMIT 8
+    `;
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Failed to fetch top products' });
+        }
+        res.json(results);
+    });
+});
+
+// GET customers with pay later (Unpaid / Partial) transactions (for dashboard)
+app.get('/api/dashboard/pay-later', (req, res) => {
+    const sql = `
+        SELECT 
+            st.transactionID,
+            st.transactionCode,
+            st.customerName,
+            st.contactInfo,
+            st.totalAmount,
+            st.cashReceived,
+            st.digitalAmount,
+            st.paymentStatus,
+            st.dueDate,
+            st.transDateTime
+        FROM sales_transaction st
+        WHERE st.paymentStatus IN ('Unpaid', 'Partial')
+        ORDER BY st.transDateTime DESC
+        LIMIT 10
+    `;
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Failed to fetch pay-later customers' });
+        }
+        res.json(results);
+    });
+});
+
 // GET transaction items detail by transaction ID
 app.get('/api/transactions/:id/items', (req, res) => {
     const { id } = req.params;
