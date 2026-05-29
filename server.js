@@ -2215,7 +2215,7 @@ function performDatabaseBackup(backupType, userID) {
         const dbName = process.env.DB_NAME;
         const dbHost = process.env.DB_HOST || 'localhost';
 
-        const dumpCommand = `mysqldump -u ${dbUser} --password="${dbPass}" -h ${dbHost} ${dbName} --ignore-table=${dbName}.backup > "${filePath}"`;
+        const dumpCommand = `mysqldump -u ${dbUser} --password="${dbPass}" -h ${dbHost} ${dbName} > "${filePath}"`;
 
         exec(dumpCommand, (error, stdout, stderr) => {
             if (error) {
