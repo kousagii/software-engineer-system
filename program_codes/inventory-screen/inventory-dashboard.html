@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory Dashboard | Udicon Trading</title>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+
+<body>
+
+  <div id="sidebar"></div>
+
+  <div id="custom-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+      <div id="modal-message"></div>
+      <div id="modal-actions" class="action-group" style="margin-top: 15px; text-align: right;"></div>
+    </div>
+  </div>
+
+  <main class="dashboard-main">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+      <div>
+        <h2 class="dash-page-title">Inventory Dashboard</h2>
+        <p class="sub-text dash-subtitle" id="dash-greeting">Welcome back!</p>
+      </div>
+      <div class="toolbar-right">
+        <span class="sub-text" id="dash-datetime"></span>
+      </div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="split dash-cards-row">
+
+      <div class="form-panel dash-stat-card">
+        <div class="dash-stat-icon dash-icon-green">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="7" width="20" height="14" rx="2" stroke="#2b8a4e" stroke-width="1.8"
+              stroke-linejoin="round" />
+            <path d="M16 7V5a4 4 0 0 0-8 0v2" stroke="#2b8a4e" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M9 12h6M9 16h4" stroke="#2b8a4e" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="dash-stat-info">
+          <div class="sub-text">Total Products</div>
+          <h3 class="mt-0" id="stat-products">—</h3>
+        </div>
+      </div>
+
+      <div class="form-panel dash-stat-card">
+        <div class="dash-stat-icon dash-icon-blue">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+              stroke="#356ac3" stroke-width="1.8" stroke-linejoin="round"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" stroke="#356ac3" stroke-width="1.8"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12" stroke="#356ac3" stroke-width="1.8"></line>
+          </svg>
+        </div>
+        <div class="dash-stat-info">
+          <div class="sub-text">Total Suppliers</div>
+          <h3 class="mt-0" id="stat-suppliers">—</h3>
+        </div>
+      </div>
+
+      <div class="form-panel dash-stat-card">
+        <div class="dash-stat-icon dash-icon-yellow">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3L2 20h20L12 3z" stroke="#856404" stroke-width="1.8" stroke-linejoin="round" />
+            <path d="M12 10v4" stroke="#856404" stroke-width="1.8" stroke-linecap="round" />
+            <circle cx="12" cy="17" r="0.8" fill="#856404" stroke="#856404" stroke-width="1" />
+          </svg>
+        </div>
+        <div class="dash-stat-info">
+          <div class="sub-text">Low / Out of Stock</div>
+          <h3 class="mt-0" id="stat-lowstock">—</h3>
+        </div>
+      </div>
+
+      <div class="form-panel dash-stat-card">
+        <div class="dash-stat-icon dash-icon-dark">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#264027" stroke-width="1.8">
+            </path>
+            <polyline points="14 2 14 8 20 8" stroke="#264027" stroke-width="1.8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13" stroke="#264027" stroke-width="1.8"></line>
+            <line x1="16" y1="17" x2="8" y2="17" stroke="#264027" stroke-width="1.8"></line>
+            <polyline points="10 9 9 9 8 9" stroke="#264027" stroke-width="1.8"></polyline>
+          </svg>
+        </div>
+        <div class="dash-stat-info">
+          <div class="sub-text">Pending Orders</div>
+          <h3 class="mt-0" id="stat-pending-orders">—</h3>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CONTENT SPLIT: Most Bought Items | Recent Purchase Orders -->
+    <div class="split dash-lower-split">
+
+      <!-- MOST BOUGHT ITEMS -->
+      <div class="dash-main-col">
+        <div class="table-container">
+          <div class="page-header">
+            <h3 class="mt-0">Most Bought Items</h3>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Product Name</th>
+                <th>Total Sold</th>
+              </tr>
+            </thead>
+            <tbody id="dash-top-products-body">
+              <tr>
+                <td colspan="3" class="center-text sub-text">Loading…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PENDING ORDERS -->
+      <div class="dash-main-col">
+        <div class="table-container">
+          <div class="page-header">
+            <h3 class="mt-0">Pending Orders</h3>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Supplier</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="dash-pending-orders-body">
+              <tr>
+                <td colspan="4" class="center-text sub-text">Loading…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- STOCK ALERTS -->
+    <div class="table-container dash-alert-section">
+      <div class="page-header">
+        <h3 class="mt-0">Stock Alerts</h3>
+        <div class="toolbar-right">
+          <button class="btn-add" id="btn-auto-reorder-dash" onclick="openReorderModal()">
+            Auto Reorder All
+          </button>
+        </div>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Product Name</th>
+            <th>Category</th>
+            <th>Stock Level</th>
+            <th>Threshold</th>
+            <th>Status</th>
+            <th>Supplier(s)</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="dash-alert-body">
+          <tr>
+            <td colspan="7" class="center-text sub-text">Loading…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <script src="../authGuard.js"></script>
+  <script src="../reorder-modal.js"></script>
+  <script>
+    // --- Live clock ---
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('dash-datetime').textContent =
+        now.toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
+        '\u2002\u2014\u2002' +
+        now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+    }
+    updateClock();
+    setInterval(updateClock, 60000);
+
+    // --- Greeting ---
+    (function setGreeting() {
+      const hour = new Date().getHours();
+      const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+      document.getElementById('dash-greeting').textContent = greet + ', Inventory!';
+    })();
+
+    // --- Fetch helper ---
+    async function safeFetch(url) {
+      try {
+        const r = await fetch(url);
+        if (!r.ok) return null;
+        return await r.json();
+      } catch { return null; }
+    }
+
+    // --- Modal helper ---
+    const customModal = document.getElementById('custom-modal');
+    function closeModal() {
+      customModal.style.display = 'none';
+    }
+    function showInfoModal(title, message) {
+      document.getElementById('modal-message').innerHTML =
+        `<h3 style="color:var(--bg-dark);margin-bottom:15px;text-align:center;">${title}</h3>
+         <div style="text-align:center;font-size:14px;">${message}</div>`;
+      document.getElementById('modal-actions').innerHTML =
+        `<div style="text-align:center;margin-top:20px;">
+           <button class="modal-btn btn-ok" onclick="closeModal()">OK</button>
+         </div>`;
+      customModal.style.display = 'flex';
+    }
+
+    function showConfirmModal(title, message, onConfirm) {
+      document.getElementById('modal-message').innerHTML =
+        `<h3 style="color:var(--bg-dark);margin-bottom:15px;text-align:center;">${title}</h3>
+         <div style="text-align:center;font-size:14px;">${message}</div>`;
+      document.getElementById('modal-actions').innerHTML =
+        `<div style="text-align:center;margin-top:20px;display:flex;gap:10px;justify-content:center;">
+           <button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
+           <button class="modal-btn btn-ok" id="dash-confirm-btn">Confirm</button>
+         </div>`;
+      document.getElementById('dash-confirm-btn').onclick = () => { closeModal(); onConfirm(); };
+      customModal.style.display = 'flex';
+    }
+
+    // --- Stat Cards ---
+    async function loadStats() {
+      const [products, suppliers, orders] = await Promise.all([
+        safeFetch('/api/products'),
+        safeFetch('/api/suppliers'),
+        safeFetch('/api/orders')
+      ]);
+
+      if (products) {
+        document.getElementById('stat-products').textContent = products.length;
+        const lowStock = products.filter(p => {
+          const threshold = (p.lowStockThreshold !== undefined && p.lowStockThreshold !== null)
+            ? parseInt(p.lowStockThreshold) : 10;
+          return p.stockQuantity <= threshold;
+        });
+        document.getElementById('stat-lowstock').textContent = lowStock.length;
+        renderAlertTable(lowStock, suppliers || []);
+      } else {
+        document.getElementById('stat-products').textContent = 'N/A';
+        document.getElementById('stat-lowstock').textContent = 'N/A';
+        document.getElementById('dash-alert-body').innerHTML =
+          '<tr><td colspan="7" class="center-text sub-text">Could not load stock data.</td></tr>';
+      }
+
+      document.getElementById('stat-suppliers').textContent = suppliers ? suppliers.length : 'N/A';
+
+      if (orders && Array.isArray(orders)) {
+        const pendingOrders = orders.filter(o => o.status === 'Pending Order' || o.status === 'Partially Completed' || o.status === 'Pending');
+        document.getElementById('stat-pending-orders').textContent = pendingOrders.length;
+        renderPendingOrders(pendingOrders);
+      } else {
+        document.getElementById('stat-pending-orders').textContent = 'N/A';
+        document.getElementById('dash-pending-orders-body').innerHTML =
+          '<tr><td colspan="4" class="center-text sub-text">Could not load orders.</td></tr>';
+      }
+    }
+
+    // --- Most Bought Items ---
+    async function loadTopProducts() {
+      const tbody = document.getElementById('dash-top-products-body');
+      const data = await safeFetch('/api/dashboard/top-products');
+
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="center-text sub-text">No sales data yet.</td></tr>';
+        return;
+      }
+
+      const medals = ['🥇', '🥈', '🥉'];
+      const maxSold = data[0].totalSold;
+
+      tbody.innerHTML = data.map((item, i) => {
+        const rank = i < 3 ? medals[i] : `${i + 1}`;
+        const barWidth = maxSold > 0 ? Math.round((item.totalSold / maxSold) * 100) : 0;
+        return `<tr>
+          <td><strong>${rank}</strong></td>
+          <td>
+            <div style="font-weight:600;">${item.productName}</div>
+            <div style="height:6px;background:#e5e7eb;border-radius:4px;margin-top:4px;overflow:hidden;">
+              <div style="height:100%;width:${barWidth}%;background:linear-gradient(90deg,#16a34a,#4ade80);border-radius:4px;transition:width .4s;"></div>
+            </div>
+          </td>
+          <td><strong>${parseInt(item.totalSold).toLocaleString()} pcs</strong></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // --- Pending Orders ---
+    function renderPendingOrders(orders) {
+      const tbody = document.getElementById('dash-pending-orders-body');
+      if (!orders || orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="center-text sub-text">No pending orders found.</td></tr>';
+        return;
+      }
+
+      const pending = orders.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate)).slice(0, 5);
+
+      tbody.innerHTML = pending.map(o => {
+        let statusCls = 'status-lowstock';
+
+        return `<tr>
+          <td><strong>PO-${o.orderID}</strong></td>
+          <td>${o.supplierName || '—'}</td>
+          <td>${new Date(o.orderDate).toLocaleDateString('en-PH')}</td>
+          <td><span class="status-pill ${statusCls}">${o.status}</span></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // --- Stock Alert Table ---
+    function renderAlertTable(lowStockProducts, suppliers) {
+      const productSupplierMap = {};
+      (suppliers || []).forEach(s => {
+        if (s.productIDs) {
+          s.productIDs.split(',').forEach(pid => {
+            pid = pid.trim();
+            if (pid) {
+              if (!productSupplierMap[pid]) productSupplierMap[pid] = [];
+              productSupplierMap[pid].push(s.supplierName);
+            }
+          });
+        }
+      });
+
+      const btn = document.getElementById('btn-auto-reorder-dash');
+      const tbody = document.getElementById('dash-alert-body');
+
+      if (!lowStockProducts || lowStockProducts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="center-text sub-text">No stock alerts. All levels are good.</td></tr>';
+        if (btn) btn.disabled = true;
+        return;
+      }
+
+      tbody.innerHTML = lowStockProducts.map(p => {
+        const isOut = p.stockQuantity === 0;
+        const statusCls = isOut ? 'status-pill status-outstock' : 'status-pill status-lowstock';
+        const badgeCls = isOut ? 'supplier-badge out-stock' : 'supplier-badge low-stock';
+        const label = isOut ? 'Out of Stock' : 'Low Stock';
+        const threshold = (p.lowStockThreshold !== undefined && p.lowStockThreshold !== null)
+          ? parseInt(p.lowStockThreshold) : 10;
+
+        const supplierList = productSupplierMap[String(p.productID)] || [];
+        const supplierCell = supplierList.length > 0
+          ? supplierList.map(name => `<span class="${badgeCls}">${name}</span>`).join(' ')
+          : '<span class="no-supplier-tag">No supplier</span>';
+        const reorderBtn = supplierList.length > 0
+          ? `<button class="btn-edit" onclick="openReorderModal(${p.productID})">Reorder</button>`
+          : '<span class="no-supplier-tag">—</span>';
+
+        return `<tr>
+          <td><strong>${p.productName}</strong></td>
+          <td>${p.category || '—'}</td>
+          <td>${p.stockQuantity}</td>
+          <td class="sub-text">${threshold}</td>
+          <td><span class="${statusCls}">${label}</span></td>
+          <td>${supplierCell}</td>
+          <td>${reorderBtn}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // --- Init ---
+    document.addEventListener('DOMContentLoaded', () => {
+      loadStats();
+      loadTopProducts();
+    });
+  </script>
+
+</body>
+
+</html>

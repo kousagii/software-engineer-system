@@ -200,6 +200,9 @@
                         <div style="font-size: 0.9rem;"><strong>Address:</strong> <span id="dispAddress"></span></div>
                     </div>
 
+                    <label class="mt-15">Ship To Address</label>
+                    <textarea id="shipToAddress" rows="3" class="w-full"></textarea>
+
                     <label class="mt-15">Comments or Special Instructions</label>
                     <textarea id="shipmentInfo" rows="4" placeholder="Any comments or special instructions..."
                         class="w-full"></textarea>
@@ -237,7 +240,8 @@
                     <div id="delete-zone"
                         style="display:none; margin-top:18px; border-top:1px solid #eee; padding-top:14px;">
                         <p class="sub-text" style="margin:0 0 8px 0; color: #888;">⚠ Danger Zone</p>
-                        <button class="btn-delete" style="width: 100%; margin: 0;" onclick="deleteCurrentOrder()">Delete
+                        <button class="btn-delete" style="width: 100%; margin: 0;"
+                            onclick="archiveCurrentOrder()">Archive
                             This Order</button>
                     </div>
                 </div>
@@ -374,7 +378,7 @@
                     <div class="po-header">
                         <div class="po-company">
                             <h1>Udicon Trading</h1>
-                            <p>123 Trade St.<br>Manila, PH 1000<br>Phone: (000) 000-0000<br>Fax: (000) 000-0000<br>Website: udicon.com</p>
+                            <p>#2 National Road, Brgy. San Juan,<br>Taytay, Rizal, Philippines<br>Phone: 8658-7984 / 8658-6802 <br></p>
                         </div>
                         <div class="po-title-section">
                             <h1 class="po-title">PURCHASE ORDER</h1>
@@ -392,7 +396,7 @@
                         </div>
                         <div class="po-shipto">
                             <div class="po-box-title">SHIP TO</div>
-                            <p>Udicon Trading<br>Udicon Trading<br>123 Trade St.<br>Manila, PH 1000<br>(000) 000-0000</p>
+                            <p>${(order.shipToAddress || '#2 National Road, Brgy. San Juan,\\nTaytay, Rizal, Philippines\\nPhone: 8658-7984 / 8658-6802').replace(/\\n/g, '<br>')}</p>
                         </div>
                     </div>
 
@@ -476,6 +480,7 @@
             if (!id) {
                 $('form-title').innerText = 'Create Purchase Order';
                 val('shipmentInfo', '');
+                val('shipToAddress', "#2 National Road, Brgy. San Juan,\nTaytay, Rizal, Philippines\nPhone: 8658-7984 / 8658-6802");
                 $('orderStatusLabel').style.display = 'none';
                 $('orderStatus').style.display = 'none';
                 val('orderStatus', 'To Order');
@@ -487,6 +492,7 @@
                 $('form-title').innerText = (isReadOnly ? 'View' : 'Edit') + ' Purchase Order #' + id;
                 populateSupplierSelect(order.supplierID);
                 val('shipmentInfo', order.shipmentInfo || '');
+                val('shipToAddress', order.shipToAddress || "#2 National Road, Brgy. San Juan,\nTaytay, Rizal, Philippines\nPhone: 8658-7984 / 8658-6802");
 
                 $('orderStatusLabel').style.display = 'block';
                 $('orderStatus').style.display = 'block';
@@ -535,6 +541,7 @@
         function toggleInputs(enabled) {
             $('supplierSelect').disabled = !enabled;
             $('shipmentInfo').disabled = !enabled;
+            $('shipToAddress').disabled = !enabled;
             if (supplierSelectInstance) {
                 enabled ? supplierSelectInstance.enable() : supplierSelectInstance.disable();
             }
@@ -728,6 +735,7 @@
                 supplierID: supplierID,
                 contact: contact,
                 shipmentInfo: val('shipmentInfo'),
+                shipToAddress: val('shipToAddress'),
                 status: val('orderStatus') || 'To Order',
                 items: getItemsFromUI()
             };
@@ -749,18 +757,18 @@
             } catch { showAlert('Failed to connect to server'); }
         }
 
-        function deleteCurrentOrder() {
+        function archiveCurrentOrder() {
             if (!currentEditId) return;
-            showAlert('Are you sure you want to delete this order?', true, async () => {
+            showAlert('Are you sure you want to archive this order?', true, async () => {
                 try {
                     const res = await fetch(`/api/orders/${currentEditId}`, { method: 'DELETE' });
                     if (res.ok) {
-                        showAlert('Order deleted');
+                        showAlert('Order archived');
                         loadOrders();
                         toggleView('order-list-view');
                     } else {
                         const r = await res.json();
-                        showAlert('Error: ' + (r.error || 'Delete failed'));
+                        showAlert('Error: ' + (r.error || 'Archive failed'));
                     }
                 } catch { showAlert('Failed to connect to server'); }
             });
