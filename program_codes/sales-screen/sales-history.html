@@ -18,7 +18,7 @@
     <main class="dashboard-main">
         <header class="page-header">
             <div>
-                <h2 id="pageTitle">Transaction Records</h2>
+                <h2 id="pageTitle">Records</h2>
             </div>
             <div class="toolbar-right">
                 <span class="sub-text" id="header-datetime"></span>
@@ -184,21 +184,34 @@
     <div class="modal-overlay" id="receiptModal" style="display: none;">
         <div class="receipt-container" id="printableReceipt">
             <div class="receipt-header">
-                <h2>UDICON TRADING</h2>
-                <p id="hist-receipt-type">Transaction Receipt</p>
-                <p class="mt-10">TXN: <strong id="hist-receipt-txn">---</strong></p>
-                <p id="hist-receipt-orig-row" style="display:none;">Orig: <strong id="hist-receipt-orig">---</strong>
-                </p>
-                <div id="hist-receipt-customer-details"
-                    style="display:none; text-align: left; background: #fff3cd; padding: 10px; margin-top: 10px; border-radius: 4px; font-size: 0.9em;">
-                    <p class="m-0">Customer: <strong id="hist-receipt-customer">---</strong></p>
-                    <p class="m-0" id="hist-receipt-contact-row">Contact: <span id="hist-receipt-contact">---</span></p>
-                    <p class="m-0" id="hist-receipt-address-row">Address: <span id="hist-receipt-address">---</span></p>
-                    <p class="m-0 mt-5">Due Date: <strong id="hist-receipt-due" style="color: #b91c1c;">---</strong></p>
+                <h2>UDICON TRADING, OPC</h2>
+                <p># 2 National Road, Brgy. San Juan, Taytay, Rizal, Philippines 1920</p>
+                <p>Tel Nos.: 8658-7984 / 8658-6202 </p>
+                <p>Vat Reg TIN: 764-682-065-00000</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                    <h5 style="margin: 0; font-weight: bold;" id="hist-receipt-type">SALES INVOICE</h5>
+                    <p style="margin: 0; text-align: right;">TXN: <strong id="hist-receipt-txn">---</strong></p>
                 </div>
-                <p class="mt-10">Date: <span id="hist-receipt-date">---</span></p>
-                <p>Method: <strong id="hist-receipt-method">---</strong></p>
-                <p id="hist-receipt-split-row" style="display:none;">Cash: <strong id="hist-receipt-cash">---</strong> |
+                <p id="hist-receipt-orig-row" style="display:none; text-align: right; margin: 0;">Orig: <strong
+                        id="hist-receipt-orig">---</strong></p>
+                <div style="text-align: left; margin-top: 4px;">
+                    <p style="margin: 0;">Date: <span id="hist-receipt-date">---</span></p>
+                </div>
+                <div
+                    style="display: flex; flex-direction: column; align-items: flex-start; margin-top: 4px; margin-bottom: 10px;">
+                    <p style="margin: 0; text-align: left;" id="hist-receipt-sold-to-row">Sold to: <strong
+                            id="hist-receipt-sold-to"></strong></p>
+                    <p style="margin: 2px 0 0; text-align: left;" id="hist-receipt-tin-row">TIN: <strong
+                            id="hist-receipt-tin"></strong></p>
+                    <p style="margin: 2px 0 0; text-align: left;" id="hist-receipt-business-style-row">Business Style:
+                        <strong id="hist-receipt-business-style"></strong>
+                    </p>
+                    <p style="margin: 2px 0 0; text-align: left;" id="hist-receipt-address-row">Address: <strong
+                            id="hist-receipt-address"></strong></p>
+                </div>
+                <p style="text-align: left; margin: 0;">MOP: <strong id="hist-receipt-method">---</strong></p>
+                <p id="hist-receipt-split-row" style="display:none; text-align: left; margin: 2px 0 0;">Cash: <strong
+                        id="hist-receipt-cash">---</strong> |
                     Digital: <strong id="hist-receipt-digital">---</strong></p>
             </div>
 
@@ -216,10 +229,40 @@
             <div class="receipt-totals">
                 <div><span>Subtotal:</span> <span id="hist-receipt-subtotal">₱0.00</span></div>
                 <div><span>Discount:</span> <span id="hist-receipt-discount">- ₱0.00</span></div>
+                <div><span>VATable Sales:</span> <span id="hist-receipt-vatable-sales">₱0.00</span></div>
+                <div><span>VAT Amount (12%):</span> <span id="hist-receipt-vat-amount">₱0.00</span></div>
                 <div class="grand-total"><span>Total Due:</span> <span id="hist-receipt-total">₱0.00</span></div>
             </div>
 
-            <div class="receipt-qr-row">
+            <div id="hist-receipt-payment-section" class="receipt-payment-info"></div>
+
+            <div id="hist-receipt-customer-section"
+                style="display: none; border-top: 1px dashed #333; padding-top: 10px; margin-top: 10px; font-size: 12px; text-align: left;">
+                <strong>Customer Details:</strong><br>
+                <span id="hist-receipt-cust-name"></span><br>
+                <span id="hist-receipt-cust-contact"></span>
+                <span id="hist-receipt-cust-address"></span>
+            </div>
+
+            <!-- Signature Lines -->
+            <div
+                style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 0px; font-size: 11px; text-align: center;">
+                <div style="margin-bottom: 20px; text-align: left;">
+                    <strong>Issued by:</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <div style="flex: 1;">
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <strong>Received by</strong>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <strong>Cashier</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="receipt-qr-row" style="margin-top: 16px;">
                 <div id="qrcode-canvas" class="qr-canvas-box"></div>
                 <div class="qr-text-col">
                     <span class="qr-scan-label">Scan for Refund/Exchange</span>
@@ -238,10 +281,17 @@
     <div class="modal-overlay" id="settlementReceiptModal" style="display: none;">
         <div class="receipt-container" id="printableSettlementReceipt">
             <div class="receipt-header">
-                <h2>UDICON TRADING</h2>
-                <p>Payment Settlement Receipt</p>
-                <p class="mt-10">TXN: <strong id="sr-txn">---</strong></p>
-                <p>Date: <span id="sr-date">---</span></p>
+                <h2>UDICON TRADING, OPC</h2>
+                <p># 2 National Road, Brgy. San Juan, Taytay, Rizal, Philippines 1920</p>
+                <p>Tel Nos.: 8658-7984 / 8658-6202 </p>
+                <p>Vat Reg TIN: 764-682-065-00000</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                    <h5 style="margin: 0; font-weight: bold;">PAYMENT SETTLEMENT</h5>
+                    <p style="margin: 0; text-align: right;">TXN: <strong id="sr-txn">---</strong></p>
+                </div>
+                <div style="text-align: left; margin-top: 4px;">
+                    <p style="margin: 0;">Date: <span id="sr-date">---</span></p>
+                </div>
             </div>
 
             <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px;">
@@ -256,7 +306,25 @@
                 <div class="grand-total"><span>Remaining Bal:</span> <span id="sr-balance">₱0.00</span></div>
             </div>
 
-            <div class="receipt-qr-row">
+            <!-- Signature Lines -->
+            <div
+                style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 0px; font-size: 11px; text-align: center;">
+                <div style="margin-bottom: 20px; text-align: left;">
+                    <strong>Issued by:</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <div style="flex: 1;">
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <strong>Received by</strong>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <strong>Cashier</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="receipt-qr-row" style="margin-top: 16px;">
                 <div class="qr-text-col" style="text-align: center; width: 100%;">
                     <p class="qr-thank-you">Thank you for your payment!</p>
                 </div>
@@ -523,7 +591,7 @@
             const salesLabel = document.querySelector('#stat-sales').closest('.dash-stat-info').querySelector('.sub-text');
 
             if (dateFrom === todayStr && dateTo === todayStr) {
-                el("pageTitle").textContent = 'Transaction Records';
+                el("pageTitle").textContent = 'Records';
                 salesLabel.textContent = "Today's Sales";
             } else if (dateFrom || dateTo) {
                 const formatOpts = { year: 'numeric', month: 'short', day: 'numeric' };
@@ -680,7 +748,7 @@
 
         function showSettlementReceipt(txnCode, customer, method, ref, amountPaid, remainingBalance) {
             el("sr-txn").innerText = txnCode;
-            el("sr-date").innerText = new Date().toLocaleString('en-PH');
+            el("sr-date").innerText = new Date().toLocaleString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
             el("sr-customer").innerText = customer || 'N/A';
             el("sr-method").innerText = method;
 
@@ -709,13 +777,15 @@
                 const origCode = origMatch ? origMatch[2].trim() : null;
 
                 // Determine receipt type label
-                let typeLabel = 'Official Sales Receipt';
+                let typeLabel = 'SALES INVOICE';
                 if (txn.paymentStatus === 'Refunded') typeLabel = 'REFUND RECEIPT';
                 else if (txn.paymentStatus === 'Exchanged') typeLabel = 'EXCHANGE RECEIPT';
 
                 el('hist-receipt-type').textContent = typeLabel;
                 el('hist-receipt-txn').textContent = shortCode;
-                el('hist-receipt-date').textContent = new Date(txn.transDateTime).toLocaleString('en-PH');
+                el('hist-receipt-date').textContent = new Date(txn.transDateTime).toLocaleString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+
+                // Payment method display
                 let displayMethod = txn.paymentMethod || '—';
                 const cashAmt = parseFloat(txn.cashReceived || 0);
                 const digitalAmt = parseFloat(txn.digitalAmount || 0);
@@ -738,37 +808,58 @@
                     el('hist-receipt-orig-row').style.display = 'none';
                 }
 
-                // Show/hide pay later customer details
+                // Sold To / Customer info — always show rows, leave blank if no data
+                el('hist-receipt-sold-to').textContent = txn.customerName || '';
+                el('hist-receipt-tin').textContent = txn.tin || '';
+                el('hist-receipt-business-style').textContent = txn.businessStyle || '';
+                el('hist-receipt-address').textContent = txn.address || '';
+
+                // Customer Details section (for pay later)
+                const custSection = el('hist-receipt-customer-section');
                 if (txn.paymentStatus === 'Unpaid' || txn.paymentStatus === 'Partial') {
-                    el('hist-receipt-customer').textContent = txn.customerName || 'N/A';
-
-                    if (txn.contactInfo) {
-                        el('hist-receipt-contact').textContent = txn.contactInfo;
-                        el('hist-receipt-contact-row').style.display = 'block';
-                    } else {
-                        el('hist-receipt-contact-row').style.display = 'none';
-                    }
-
-                    if (txn.address) {
-                        el('hist-receipt-address').textContent = txn.address;
-                        el('hist-receipt-address-row').style.display = 'block';
-                    } else {
-                        el('hist-receipt-address-row').style.display = 'none';
-                    }
-
-                    el('hist-receipt-due').textContent = txn.dueDate ? new Date(txn.dueDate).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
-                    el('hist-receipt-customer-details').style.display = 'block';
+                    el('hist-receipt-cust-name').textContent = txn.customerName || '';
+                    el('hist-receipt-cust-contact').textContent = txn.contactInfo || '';
+                    el('hist-receipt-cust-address').textContent = txn.address || '';
+                    custSection.style.display = 'block';
                 } else {
-                    el('hist-receipt-customer-details').style.display = 'none';
+                    custSection.style.display = 'none';
                 }
 
+                // Totals
                 const discountAmt = parseFloat(txn.discountAmount || 0);
                 const totalAmt = parseFloat(txn.totalAmount || 0);
                 const subtotalAmt = totalAmt + discountAmt;
+                const vatableSales = Math.abs(subtotalAmt) / 1.12;
+                const vatAmount = Math.abs(subtotalAmt) - vatableSales;
 
                 el('hist-receipt-subtotal').textContent = '₱' + Math.abs(subtotalAmt).toLocaleString(undefined, { minimumFractionDigits: 2 });
                 el('hist-receipt-discount').textContent = '- ₱' + discountAmt.toLocaleString(undefined, { minimumFractionDigits: 2 });
+                el('hist-receipt-vatable-sales').textContent = '₱' + vatableSales.toLocaleString(undefined, { minimumFractionDigits: 2 });
+                el('hist-receipt-vat-amount').textContent = '₱' + vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2 });
                 el('hist-receipt-total').textContent = '₱' + Math.abs(totalAmt).toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+                // Payment details section
+                const paymentSection = el('hist-receipt-payment-section');
+                let paymentHTML = '';
+                if (txn.paymentMethod === 'Pay Later') {
+                    paymentHTML = `<div class="receipt-payment-block">
+                        <div class="receipt-row"><span>Status:</span> <span>${txn.paymentStatus}</span></div>
+                        ${txn.dueDate ? `<div class="receipt-row"><span>Due Date:</span> <span>${new Date(txn.dueDate).toLocaleDateString('en-PH')}</span></div>` : ''}
+                    </div>`;
+                } else if (cashAmt > 0 || digitalAmt > 0) {
+                    paymentHTML = '<div class="receipt-payment-block">';
+                    if (digitalAmt > 0 && txn.paymentMethod !== 'Cash') {
+                        paymentHTML += `<div class="receipt-row"><span>${txn.paymentMethod} Paid:</span> <span>₱${digitalAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>`;
+                    }
+                    if (cashAmt > 0) {
+                        paymentHTML += `<div class="receipt-row"><span>Cash Received:</span> <span>₱${cashAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>`;
+                    }
+                    const totalReceived = cashAmt + digitalAmt;
+                    const change = totalReceived - Math.abs(totalAmt);
+                    paymentHTML += `<div class="receipt-row receipt-change"><span>Change:</span> <span>₱${Math.max(0, change).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>`;
+                    paymentHTML += '</div>';
+                }
+                paymentSection.innerHTML = paymentHTML;
 
                 // Generate QR Code
                 const qrCanvas = el("qrcode-canvas");
@@ -802,7 +893,7 @@
                     })
                     .catch(err => {
                         el('hist-receipt-items').innerHTML = '<tr><td colspan="3" style="text-align:center;">Failed to load items.</td></tr>';
-                        resolve(); // Resolve anyway so it can still print what we have
+                        resolve();
                     });
             });
         }

@@ -1234,7 +1234,7 @@ button:disabled,
 
 .receipt-container {
     background: var(--white);
-    padding: 20px;
+    padding: 10px;
     border-radius: var(--rad-md);
     width: 100%;
     max-width: 320px;

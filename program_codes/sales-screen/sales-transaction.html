@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -396,7 +396,7 @@
                     <h5 style="margin: 0; font-weight: bold;">SALES INVOICE</h5>
                     <p style="margin: 0; text-align: right;">TXN: <strong id="receipt-txn">---</strong></p>
                 </div>
-                <div style="text-align: right; margin-top: 4px;">
+                <div style="text-align: left; margin-top: 4px;">
                     <p style="margin: 0;">Date: <span id="receipt-date">---</span></p>
                 </div>
                 <div
@@ -1288,7 +1288,7 @@
         function generateDigitalReceipt(data) {
             // 1. Transaction Info
             el('receipt-txn').innerHTML = data.transactionId;
-            el('receipt-date').innerText = new Date(data.timestamp).toLocaleDateString('en-PH');
+            el('receipt-date').innerText = new Date(data.timestamp).toLocaleString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
 
             // Sold To / Address — always show, leave blank if no data
             el('receipt-sold-to').innerText = data.customerName || '';
