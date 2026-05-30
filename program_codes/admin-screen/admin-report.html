@@ -391,6 +391,30 @@
                         <th>Reasoning</th>
                         <th>Action</th>
                     </tr>
+                    </tr>
+                `;
+            } else if (currentReportType === 'pay-later') {
+                stockStatusDiv.style.display = 'none';
+                lossSourceDiv.style.display = 'none';
+                if (thresholdSearchDiv) thresholdSearchDiv.style.display = 'none';
+                if (thresholdStatusFilterDiv) thresholdStatusFilterDiv.style.display = 'none';
+                if (userFilterDiv) userFilterDiv.style.display = 'none';
+                if (logFilterByDiv) logFilterByDiv.style.display = 'none';
+                if (salesSortByDiv) salesSortByDiv.style.display = 'none';
+                if (userLogSortByDiv) userLogSortByDiv.style.display = 'none';
+                summaryPanel.classList.add('hidden');
+                summaryPanel.classList.remove('flex');
+                if (reorderBtn) reorderBtn.classList.add('hidden');
+                $('report-table-head').innerHTML = `
+                    <tr>
+                        <th>Date</th>
+                        <th>Transaction Code</th>
+                        <th>Customer</th>
+                        <th class="center-text">Total Amount</th>
+                        <th class="center-text">Paid Amount</th>
+                        <th class="center-text">Balance Due</th>
+                        <th>Due Date</th>
+                    </tr>
                 `;
             }
 
@@ -664,6 +688,10 @@
                     </tr>`;
                 }).join('') || '<tr><td colspan="5" class="center-text">No suggestions available.</td></tr>';
             } else if (currentReportType === 'pay-later') {
+                const formatDate = (dateStr) => {
+                    if (!dateStr) return 'N/A';
+                    return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                };
                 tbody.innerHTML = paginatedData.map(r => `
                     <tr>
                         <td>${formatDate(r.transDate)}</td>

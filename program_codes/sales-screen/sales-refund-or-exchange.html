@@ -131,143 +131,144 @@
     </main>
 
     <div class="modal-overlay" id="paymentModal">
-            <div class="modal-box modal-accent">
-                <h3 class="m-0">Payment Collection</h3>
+        <div class="modal-box modal-accent">
+            <h3 class="m-0">Payment Collection</h3>
 
-                <div class="dashed-total-box mt-15 text-center">
-                    <p class="m-0">Outstanding Balance</p>
-                    <strong class="f-24">₱ <span id="modalTotal">0.00</span></strong>
+            <div class="dashed-total-box mt-15 text-center">
+                <p class="m-0">Outstanding Balance</p>
+                <strong class="f-24">₱ <span id="modalTotal">0.00</span></strong>
+            </div>
+
+            <div class="section-left my-15">
+                <label class="d-block mb-5">Payment Method</label>
+                <select id="paymentMode" class="payment-select" onchange="handlePaymentMode()">
+                    <option value="Cash">Cash</option>
+                    <option value="GCash">GCash</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                </select>
+            </div>
+
+            <div id="digitalPaymentDetails" class="digital-panel-blue hidden">
+                <div class="mb-10">
+                    <label class="digital-label-blue">Digital Amount Paid</label>
+                    <input type="number" id="digitalAmount" min="0" step="0.01" placeholder="0.00" class="digital-input"
+                        oninput="calculateChange()">
                 </div>
-
-                <div class="section-left my-15">
-                    <label class="d-block mb-5">Payment Method</label>
-                    <select id="paymentMode" class="payment-select" onchange="handlePaymentMode()">
-                        <option value="Cash">Cash</option>
-                        <option value="GCash">GCash</option>
-                        <option value="Bank Transfer">Bank Transfer</option>
-                    </select>
-                </div>
-
-                <div id="digitalPaymentDetails" class="digital-panel-blue hidden">
-                    <div class="mb-10">
-                        <label class="digital-label-blue">Digital Amount Paid</label>
-                        <input type="number" id="digitalAmount" min="0" step="0.01" placeholder="0.00" class="digital-input"
-                            oninput="calculateChange()">
-                    </div>
-                    <div>
-                        <label class="digital-label-blue">Reference / Trace No.</label>
-                        <input type="text" id="referenceNumber" placeholder="Required for digital payments"
-                            class="digital-input">
-                    </div>
-                </div>
-
-                <div class="section-left">
-                    <div class="cash-label-row">
-                        <label class="m-0 label-bold">Cash Received</label>
-                        <span id="cashOptionalBadge" class="optional-badge hidden">Optional</span>
-                    </div>
-                    <input type="number" id="cashInput" min="0" step="0.01" class="cash-input" oninput="calculateChange()"
-                        placeholder="0.00">
-                </div>
-
-                <div id="changeBox" class="change-box mb-15">
-                    <p class="change-label">Change</p>
-                    <strong class="change-val">₱ <span id="changeAmount">0.00</span></strong>
-                </div>
-
-                <div class="flex flex-gap-10">
-                    <button class="btn-confirm" onclick="processFinalTransaction()">Confirm</button>
-                    <button class="btn-cancel-large" onclick="closeModal('paymentModal')">Cancel</button>
+                <div>
+                    <label class="digital-label-blue">Reference / Trace No.</label>
+                    <input type="text" id="referenceNumber" placeholder="Required for digital payments"
+                        class="digital-input">
                 </div>
             </div>
-        </div>
 
-        <div class="modal-overlay" id="clearCartModal">
-            <div class="modal-box modal-accent-small text-center">
-                <h3 class="mt-0">Clear Current Transaction</h3>
-                <p class="clear-msg">Are you sure you want to clear all transaction items?</p>
-                <div class="flex flex-gap-10">
-                    <button class="btn-confirm" onclick="executeClearCart()">Yes, Clear</button>
-                    <button class="btn-cancel-large" onclick="closeModal('clearCartModal')">Cancel</button>
+            <div class="section-left">
+                <div class="cash-label-row">
+                    <label class="m-0 label-bold">Cash Received</label>
+                    <span id="cashOptionalBadge" class="optional-badge hidden">Optional</span>
                 </div>
+                <input type="number" id="cashInput" min="0" step="0.01" class="cash-input" oninput="calculateChange()"
+                    placeholder="0.00">
+            </div>
+
+            <div id="changeBox" class="change-box mb-15">
+                <p class="change-label">Change</p>
+                <strong class="change-val">₱ <span id="changeAmount">0.00</span></strong>
+            </div>
+
+            <div class="flex flex-gap-10">
+                <button class="btn-confirm" onclick="processFinalTransaction()">Confirm</button>
+                <button class="btn-cancel-large" onclick="closeModal('paymentModal')">Cancel</button>
             </div>
         </div>
+    </div>
 
-        <div class="modal-overlay" id="receiptModal">
-            <div class="receipt-container" id="printableReceipt">
-                <div class="receipt-header">
-                    <h2>UDICON TRADING, OPC</h2>
-                    <p># 2 National Road, Brgy. San Juan, Taytay, Rizal, Philippines 1920</p>
-                    <p>Tel Nos.: 8658-7984 / 8658-6202 </p>
-                    <p>Vat Reg TIN: 764-682-065-00000</p>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                        <h5 style="margin: 0; font-weight: bold;" id="receipt-type-label">REFUND RECEIPT</h5>
-                        <p style="margin: 0; text-align: right;">TXN: <strong id="receipt-txn">---</strong></p>
-                    </div>
-                    <div style="text-align: right; margin: 0;">
-                        <p style="margin: 0;">Orig: <strong id="receipt-orig-txn">---</strong></p>
-                    </div>
-                    <div style="text-align: left; margin-top: 4px;">
-                        <p style="margin: 0;">Date: <span id="receipt-date">---</span></p>
-                    </div>
-                    <p style="text-align: left; margin: 8px 0 0;">MOP: <strong id="receipt-method">---</strong></p>
-                </div>
-
-                <table class="receipt-items w-full">
-                    <thead>
-                        <tr>
-                            <th class="text-left">Item</th>
-                            <th class="center-text">Qty</th>
-                            <th class="text-right">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody id="receipt-items-body"></tbody>
-                </table>
-
-                <div class="receipt-totals">
-                    <div class="receipt-row"><span>Returns Total:</span> <span id="receipt-return-total">₱0.00</span>
-                    </div>
-                    <div id="receipt-exchange-row" class="receipt-row"><span>Exchange Total:</span> <span
-                            id="receipt-exchange-total">₱0.00</span></div>
-
-                    <div class="grand-total receipt-row">
-                        <span id="receipt-net-label">Refund:</span>
-                        <span id="receipt-total">₱0.00</span>
-                    </div>
-                    <div id="receipt-payment-section" class="receipt-payment-info"></div>
-                </div>
-
-                <!-- Signature Lines -->
-                <div style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 0px; font-size: 11px; text-align: center;">
-                    <div style="margin-bottom: 20px; text-align: left;">
-                        <strong>Issued by:</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <div style="flex: 1;">
-                            <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
-                            <strong>Received by</strong>
-                        </div>
-                        <div style="flex: 1;">
-                            <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
-                            <strong>Cashier</strong>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="receipt-qr" class="receipt-qr-row" style="margin-top: 16px;">
-                    <div id="qrcode-canvas" class="qr-canvas-box"></div>
-                    <div class="qr-text-col">
-                        <span class="qr-scan-label">Scan for Refund/Exchange</span>
-                        <p class="qr-thank-you">Thank you for purchasing at Udicon Trading!</p>
-                    </div>
-                </div>
-
-                <div class="no-print flex-col-gap-10 mt-15">
-                    <button class="btn-receipt-action" onclick="window.print()">Print Receipt</button>
-                    <button class="btn-receipt-cancel" onclick="location.reload()">Close</button>
-                </div>
+    <div class="modal-overlay" id="clearCartModal">
+        <div class="modal-box modal-accent-small text-center">
+            <h3 class="mt-0">Clear Current Transaction</h3>
+            <p class="clear-msg">Are you sure you want to clear all transaction items?</p>
+            <div class="flex flex-gap-10">
+                <button class="btn-confirm" onclick="executeClearCart()">Yes, Clear</button>
+                <button class="btn-cancel-large" onclick="closeModal('clearCartModal')">Cancel</button>
             </div>
         </div>
+    </div>
+
+    <div class="modal-overlay" id="receiptModal">
+        <div class="receipt-container" id="printableReceipt">
+            <div class="receipt-header">
+                <h2>UDICON TRADING, OPC</h2>
+                <p># 2 National Road, Brgy. San Juan, Taytay, Rizal, Philippines 1920</p>
+                <p>Tel Nos.: 8658-7984 / 8658-6202 </p>
+                <p>Vat Reg TIN: 764-682-065-00000</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                    <h5 style="margin: 0; font-weight: bold;" id="receipt-type-label">REFUND RECEIPT</h5>
+                    <p style="margin: 0; text-align: right;">TXN: <strong id="receipt-txn">---</strong></p>
+                </div>
+                <div style="text-align: right; margin: 0;">
+                    <p style="margin: 0;">Orig: <strong id="receipt-orig-txn">---</strong></p>
+                </div>
+                <div style="text-align: left; margin-top: 4px;">
+                    <p style="margin: 0;">Date: <span id="receipt-date">---</span></p>
+                </div>
+                <p style="text-align: left; margin: 8px 0 0;">MOP: <strong id="receipt-method">---</strong></p>
+            </div>
+
+            <table class="receipt-items w-full">
+                <thead>
+                    <tr>
+                        <th class="text-left">Item</th>
+                        <th class="center-text">Qty</th>
+                        <th class="text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="receipt-items-body"></tbody>
+            </table>
+
+            <div class="receipt-totals">
+                <div class="receipt-row"><span>Returns Total:</span> <span id="receipt-return-total">₱0.00</span>
+                </div>
+                <div id="receipt-exchange-row" class="receipt-row"><span>Exchange Total:</span> <span
+                        id="receipt-exchange-total">₱0.00</span></div>
+
+                <div class="grand-total receipt-row">
+                    <span id="receipt-net-label">Refund:</span>
+                    <span id="receipt-total">₱0.00</span>
+                </div>
+                <div id="receipt-payment-section" class="receipt-payment-info"></div>
+            </div>
+
+            <!-- Signature Lines -->
+            <div
+                style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 0px; font-size: 11px; text-align: center;">
+                <div style="margin-bottom: 20px; text-align: left;">
+                    <strong>Issued by:</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <div style="flex: 1;">
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <strong>Received by</strong>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <strong>Cashier</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div id="receipt-qr" class="receipt-qr-row" style="margin-top: 16px;">
+                <div id="qrcode-canvas" class="qr-canvas-box"></div>
+                <div class="qr-text-col">
+                    <span class="qr-scan-label">Scan for Refund/Exchange</span>
+                    <p class="qr-thank-you">Thank you for purchasing at Udicon Trading!</p>
+                </div>
+            </div>
+
+            <div class="no-print flex-col-gap-10 mt-15">
+                <button class="btn-receipt-action" onclick="printReceipt()">Print Receipt</button>
+                <button class="btn-receipt-cancel" onclick="location.reload()">Close</button>
+            </div>
+        </div>
+    </div>
 
 
     </main>
@@ -300,7 +301,7 @@
                 const receiptModal = ui('receiptModal');
                 if (receiptModal && receiptModal.style.display !== 'none') {
                     e.preventDefault();
-                    window.print();
+                    printReceipt();
                     return;
                 }
                 const clearModal = ui('clearCartModal');
@@ -799,6 +800,62 @@
                 addExchangeItem();
             }
         });
+        function printReceipt() {
+            const receiptEl = document.getElementById('printableReceipt');
+            if (!receiptEl) return;
+            const receiptHTML = receiptEl.innerHTML;
+            const printWin = window.open('', '_blank', 'width=400,height=800');
+            printWin.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Receipt</title>
+                    <style>
+                        @page { size: 80mm auto; margin: 4mm; }
+                        * { box-sizing: border-box; margin: 0; padding: 0; }
+                        body {
+                            font-family: 'Courier New', Courier, monospace;
+                            font-size: 13px;
+                            font-weight: bold;
+                            width: 72mm;
+                            color: #000;
+                            background: white;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        h2 { font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 2px; }
+                        h5 { font-size: 13px; margin: 0; }
+                        p { margin: 1px 0; font-size: 12px; }
+                        .receipt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px; }
+                        .receipt-items { width: 100%; border-collapse: collapse; margin: 6px 0; }
+                        .receipt-items th, .receipt-items td { padding: 2px 4px; font-size: 12px; word-wrap: break-word; word-break: normal; }
+                        .receipt-items th { border-bottom: 1px dashed #000; font-weight: bold; }
+                        .receipt-items tbody tr:last-child td { border-bottom: 1px dashed #000; padding-bottom: 4px; }
+                        .text-left { text-align: left; }
+                        .center-text, .text-center { text-align: center; }
+                        .text-right { text-align: right; }
+                        .w-full { width: 100%; }
+                        .receipt-totals { margin-top: 4px; font-size: 12px; }
+                        .receipt-totals > div { display: flex; justify-content: space-between; padding: 1px 0; }
+                        .receipt-totals .grand-total { font-weight: bold; font-size: 14px; border-top: 1px dashed #000; margin-top: 4px; padding-top: 4px; }
+                        .receipt-row { display: flex; justify-content: space-between; padding: 1px 0; font-size: 12px; }
+                        .receipt-payment-info { margin-top: 6px; font-size: 12px; }
+                        .receipt-payment-block { display: block; margin: 2px 0; }
+                        .receipt-qr-row { margin-top: 8px; text-align: center; font-size: 12px; }
+                        .no-print { display: none !important; }
+                        strong { font-weight: bold; }
+                    </style>
+                </head>
+                <body>
+                    ${receiptHTML}
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+            printWin.focus();
+            setTimeout(() => { printWin.print(); printWin.close(); }, 400);
+        }
     </script>
 </body>
 

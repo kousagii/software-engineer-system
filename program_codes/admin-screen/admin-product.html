@@ -54,7 +54,7 @@
             <!-- Single Preview -->
             <div id="singlePreviewContainer" class="barcode-preview-container" style="display:none;">
                 <div id="barcodePreviewArea" class="barcode-label">
-                    <div id="barcodeProdName" class="barcode-prod-name">Product Name</div>
+                    <div id="barcodeProdName" class="barcode-prod-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0;">Product Name</div>
                     <svg id="barcodeTarget" class="barcode-target"></svg>
                 </div>
             </div>
@@ -570,9 +570,15 @@
             let formattedVariation = '';
             if (parts.length > 1) {
                 const variationStr = parts.slice(1).join(' - ');
-                formattedVariation = ' - ' + variationStr.split(/\s+/).map(w => {
+                formattedVariation = ' - ' + variationStr.split(/\s+/).map((w, idx) => {
                     if (/\d/.test(w)) return w;
-                    return toTitleCase(w);
+                    if (idx === 0) return toTitleCase(w);
+                    
+                    if (useInitials) {
+                        return w.charAt(0).toUpperCase() + '.';
+                    } else {
+                        return toTitleCase(w);
+                    }
                 }).join(' ');
             }
 
@@ -596,7 +602,7 @@
             } else {
                 printQueue.forEach((item, index) => {
                     const el = document.getElementById(`print_name_${index}`);
-                    if (el) el.innerHTML = `<strong>${formatProductName(item.name, useInitials)}</strong><br><small style="color:#777;">BC: ${item.barcode}</small>`;
+                    if (el) el.innerHTML = `<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:bold;">${formatProductName(item.name, useInitials)}</div><small style="color:#777;">BC: ${item.barcode}</small>`;
                 });
             }
         }
@@ -621,8 +627,8 @@
 
                 multiContainer.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
-                        <div id="print_name_0" style="flex:1; padding-right:10px; white-space:normal; overflow-wrap:break-word;">
-                            <strong>${formatProductName(printQueue[0].name, useInitials)}</strong><br><small style="color:#777;">BC: ${printQueue[0].barcode}</small>
+                        <div id="print_name_0" style="flex:1; padding-right:10px; min-width:0;">
+                            <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:bold;">${formatProductName(printQueue[0].name, useInitials)}</div><small style="color:#777;">BC: ${printQueue[0].barcode}</small>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
                             <span style="font-weight:600; font-size:13px;">Qty:</span>
@@ -633,8 +639,8 @@
             } else {
                 multiContainer.innerHTML = printQueue.map((item, index) => `
                     <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
-                        <div id="print_name_${index}" style="flex:1; padding-right:10px; white-space:normal; overflow-wrap:break-word;">
-                            <strong>${formatProductName(item.name, useInitials)}</strong><br><small style="color:#777;">BC: ${item.barcode}</small>
+                        <div id="print_name_${index}" style="flex:1; padding-right:10px; min-width:0;">
+                            <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:bold;">${formatProductName(item.name, useInitials)}</div><small style="color:#777;">BC: ${item.barcode}</small>
                         </div>
                         <input type="number" id="qty_${index}" value="1" min="1" class="input-qty center-text m-0" style="width:80px;" title="Print Quantity" onfocus="this.select()">
                     </div>
@@ -664,23 +670,30 @@
 
                     const nameDiv = document.createElement("div");
                     nameDiv.className = "barcode-prod-name";
-                    nameDiv.style.fontSize = "9px";
-                    nameDiv.style.textAlign = "left";
+                    nameDiv.style.fontSize = "8px";
+                    nameDiv.style.textAlign = "center";
                     nameDiv.style.fontWeight = "600";
-                    nameDiv.style.paddingLeft = "2px";
                     nameDiv.style.width = "100%";
-                    nameDiv.style.lineHeight = "1.1";
+                    nameDiv.style.minWidth = "0"; // Required for flex children to allow text truncation
+                    nameDiv.style.display = "block"; // Required for text-overflow to work properly
+                    nameDiv.style.lineHeight = "1";
+                    nameDiv.style.overflow = "hidden";
+                    nameDiv.style.textOverflow = "ellipsis";
+                    nameDiv.style.whiteSpace = "nowrap";
                     nameDiv.innerHTML = displayName;
 
                     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
                     svg.className = "barcode-target";
+                    // Ensure the SVG doesn't exceed the container width
+                    svg.style.maxWidth = "100%";
+                    svg.style.maxHeight = "100%";
 
                     label.appendChild(nameDiv);
                     label.appendChild(svg);
                     area.appendChild(label);
 
                     JsBarcode(svg, item.barcode, {
-                        format: "CODE128", width: 1.5, fontSize: 10, height: 60, margin: 2, displayValue: true, background: "white"
+                        format: "CODE128", width: 1.0, fontSize: 9, height: 35, margin: 0, displayValue: true, background: "white"
                     });
                 }
             });
