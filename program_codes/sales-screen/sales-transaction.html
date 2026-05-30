@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -20,91 +20,147 @@
             <div>
                 <h2>Sales Transaction</h2>
             </div>
-            <button class="btn-create" onclick="goToProductList()">
-                📋 See Product List
-            </button>
         </header>
 
-        <div class="split">
-            <div class="form-panel-wide" style="display: flex; flex-direction: column; height: 100%;">
-                <div class="input-row">
-                    <div class="input-barcode">
-                        <label for="barcodeInput">Scan or Search Product</label>
-                        <div class="search-input-wrapper">
-                            <input type="text" id="barcodeInput" placeholder="Scan barcode or type product."
-                                autocomplete="off">
-                            <span class="scan-queue-badge" id="scanQueueBadge"></span>
-                            <div class="product-suggestions" id="productSuggestions"></div>
+        <div class="pos-layout">
+            <!-- Left Column: Products -->
+            <div class="pos-left-col">
+                <div class="pos-toolbar" style="flex-direction: column; align-items: stretch;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <label class="label-bold label-sm" style="margin: 0; white-space: nowrap;">Search</label>
+                            <input type="text" id="barcodeInput" placeholder="Scan barcode, search by name, or brand..."
+                                autocomplete="off" style="margin: 0; flex: 1;">
                         </div>
-                        <div class="scan-indicator" id="scanIndicator">
-                            <span class="scan-dot"></span> Processing scan...
+                        <span class="sub-text" style="font-size: 11px; display: block; margin-top: 6px;">Use
+                            <strong>↑/↓</strong> to select product, <strong>Enter</strong> to add, <strong>Alt +
+                                ←/→</strong> to change category, <strong>Alt + ↑/↓</strong> to sort.</span>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <!-- Category Block -->
+                        <div>
+                            <label class="label-bold label-sm"
+                                style="display:block; margin-bottom:6px;">Category</label>
+                            <div class="category-pills" id="posCategoryPills">
+                                <button class="category-pill active" data-cat="All"
+                                    onclick="setPosCategory('All')">All</button>
+                                <button class="category-pill" data-cat="Tools"
+                                    onclick="setPosCategory('Tools')">Tools</button>
+                                <button class="category-pill" data-cat="Cement"
+                                    onclick="setPosCategory('Cement')">Cement</button>
+                                <button class="category-pill" data-cat="Wood"
+                                    onclick="setPosCategory('Wood')">Wood</button>
+                                <button class="category-pill" data-cat="Roofing"
+                                    onclick="setPosCategory('Roofing')">Roofing</button>
+                                <button class="category-pill" data-cat="Bricks"
+                                    onclick="setPosCategory('Bricks')">Bricks</button>
+                                <button class="category-pill" data-cat="Paints"
+                                    onclick="setPosCategory('Paints')">Paints</button>
+                                <button class="category-pill" data-cat="Electrical"
+                                    onclick="setPosCategory('Electrical')">Electrical</button>
+                                <button class="category-pill" data-cat="Plumbing"
+                                    onclick="setPosCategory('Plumbing')">Plumbing</button>
+                                <button class="category-pill" data-cat="Steel"
+                                    onclick="setPosCategory('Steel')">Steel</button>
+                                <button class="category-pill" data-cat="Safety & PPE"
+                                    onclick="setPosCategory('Safety & PPE')">Safety & PPE</button>
+                                <button class="category-pill" data-cat="Other"
+                                    onclick="setPosCategory('Other')">Other</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="input-qty">
-                        <label for="qtyInput" class="d-block mb-5">Quantity</label>
-                        <input type="number" id="qtyInput" value="1" min="1">
-                    </div>
-                    <div class="input-btn-container">
-                        <button class="btn-create btn-add-item" onclick="addProduct()">Add Item</button>
+
+                        <!-- Sort Block -->
+                        <div style="margin-top:12px; display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <label class="label-bold label-sm" style="margin:0;">Sort By</label>
+                            <div class="category-pills" id="posSortPills">
+                                <button class="category-pill active" data-sort="name-asc"
+                                    onclick="setPosSort('name-asc')">Name A-Z</button>
+                                <button class="category-pill" data-sort="name-desc"
+                                    onclick="setPosSort('name-desc')">Name Z-A</button>
+                                <button class="category-pill" data-sort="price-asc"
+                                    onclick="setPosSort('price-asc')">Price ↑</button>
+                                <button class="category-pill" data-sort="price-desc"
+                                    onclick="setPosSort('price-desc')">Price ↓</button>
+                                <button class="category-pill" data-sort="stock-desc"
+                                    onclick="setPosSort('stock-desc')">Stock ↓</button>
+                                <button class="category-pill" data-sort="stock-asc"
+                                    onclick="setPosSort('stock-asc')">Stock ↑</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <div class="cart-container" style="flex: 1;">
-                    <table class="data-table">
-                        <thead>
+                <div class="pos-product-list-container"
+                    style="flex: 1; overflow-y: auto; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 12px;">
+                    <table class="data-table" style="width: 100%; margin: 0; border: none;">
+                        <thead
+                            style="position: sticky; top: 0; z-index: 10; background: #f8fafc; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                             <tr>
-                                <th>Product List</th>
-                                <th class="center-text">Price</th>
-                                <th class="center-text">Qty</th>
-                                <th class="center-text">Subtotal</th>
-                                <th class="center-text">Remove</th>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Action</th>
                             </tr>
                         </thead>
-                        <tbody id="cartTable">
-                            <tr>
-                                <td colspan="5" class="empty-cart-msg">Cart is empty. Use Product List or scan an item.
-                                </td>
-                            </tr>
+                        <tbody id="posProductGrid">
+                            <!-- Products will be rendered here dynamically -->
                         </tbody>
                     </table>
                 </div>
-
-                <div class="flex-end mt-15">
-                    <button class="btn-clear-cart" onclick="clearCart()">
-                        CLEAR CART
-                    </button>
-                </div>
             </div>
 
-            <div class="summary-panel">
-                <h3 class="summary-title">Cart Summary</h3>
-                <div class="summary-item"><span>Total No. of Items:</span><strong id="itemCount">0</strong></div>
-                <div class="summary-item"><span>Subtotal:</span><strong>₱ <span id="subtotalAmount">0.00</span></strong>
-                </div>
-
-                <div class="mt-15">
-                    <label class="d-block mb-5">Discount</label>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <select id="discountType" class="discount-input"
-                            style="flex: 0 0 auto; width: auto; min-width: 110px;" onchange="updateTotal()">
-                            <option value="fixed">Fixed (₱)</option>
-                            <option value="percent">Percent (%)</option>
-                        </select>
-                        <input type="number" id="discount" value="0" min="0" oninput="updateTotal()"
-                            onfocus="if(this.value == '0') this.value = '';"
-                            onblur="if(this.value == '') this.value = '0';" class="discount-input" style="flex: 1;">
+            <!-- Right Column: Order Summary -->
+            <div class="pos-right-col">
+                <div class="pos-cart-header">
+                    <h3>Order Summary</h3>
+                    <div class="pos-cart-info">
+                        <span id="posTxnId"></span>
+                        <span id="posDateTime"></span>
                     </div>
                 </div>
 
-                <div class="summary-item discount-amt-row">
-                    <span>Discount Amount:</span><span>- ₱ <span id="discountDisplay">0.00</span></span>
+                <div class="pos-cart-list" id="posCartList">
+                    <div class="pos-cart-empty">Cart is empty. Select products or scan barcode.</div>
                 </div>
 
-                <div class="total-display">
-                    <p class="total-label">Total Amount Due</p>
-                    <h2 class="total-val">₱ <span id="totalAmount">0.00</span></h2>
+                <div class="pos-totals-section">
+                    <div class="pos-summary-row">
+                        <span>Items Count:</span>
+                        <strong id="itemCount">0</strong>
+                    </div>
+                    <div class="pos-summary-row">
+                        <span>Subtotal:</span>
+                        <strong>₱ <span id="subtotalAmount">0.00</span></strong>
+                    </div>
+                    <div class="pos-summary-row vat-row">
+                        <span>VAT (12% inc.):</span>
+                        <span>₱ <span id="vatAmount">0.00</span></span>
+                    </div>
+                    <div class="pos-summary-row"
+                        style="align-items: flex-start; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                        <span style="font-size: 14px; font-weight: 500;">Discount:</span>
+                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                            <div class="pos-discount-input-group">
+                                <select id="discountType" onchange="updateTotal()">
+                                    <option value="fixed">Fixed (₱)</option>
+                                    <option value="percent">Percent (%)</option>
+                                </select>
+                                <input type="number" id="discount" value="0" min="0" oninput="updateTotal()"
+                                    placeholder="0" onfocus="if(this.value == '0') this.value = '';"
+                                    onblur="if(this.value == '') this.value = '0';">
+                            </div>
+                            <span style="color: #e63946; font-weight: 700;">- ₱ <span
+                                    id="discountDisplay">0.00</span></span>
+                        </div>
+                    </div>
+                    <div class="pos-summary-row grand-total">
+                        <span>Total Due:</span>
+                        <span>₱ <span id="totalAmount">0.00</span></span>
+                    </div>
+
+                    <button class="btn-create pos-proceed-btn" onclick="openPayment()">Proceed to Payment</button>
+                    <button class="pos-clear-btn" onclick="clearCart()">Clear Cart</button>
                 </div>
-                <button class="btn-proceed-large mt-15" onclick="openPayment()">PROCEED TO PAYMENT</button>
             </div>
         </div>
     </main>
@@ -128,6 +184,47 @@
                         <option value="Bank Transfer">Bank Transfer</option>
                         <option value="Pay Later">Pay Later</option>
                     </select>
+                </div>
+
+                <!-- Optional Customer Details (toggle for non-Pay Later, auto for Pay Later) -->
+                <div id="customerDetailsToggle" style="margin-bottom: 12px; text-align: left;">
+                    <label
+                        style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #475569; user-select: none;">
+                        <input type="checkbox" id="showCustomerDetails" onchange="toggleCustomerDetails()"
+                            style="width: 16px; height: 16px; accent-color: var(--bg-dark); cursor: pointer;">
+                        Add Customer Details
+                    </label>
+                </div>
+                <div id="customerDetailsSection" style="display: none; margin-bottom: 14px;">
+                    <div class="digital-panel-blue" style="background-color: #f0f9ff; border-color: #bae6fd;">
+                        <div style="font-weight: 600; font-size: 13px; color: #0369a1; margin-bottom: 10px;">👤 Customer
+                            Details</div>
+                        <div class="mb-10">
+                            <label for="custName" class="digital-label-blue" style="color: #0c4a6e;">Customer
+                                Name</label>
+                            <input type="text" id="custName" placeholder="Enter customer name" class="digital-input">
+                        </div>
+                        <div class="mb-10">
+                            <label for="custTin" class="digital-label-blue" style="color: #0c4a6e;">TIN</label>
+                            <input type="text" id="custTin" placeholder="Enter TIN" class="digital-input">
+                        </div>
+                        <div class="mb-10">
+                            <label for="custBusinessStyle" class="digital-label-blue" style="color: #0c4a6e;">Business
+                                Style</label>
+                            <input type="text" id="custBusinessStyle" placeholder="Enter business style"
+                                class="digital-input">
+                        </div>
+                        <div class="mb-10">
+                            <label for="custContact" class="digital-label-blue" style="color: #0c4a6e;">Contact
+                                Number</label>
+                            <input type="text" id="custContact" placeholder="Enter contact number"
+                                class="digital-input">
+                        </div>
+                        <div class="mb-10">
+                            <label for="custAddress" class="digital-label-blue" style="color: #0c4a6e;">Address</label>
+                            <input type="text" id="custAddress" placeholder="Enter address" class="digital-input">
+                        </div>
+                    </div>
                 </div>
 
                 <div id="digitalPaymentDetails" class="digital-panel-blue" style="display: none;">
@@ -159,6 +256,16 @@
                                 <label for="plContactInfo" class="digital-label-blue" style="color: #664d03;">Contact
                                     Number</label>
                                 <input type="text" id="plContactInfo" placeholder="Enter contact" class="digital-input">
+                            </div>
+                            <div class="mb-10">
+                                <label for="plTin" class="digital-label-blue" style="color: #664d03;">TIN</label>
+                                <input type="text" id="plTin" placeholder="Enter TIN" class="digital-input">
+                            </div>
+                            <div class="mb-10">
+                                <label for="plBusinessStyle" class="digital-label-blue" style="color: #664d03;">Business
+                                    Style</label>
+                                <input type="text" id="plBusinessStyle" placeholder="Enter business style"
+                                    class="digital-input">
                             </div>
                             <div class="mb-10">
                                 <label for="plAddress" class="digital-label-blue"
@@ -281,11 +388,30 @@
     <div class="modal-overlay" id="receiptModal" style="display: none;">
         <div class="receipt-container" id="printableReceipt">
             <div class="receipt-header">
-                <h2>UDICON TRADING</h2>
-                <p>Official Sales Receipt</p>
-                <p class="mt-10">TXN: <strong id="receipt-txn">---</strong></p>
-                <p>Date: <span id="receipt-date">---</span></p>
-                <p>Method: <strong id="receipt-method">---</strong></p>
+                <h2>UDICON TRADING, OPC</h2>
+                <p># 2 National Road, Brgy. San Juan, Taytay, Rizal, Philippines 1920</p>
+                <p>Tel Nos.: 8658-7984 / 8658-6202 </p>
+                <p>Vat Reg TIN: 764-682-065-00000</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                    <h5 style="margin: 0; font-weight: bold;">SALES INVOICE</h5>
+                    <p style="margin: 0; text-align: right;">TXN: <strong id="receipt-txn">---</strong></p>
+                </div>
+                <div style="text-align: right; margin-top: 4px;">
+                    <p style="margin: 0;">Date: <span id="receipt-date">---</span></p>
+                </div>
+                <div
+                    style="display: flex; flex-direction: column; align-items: flex-start; margin-top: 4px; margin-bottom: 10px;">
+                    <p style="margin: 0; text-align: left;" id="receipt-sold-to-row">Sold to: <strong
+                            id="receipt-sold-to"></strong></p>
+                    <p style="margin: 2px 0 0; text-align: left;" id="receipt-tin-row">TIN: <strong
+                            id="receipt-tin"></strong></p>
+                    <p style="margin: 2px 0 0; text-align: left;" id="receipt-business-style-row">
+                        Business Style: <strong id="receipt-business-style"></strong></p>
+                    <p style="margin: 2px 0 0; text-align: left;" id="receipt-address-row">Address:
+                        <strong id="receipt-address"></strong>
+                    </p>
+                </div>
+                <p style="text-align: left; margin: 0;">MOP: <strong id="receipt-method">---</strong></p>
             </div>
 
             <table class="receipt-items w-full">
@@ -303,12 +429,40 @@
             <div class="receipt-totals">
                 <div><span>Subtotal:</span> <span id="receipt-subtotal">₱0.00</span></div>
                 <div><span>Discount:</span> <span id="receipt-discount">- ₱0.00</span></div>
+                <div><span>VATable Sales:</span> <span id="receipt-vatable-sales">₱0.00</span></div>
+                <div><span>VAT Amount (12%):</span> <span id="receipt-vat-amount">₱0.00</span></div>
                 <div class="grand-total"><span>Total Due:</span> <span id="receipt-total">₱0.00</span></div>
             </div>
 
             <div id="receipt-payment-section" class="receipt-payment-info"></div>
 
-            <div id="receipt-qr" class="receipt-qr-row">
+            <div id="receipt-customer-section"
+                style="display: none; border-top: 1px dashed #333; padding-top: 10px; margin-top: 10px; font-size: 12px; text-align: left;">
+                <strong>Customer Details:</strong><br>
+                <span id="receipt-cust-name"></span><br>
+                <span id="receipt-cust-contact"></span>
+                <span id="receipt-cust-address"></span>
+            </div>
+
+            <!-- Signature Lines -->
+            <div
+                style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 0px; font-size: 11px; text-align: center;">
+                <div style="margin-bottom: 20px; text-align: left;">
+                    <strong>Issued by:</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <div style="flex: 1;">
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <strong>Received by</strong>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <strong>Cashier</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div id="receipt-qr" class="receipt-qr-row" style="margin-top: 16px;">
                 <div id="qrcode-canvas" class="qr-canvas-box"></div>
                 <div class="qr-text-col">
                     <span class="qr-scan-label">Scan for Refund/Exchange</span>
@@ -348,7 +502,12 @@
         let searchTimeout = null;
         let suggestionIndex = -1;
         let currentSuggestions = [];
-        const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
+
+        let posCategory = 'All';
+        let posSort = 'name-asc';
+        let posSelectedIndex = -1;
+        let posRenderedData = [];
+        const placeholderImg = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgZmlsbD0iI2NjYyIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMjEgMTlWNWMwLTEuMS0uOS0yLTItMkg1Yy0xLjEgMC0yIC45LTIgMnYxNGMwIDEuMS45IDIgMiAyaDE0YzEuMSAwIDItLjkgMi0yek04LjUgMTMuNWwyLjUgMy4wMUwxNC41IDEybDQuNSA2SDVsMy41LTQuNXoiLz48L3N2Zz4=";
 
         // === Barcode scanner buffer & queue ===
         let lastKeyTime = 0;
@@ -363,6 +522,15 @@
             setTimeout(() => { toast.className = toast.className.replace("show", "").replace("error", "").trim(); }, 3000);
         }
 
+        function updatePosTime() {
+            if (el("posDateTime")) {
+                const now = new Date();
+                el("posDateTime").innerText = now.toLocaleString();
+            }
+        }
+        setInterval(updatePosTime, 1000);
+        updatePosTime();
+
         function generateTransactionID(prefix = "UT") {
             const now = new Date();
             const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
@@ -370,64 +538,119 @@
             return `${prefix}-${datePart}-${timePart}`;
         }
 
+        function setPosCategory(cat) {
+            posCategory = cat;
+            document.querySelectorAll('#posCategoryPills .category-pill').forEach(btn => {
+                if (btn.dataset.cat === cat) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            renderPosGrid();
+        }
+
+        function setPosSort(sort) {
+            posSort = sort;
+            document.querySelectorAll('#posSortPills .category-pill').forEach(btn => {
+                if (btn.dataset.sort === sort) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            renderPosGrid();
+        }
+
+        function highlightPosRow() {
+            const rows = el('posProductGrid').querySelectorAll('tr');
+            rows.forEach((row, i) => {
+                if (i === posSelectedIndex) {
+                    row.style.backgroundColor = 'rgba(143, 201, 106, 0.2)';
+                    row.scrollIntoView({ block: 'nearest' });
+                } else {
+                    row.style.backgroundColor = '';
+                }
+            });
+        }
+
         el("barcodeInput").addEventListener("keydown", e => {
             const now = Date.now();
             const timeSinceLastKey = now - lastKeyTime;
             lastKeyTime = now;
 
+            // Alt + Up/Down for Sorting
+            if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                e.preventDefault();
+                const sorts = ['name-asc', 'name-desc', 'price-asc', 'price-desc', 'stock-desc', 'stock-asc'];
+                let sortIdx = sorts.indexOf(posSort);
+                if (e.key === 'ArrowDown') sortIdx = (sortIdx + 1) % sorts.length;
+                else sortIdx = (sortIdx - 1 + sorts.length) % sorts.length;
+                setPosSort(sorts[sortIdx]);
+                return;
+            }
+
+            // Alt + Left/Right for Category
+            if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                e.preventDefault();
+                const cats = ['All', 'Tools', 'Cement', 'Wood', 'Roofing', 'Bricks', 'Paints', 'Electrical', 'Plumbing', 'Steel', 'Safety & PPE', 'Other'];
+                let catIdx = cats.indexOf(posCategory);
+                if (e.key === 'ArrowRight') catIdx = (catIdx + 1) % cats.length;
+                else catIdx = (catIdx - 1 + cats.length) % cats.length;
+                setPosCategory(cats[catIdx]);
+                return;
+            }
+
+            // Up/Down to navigate list
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (posSelectedIndex < posRenderedData.length - 1) {
+                    posSelectedIndex++;
+                    highlightPosRow();
+                }
+                return;
+            }
+
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (posSelectedIndex > 0) {
+                    posSelectedIndex--;
+                    highlightPosRow();
+                }
+                return;
+            }
+
             if (e.key === "Enter") {
                 e.preventDefault();
                 clearTimeout(searchTimeout);
 
-                // If a suggestion is highlighted, select it
-                if (suggestionIndex >= 0 && currentSuggestions.length > 0) {
-                    selectSuggestion(suggestionIndex);
+                if (posSelectedIndex >= 0 && posSelectedIndex < posRenderedData.length) {
+                    const selected = posRenderedData[posSelectedIndex];
+                    if (selected.stockQuantity > 0) {
+                        addProduct(selected.barcode, 1);
+                        el("barcodeInput").value = "";
+                        posSelectedIndex = -1;
+                        renderPosGrid();
+                    }
                     return;
                 }
 
-                // If suggestions are visible and input is not a barcode, select first result
                 const value = el("barcodeInput").value.trim();
-                if (!value) return;
-
-                if (currentSuggestions.length > 0 && !isLikelyBarcode(value)) {
-                    selectSuggestion(0);
-                    return;
+                if (value) {
+                    queueScan(value);
+                    el("barcodeInput").value = "";
+                    renderPosGrid(); // reset grid
                 }
-
-                hideSuggestions();
-                // Queue as barcode scan (handles both scanner and manual barcode entry)
-                queueScan(value);
-                el("barcodeInput").value = "";
                 return;
-            }
-
-            // Arrow key navigation for suggestions
-            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                if (currentSuggestions.length > 0) {
-                    e.preventDefault();
-                    navigateSuggestions(e.key === "ArrowDown" ? 1 : -1);
-                    return;
-                }
             }
 
             if (e.key === "Escape") {
-                hideSuggestions();
+                el("barcodeInput").value = "";
+                posSelectedIndex = -1;
+                renderPosGrid();
                 return;
             }
 
-            // Detect if this is fast scanner input vs manual typing
             const isScannerInput = timeSinceLastKey < SCAN_CHAR_INTERVAL;
 
-            // Only trigger search suggestions for slow (manual) typing
             if (!isScannerInput && (e.key.length === 1 || e.key === "Backspace" || e.key === "Delete")) {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
-                    const val = el("barcodeInput").value.trim();
-                    if (val.length >= 2) {
-                        searchProducts(val);
-                    } else if (val.length === 0) {
-                        hideSuggestions();
-                    }
+                    renderPosGrid();
                 }, 250);
             }
         });
@@ -439,29 +662,18 @@
                 if (isLikelyBarcode(val)) {
                     queueScan(val);
                     el("barcodeInput").value = "";
-                } else if (val.length >= 2) {
-                    searchProducts(val);
+                    renderPosGrid();
+                } else {
+                    renderPosGrid();
                 }
             }, 10);
         });
 
-        let qtyFreshFocus = false;
-        el("qtyInput").addEventListener("focus", () => { qtyFreshFocus = true; });
-        el("qtyInput").addEventListener("keydown", e => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                addProduct();
-                return;
-            }
-            if (qtyFreshFocus && e.key >= '0' && e.key <= '9') {
-                el("qtyInput").value = '';
-                qtyFreshFocus = false;
-            }
-        });
 
         async function addProduct(manualBarcode = null, manualQty = null) {
             const searchBarcode = String(manualBarcode || el("barcodeInput").value.trim());
-            let qtyToAdd = manualQty || parseInt(el("qtyInput").value) || 1;
+            const qtyEl = el("qtyInput");
+            let qtyToAdd = manualQty || (qtyEl ? parseInt(qtyEl.value) : 1) || 1;
 
             if (qtyToAdd < 1) qtyToAdd = 1;
             if (!searchBarcode) return;
@@ -517,7 +729,7 @@
 
                 if (!manualBarcode) {
                     el("barcodeInput").value = "";
-                    el("qtyInput").value = 1;
+                    if (el("qtyInput")) el("qtyInput").value = 1;
                     el("barcodeInput").focus();
                 }
                 renderCart();
@@ -528,31 +740,55 @@
         }
 
         function renderCart() {
-            const body = el("cartTable");
+            const body = el("posCartList");
+            if (!body) return;
             if (cart.length === 0) {
-                body.innerHTML = `<tr><td colspan="5" class="empty-cart-msg">Cart is empty. Use Product List or scan an item.</td></tr>`;
+                body.innerHTML = `<div class="pos-cart-empty">Cart is empty. Select products or scan barcode.</div>`;
             } else {
-                body.innerHTML = cart.map((item, i) => `
-            <tr>
-                <td class="cart-name-cell"><strong>${item.productName}</strong><br><small>BC: ${item.barcode}</small></td>
-                <td class="center-text">₱${item.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td class="center-text">
-                    <div class="cart-qty-cell">
-                        <button class="qty-btn" onclick="updateQty(${i}, -1)">-</button>
-                        <input type="number" 
-                            value="${item.qty}" 
-                            min="1" 
-                            max="${item.stockQuantity}"
-                            class="cart-qty-input"
-                            onchange="manualQtyUpdate(${i}, this.value)"> 
-                        <button class="qty-btn" onclick="updateQty(${i}, 1)">+</button>
-                    </div>
-                </td>
-                <td class="center-text cart-subtotal">₱${(item.price * item.qty).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td class="center-text">
-                    <button class="btn-remove-item" onclick="removeItem(${i})" title="Remove Item">X</button>
-                </td>
-            </tr>`).join("");
+                let tableHTML = `
+                <table class="data-table" style="width: 100%; margin: 0; border: none; font-size: 13px;">
+                    <thead style="position: sticky; top: 0; z-index: 10; background: #f8fafc; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        <tr>
+                            <th style="padding: 8px 12px; text-align: left;">Item</th>
+                            <th class="text-center" style="padding: 8px 12px; width: 90px;">Qty</th>
+                            <th class="text-right" style="padding: 8px 12px; width: 80px;">Subtotal</th>
+                            <th class="text-center" style="padding: 8px 12px; width: 40px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
+                tableHTML += cart.map((item, i) => {
+                    const safeName = (item.productName || '').replace(/"/g, '&quot;');
+                    return `
+                    <tr>
+                        <td style="padding: 8px 12px; width: 100%;">
+                            <div style="font-weight: 600; color: #1e293b; white-space: normal; line-height: 1.2;" title="${safeName}">${safeName}</div>
+                            <div style="color: #64748b; font-size: 11px; margin-top: 4px;">${item.barcode} | ₱${parseFloat(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                        </td>
+                        <td class="text-center" style="padding: 8px 12px; vertical-align: middle;">
+                            <div class="pos-qty-controls" style="margin: 0 auto; transform: scale(0.85); transform-origin: center;">
+                                <button onclick="updateQty(${i}, -1)">-</button>
+                                <input type="number" value="${item.qty}" min="1" max="${item.stockQuantity}" onchange="manualQtyUpdate(${i}, this.value)" style="width: 30px;">
+                                <button onclick="updateQty(${i}, 1)">+</button>
+                            </div>
+                        </td>
+                        <td class="text-right" style="padding: 8px 12px; vertical-align: middle; font-weight: 600; color: #1e293b; white-space: nowrap;">
+                            ₱${(item.price * item.qty).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                        <td class="text-center" style="padding: 8px 12px; vertical-align: middle;">
+                            <button onclick="removeItem(${i})" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'" title="Remove Item">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  <polyline points="3 6 5 6 21 6"></polyline>
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                `}).join("");
+                tableHTML += `</tbody></table>`;
+                body.innerHTML = tableHTML;
             }
             updateTotal();
         }
@@ -589,6 +825,10 @@
 
         function updateTotal() {
             const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+
+            // Calculate 12% VAT Inclusive
+            const vatAmount = subtotal - (subtotal / 1.12);
+
             const discType = el("discountType").value;
             let discVal = parseFloat(el("discount").value) || 0;
             let discountAmt = 0;
@@ -606,9 +846,15 @@
             const total = subtotal - discountAmt;
 
             el("itemCount").innerText = cart.reduce((s, i) => s + i.qty, 0);
-            el("subtotalAmount").innerText = subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 });
-            el("discountDisplay").innerText = discountAmt.toLocaleString(undefined, { minimumFractionDigits: 2 });
-            el("totalAmount").innerText = total.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            if (el("subtotalAmount")) el("subtotalAmount").innerText = subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            if (el("vatAmount")) el("vatAmount").innerText = vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            if (el("discountDisplay")) el("discountDisplay").innerText = discountAmt.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            if (el("totalAmount")) el("totalAmount").innerText = total.toLocaleString(undefined, { minimumFractionDigits: 2 });
+        }
+
+        function toggleCustomerDetails() {
+            const checked = el('showCustomerDetails').checked;
+            el('customerDetailsSection').style.display = checked ? 'block' : 'none';
         }
 
         function handlePaymentMode() {
@@ -624,6 +870,11 @@
 
             if (mode === "Pay Later") {
                 // --- PAY LATER MODE ---
+                // Hide optional toggle, force-show customer details (Pay Later has its own fields)
+                el('customerDetailsToggle').style.display = 'none';
+                el('customerDetailsSection').style.display = 'none';
+                el('showCustomerDetails').checked = false;
+
                 modalBox.style.maxWidth = "900px";
                 modalBox.style.width = "95%";
                 digitalPanel.style.display = "none";
@@ -639,6 +890,8 @@
                 setTimeout(() => el("plCustomerName").focus(), 100);
             } else if (mode !== "Cash") {
                 // --- DIGITAL MODE ---
+                el('customerDetailsToggle').style.display = 'block';
+
                 modalBox.style.maxWidth = "";
                 modalBox.style.width = "";
                 digitalPanel.style.display = "block";
@@ -657,6 +910,8 @@
                 setTimeout(() => el("referenceNumber").focus(), 100);
             } else {
                 // --- CASH MODE ---
+                el('customerDetailsToggle').style.display = 'block';
+
                 modalBox.style.maxWidth = "";
                 modalBox.style.width = "";
                 digitalPanel.style.display = "none";
@@ -688,6 +943,19 @@
             el("changeBox").style.display = "block";
             el("paymentModalBox").style.maxWidth = "";
             el("paymentModalBox").style.width = "";
+
+            // Reset customer details toggle
+            el('showCustomerDetails').checked = false;
+            el('customerDetailsSection').style.display = 'none';
+            el('customerDetailsToggle').style.display = 'block';
+            el('custName').value = '';
+            el('custContact').value = '';
+            el('custAddress').value = '';
+
+            // Set transaction ID in payment modal if there isn't one
+            if (el("posTxnId") && !el("posTxnId").innerText.includes("UT-")) {
+                el("posTxnId").innerText = "Txn ID: " + generateTransactionID("UT");
+            }
 
             el("referenceNumber").value = "";
             el("digitalAmount").value = "";
@@ -970,9 +1238,12 @@
                 discountAmount: discountAmount,
                 cashReceived: adjustedCash,
                 digitalAmount: digital,
-                customerName: el("plCustomerName").value.trim(),
-                contactInfo: el("plContactInfo").value.trim(),
-                address: el("plAddress").value.trim(),
+                customerName: paymentMethod === 'Pay Later' ? el("plCustomerName").value.trim() : (el("custName").value.trim() || ''),
+                tin: paymentMethod === 'Pay Later' ? el("plTin").value.trim() : (el("custTin").value.trim() || ''),
+                businessStyle: paymentMethod === 'Pay Later' ? el("plBusinessStyle").value.trim() : (el("custBusinessStyle").value.trim() || ''),
+                contactInfo: paymentMethod === 'Pay Later' ? el("plContactInfo").value.trim() : (el("custContact").value.trim() || ''),
+                address: paymentMethod === 'Pay Later' ? el("plAddress").value.trim() : (el("custAddress").value.trim() || ''),
+
                 dueDate: finalDueDate,
                 installments: installmentsToSave,
                 items: [...cart]
@@ -1017,7 +1288,13 @@
         function generateDigitalReceipt(data) {
             // 1. Transaction Info
             el('receipt-txn').innerHTML = data.transactionId;
-            el('receipt-date').innerText = new Date(data.timestamp).toLocaleString();
+            el('receipt-date').innerText = new Date(data.timestamp).toLocaleDateString('en-PH');
+
+            // Sold To / Address — always show, leave blank if no data
+            el('receipt-sold-to').innerText = data.customerName || '';
+            el('receipt-tin').innerText = data.tin || '';
+            el('receipt-business-style').innerText = data.businessStyle || '';
+            el('receipt-address').innerText = data.address || '';
 
             let methodText = data.paymentMethod;
             if (data.rawCash > 0 && data.digitalAmount > 0) {
@@ -1041,8 +1318,13 @@
 
             // 3. Totals
             const subtotal = data.items.reduce((s, i) => s + (i.price * i.qty), 0);
+            const vatableSales = subtotal / 1.12;
+            const vatAmount = subtotal - vatableSales;
+
             el('receipt-subtotal').innerText = `₱${subtotal.toFixed(2)}`;
             el('receipt-discount').innerText = `- ₱${data.discountAmount.toFixed(2)}`;
+            el('receipt-vatable-sales').innerText = `₱${vatableSales.toFixed(2)}`;
+            el('receipt-vat-amount').innerText = `₱${vatAmount.toFixed(2)}`;
             el('receipt-total').innerText = `₱${data.totalAmount.toFixed(2)}`;
 
             // 4. Payment Details Logic
@@ -1069,8 +1351,7 @@
 
             if (data.paymentMethod === 'Pay Later') {
                 paymentDetailsHTML += `<div style="border-top: 1px dashed #ccc; margin-top: 10px; padding-top: 10px; font-size: 0.9em; text-align: left;">`;
-                paymentDetailsHTML += `<strong>Pay Later Details:</strong><br>`;
-                paymentDetailsHTML += `Customer: ${data.customerName || 'N/A'}<br>`;
+                paymentDetailsHTML += `<strong>Terms:</strong><br>`;
 
                 if (data.installments && data.installments.length > 0) {
                     paymentDetailsHTML += `<div style="margin-top: 5px;"><strong>Installment Schedule:</strong></div>`;
@@ -1088,6 +1369,10 @@
             paymentDetailsHTML += '</div>';
 
             el('receipt-payment-section').innerHTML = paymentDetailsHTML;
+
+            // Optional Customer Details - Removed because it's now shown in the receipt header (Sold to / Address)
+            const custSection = el('receipt-customer-section');
+            if (custSection) custSection.style.display = 'none';
 
             // 5. QR Code Generation
             const qrContainer = document.getElementById("qrcode-canvas");
@@ -1206,131 +1491,84 @@
                 const res = await fetch('/api/products');
                 productCache = await res.json();
                 productCacheLoaded = true;
+                renderPosGrid();
             } catch (e) {
                 console.warn("Could not load product cache:", e);
             }
         }
 
-        // PLM event listeners (added in DOMContentLoaded below)
+        function renderPosGrid() {
+            const container = el("posProductGrid");
+            if (!container) return;
 
-        function searchProducts(query) {
-            const q = query.toLowerCase();
+            const searchInput = el("barcodeInput");
+            const query = (searchInput ? searchInput.value.trim().toLowerCase() : "");
 
-            if (productCacheLoaded && productCache.length > 0) {
-                const results = productCache.filter(p =>
-                    (p.productName && p.productName.toLowerCase().includes(q)) ||
+            let data = [...productCache];
+
+            if (posCategory !== 'All') {
+                data = data.filter(p => p.category === posCategory);
+            }
+
+            if (query) {
+                data = data.filter(p =>
+                    (p.productName && p.productName.toLowerCase().includes(query)) ||
                     (p.barcode && p.barcode.includes(query)) ||
-                    (p.brand && p.brand.toLowerCase().includes(q))
-                ).slice(0, 10);
-                renderSuggestions(results, query);
-            } else {
-                fetch(`/api/searchProducts?q=${encodeURIComponent(query)}`)
-                    .then(r => r.json())
-                    .then(results => renderSuggestions(results, query))
-                    .catch(() => { });
-            }
-        }
-
-        function renderSuggestions(products, query) {
-            const container = el("productSuggestions");
-            currentSuggestions = products;
-            suggestionIndex = -1;
-
-            if (!products || products.length === 0) {
-                container.innerHTML = '<div class="suggestion-empty">No products found</div>';
-                container.classList.add("active");
-                return;
+                    (p.brand && p.brand.toLowerCase().includes(query))
+                );
             }
 
-            container.innerHTML = products.map((p, i) => {
-                const isOut = p.stockQuantity <= 0;
-                const stockLabel = isOut ? "Out of Stock" : (p.stockQuantity <= 10 ? "Low Stock" : "In Stock");
-                const stockClass = isOut ? "status-outstock" : (p.stockQuantity <= 10 ? "status-lowstock" : "status-instock");
-                const priceText = parseFloat(p.price).toLocaleString(undefined, { minimumFractionDigits: 2 });
-
-                return `<div class="suggestion-item${isOut ? ' disabled' : ''}" data-index="${i}" 
-                    onclick="${isOut ? '' : 'selectSuggestion(' + i + ')'}" 
-                    onmouseenter="suggestionIndex=${i}; highlightSuggestion()">
-                    <img class="suggestion-img" src="${p.imagePath || placeholderImg}" onerror="this.src='${placeholderImg}'">
-                    <div class="suggestion-info">
-                        <div class="suggestion-name">
-                            ${p.brand ? `<span style="color: #6b7280; font-size: 0.9em;">[${p.brand}]</span> ` : ''}${highlightMatch(p.productName, query)}
-                        </div>
-                        <div class="suggestion-meta">
-                            <span>BC: ${p.barcode}</span>
-                            <span class="suggestion-stock-pill ${stockClass}">${stockLabel}</span>
-                        </div>
-                    </div>
-                    <div class="suggestion-price">₱${priceText}</div>
-                </div>`;
-            }).join('');
-
-            container.innerHTML += '<div class="suggestion-hint">↑↓ Navigate · Enter to select · Esc to close</div>';
-            container.classList.add("active");
-        }
-
-        function highlightMatch(text, query) {
-            if (!query) return text;
-            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-            return text.replace(regex, '<strong style="color: var(--bg-dark)">$1</strong>');
-        }
-
-        function hideSuggestions() {
-            const container = el("productSuggestions");
-            if (container) {
-                container.classList.remove("active");
-                container.innerHTML = '';
-            }
-            currentSuggestions = [];
-            suggestionIndex = -1;
-        }
-
-        function navigateSuggestions(direction) {
-            if (currentSuggestions.length === 0) return;
-
-            suggestionIndex += direction;
-            if (suggestionIndex < 0) suggestionIndex = currentSuggestions.length - 1;
-            if (suggestionIndex >= currentSuggestions.length) suggestionIndex = 0;
-
-            // Skip out-of-stock items
-            let attempts = 0;
-            while (currentSuggestions[suggestionIndex] && currentSuggestions[suggestionIndex].stockQuantity <= 0 && attempts < currentSuggestions.length) {
-                suggestionIndex += direction > 0 ? 1 : -1;
-                if (suggestionIndex < 0) suggestionIndex = currentSuggestions.length - 1;
-                if (suggestionIndex >= currentSuggestions.length) suggestionIndex = 0;
-                attempts++;
-            }
-
-            highlightSuggestion();
-        }
-
-        function highlightSuggestion() {
-            const container = el("productSuggestions");
-            const items = container.querySelectorAll(".suggestion-item");
-            items.forEach((item, i) => {
-                item.classList.toggle("active", i === suggestionIndex);
+            // Sort
+            data.sort((a, b) => {
+                switch (posSort) {
+                    case 'name-asc': return (a.productName || '').localeCompare(b.productName || '');
+                    case 'name-desc': return (b.productName || '').localeCompare(a.productName || '');
+                    case 'price-asc': return parseFloat(a.price) - parseFloat(b.price);
+                    case 'price-desc': return parseFloat(b.price) - parseFloat(a.price);
+                    case 'stock-desc': return b.stockQuantity - a.stockQuantity;
+                    case 'stock-asc': return a.stockQuantity - b.stockQuantity;
+                    default: return 0;
+                }
             });
 
-            // Scroll the active item into view
-            if (items[suggestionIndex]) {
-                items[suggestionIndex].scrollIntoView({ block: "nearest" });
-            }
-        }
+            posRenderedData = data;
 
-        function selectSuggestion(index) {
-            const product = currentSuggestions[index];
-            if (!product || product.stockQuantity <= 0) {
-                showToast("This product is out of stock.", true);
+            if (data.length === 0) {
+                container.innerHTML = '<tr><td colspan="5" class="text-center empty-cart-msg">No products found</td></tr>';
                 return;
             }
 
-            hideSuggestions();
-            // Fill barcode input and focus qty so user can set quantity
-            el("barcodeInput").value = product.barcode;
-            el("qtyInput").value = 1;
-            el("qtyInput").focus();
-            el("qtyInput").select();
-            showToast(`${product.productName} selected. Input quantity.`);
+            container.innerHTML = data.map(p => {
+                const isOut = p.stockQuantity <= 0;
+                const isLow = p.stockQuantity > 0 && p.stockQuantity <= 10;
+                const statusLabel = isOut ? 'Out of Stock' : (isLow ? 'Low Stock' : 'In Stock');
+                const statusClass = isOut ? 'status-outstock' : (isLow ? 'status-lowstock' : 'status-instock');
+
+                // Escape characters for safe HTML injection
+                const safeBarcode = (p.barcode || '').replace(/'/g, "\\'");
+                const safeName = (p.productName || '').replace(/"/g, '&quot;');
+                const safeBrand = (p.brand || '').replace(/"/g, '&quot;');
+                const safeImg = p.imagePath || placeholderImg;
+
+                return `<tr>
+                    <td>
+                        <div class="product-name-col">
+                            <img src="${safeImg}" onerror="this.src='${placeholderImg}'">
+                            <div><strong>${safeName}</strong>${safeBrand ? '<br><span class="sub-text">' + safeBrand + '</span>' : ''}<br><span class="sub-text">BC: ${p.barcode}</span></div>
+                        </div>
+                    </td>
+                    <td><strong>₱${parseFloat(p.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></td>
+                    <td>${p.stockQuantity}</td>
+                    <td class="text-center"><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+                    <td class="text-center">
+                        <button class="btn-add" ${isOut ? 'disabled' : ''} onclick="event.stopPropagation(); addProduct('${safeBarcode}', 1)">
+                            ${isOut ? 'No Stock' : 'Add'}
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            highlightPosRow();
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -1338,47 +1576,14 @@
             loadPendingItems();
             el("barcodeInput").focus();
 
-            // Close suggestions when clicking outside
-            document.addEventListener('click', (e) => {
-                const wrapper = document.querySelector('.search-input-wrapper');
-                if (wrapper && !wrapper.contains(e.target)) {
-                    hideSuggestions();
-                }
-            });
-
-            // Load and initialize Product List Modal
-            fetch('sales-product-modal.html')
-                .then(res => res.text())
-                .then(html => {
-                    const div = document.createElement('div');
-                    div.innerHTML = html;
-                    document.body.appendChild(div.firstElementChild); // Append the HTML
-
-                    // Extract and execute the script
-                    Array.from(div.querySelectorAll('script')).forEach(oldScript => {
-                        const newScript = document.createElement('script');
-                        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-                        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-                        document.body.appendChild(newScript);
-                    });
-                })
-                .catch(err => console.error("Failed to load product list modal:", err));
+            // Set initial TXN ID
+            if (el("posTxnId")) {
+                el("posTxnId").innerText = "Txn ID: " + generateTransactionID("UT");
+            }
         });
 
         document.addEventListener('keydown', function (e) {
-            // Escape key closes any open modal
             if (e.key === 'Escape') {
-                hideSuggestions();
-                const plmQty = el('plmQtyOverlay');
-                if (plmQty && plmQty.classList.contains('active')) {
-                    closePlmQty();
-                    return;
-                }
-                const plmModal = el('productListModal');
-                if (plmModal && plmModal.style.display !== 'none') {
-                    closePlmModal();
-                    return;
-                }
                 ['paymentModal', 'receiptModal', 'clearCartModal'].forEach(id => {
                     const modal = el(id);
                     if (modal && modal.style.display !== 'none') {
@@ -1388,7 +1593,6 @@
                 return;
             }
 
-            // Enter key confirms active modal
             if (e.key === 'Enter') {
                 const receiptModal = el('receiptModal');
                 if (receiptModal && receiptModal.style.display !== 'none') {
@@ -1424,11 +1628,6 @@
             if (e.key === 'F9') {
                 e.preventDefault();
                 openPayment();
-            }
-
-            if (e.key === 'F2') {
-                e.preventDefault();
-                openPlmModal();
             }
         });
     </script>

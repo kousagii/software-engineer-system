@@ -71,6 +71,26 @@ db.connect((err) => {
         return;
     }
     console.log('✅ Connected to MySQL Database!');
+
+    // Auto-create payment_log table (replaces installment_schedules and tracks actual collections)
+    db.query(`
+        CREATE TABLE IF NOT EXISTS payment_log (
+            paymentID INT AUTO_INCREMENT PRIMARY KEY,
+            transactionCode VARCHAR(50) NOT NULL,
+            dueDate DATE NULL,
+            amountDue DECIMAL(12,2) DEFAULT 0.00,
+            cashAmount DECIMAL(12,2) DEFAULT 0.00,
+            digitalAmount DECIMAL(12,2) DEFAULT 0.00,
+            paymentDate DATETIME NULL,
+            paymentMethod VARCHAR(50) NULL,
+            referenceNumber VARCHAR(100) NULL,
+            status VARCHAR(20) DEFAULT 'Scheduled',
+            paymentType VARCHAR(20) DEFAULT 'Installment'
+        )
+    `, (tblErr) => {
+        if (tblErr) console.error('⚠️ payment_log table creation error:', tblErr.message);
+        else console.log('✅ payment_log table ready.');
+    });
 });
 
 
@@ -712,7 +732,7 @@ app.get('/api/orders', (req, res) => {
             const result = orders.map(o => {
                 const orderDate = o.orderDateTime || o.orderDate || null;
                 const terms = o.termsOfPayment || 'COD';
-                
+
                 // Calculate due date based on order date and terms
                 let dueDateStr = 'N/A';
                 if (orderDate) {
@@ -1657,6 +1677,23 @@ app.get('/api/dashboard/top-products', (req, res) => {
     });
 });
 
+// GET today's collected payments (actual cash inflow)
+// Uses: Initial payments, settled pay later payments, and paid installments logged in payment_log
+app.get('/api/dashboard/collections-today', (req, res) => {
+    const sql = `
+        SELECT COALESCE(SUM(cashAmount + digitalAmount), 0) AS totalCollected
+        FROM payment_log
+        WHERE DATE(paymentDate) = CURDATE() AND status = 'Paid'
+    `;
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Failed to fetch collections' });
+        }
+        res.json({ totalCollected: parseFloat(results[0]?.totalCollected || 0) });
+    });
+});
+
 // GET customers with pay later (Unpaid / Partial) transactions (for dashboard)
 app.get('/api/dashboard/pay-later', (req, res) => {
     const sql = `
@@ -1750,6 +1787,10 @@ app.put('/api/transactions/:id/pay', (req, res) => {
         db.query(sqlUpdate, params, (updateErr, updateRes) => {
             if (updateErr) return res.status(500).json({ error: "Failed to update payment" });
 
+            // Log the collected payment
+            db.query(`INSERT INTO payment_log (transactionCode, cashAmount, digitalAmount, paymentDate, paymentMethod, referenceNumber, status, paymentType) VALUES (?, ?, ?, NOW(), ?, ?, 'Paid', 'Settlement')`,
+                [txn.transactionCode, cAmt, dAmt, paymentMethod, referenceNumber || null]);
+
             db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Payment Settled', ?)`,
                 [sessionUserID, `Settled payment (Cash: ₱${cAmt.toFixed(2)}, Digital: ₱${dAmt.toFixed(2)}) for TXN: ${txn.transactionCode} (Status: ${newStatus})`]
             );
@@ -1763,10 +1804,12 @@ app.put('/api/transactions/:id/pay', (req, res) => {
 app.get('/api/transactions/:id/installments', (req, res) => {
     const { id } = req.params;
     const sql = `
-        SELECT i.* 
-        FROM installment_schedules i
+        SELECT 
+            i.paymentID as scheduleID, i.transactionCode, i.dueDate, i.amountDue, 
+            i.status, i.paymentDate as paidDate, i.paymentMethod, i.referenceNumber
+        FROM payment_log i
         JOIN sales_transaction st ON i.transactionCode = st.transactionCode
-        WHERE st.transactionID = ? 
+        WHERE st.transactionID = ? AND i.paymentType = 'Installment'
         ORDER BY i.dueDate ASC
     `;
     db.query(sql, [id], (err, results) => {
@@ -1790,30 +1833,30 @@ app.put('/api/transactions/:id/installments/:scheduleId/pay', (req, res) => {
     if (totalNewPaid <= 0) return res.status(400).json({ error: "Invalid payment amount" });
 
     db.query(`
-        SELECT i.amountDue, i.status 
-        FROM installment_schedules i
+        SELECT i.amountDue, i.status, i.paymentID as scheduleID
+        FROM payment_log i
         JOIN sales_transaction st ON i.transactionCode = st.transactionCode
-        WHERE i.scheduleID = ? AND st.transactionID = ?
+        WHERE i.paymentID = ? AND st.transactionID = ? AND i.paymentType = 'Installment'
     `, [scheduleId, id], (err, instRes) => {
         if (err || instRes.length === 0) return res.status(500).json({ error: "Failed to fetch installment" });
-        
+
         const inst = instRes[0];
         if (inst.status === 'Paid') return res.status(400).json({ error: "Installment is already paid" });
 
         // Update the installment
-        let sqlInst = `UPDATE installment_schedules SET status = 'Paid', paidDate = NOW(), paymentMethod = ?, referenceNumber = ? WHERE scheduleID = ?`;
-        db.query(sqlInst, [paymentMethod, referenceNumber || null, scheduleId], (updErr) => {
+        let sqlInst = `UPDATE payment_log SET status = 'Paid', paymentDate = NOW(), paymentMethod = ?, referenceNumber = ?, cashAmount = ?, digitalAmount = ? WHERE paymentID = ?`;
+        db.query(sqlInst, [paymentMethod, referenceNumber || null, cAmt, dAmt, scheduleId], (updErr) => {
             if (updErr) return res.status(500).json({ error: "Failed to update installment" });
 
             // Now update the main sales_transaction
             db.query(`SELECT totalAmount, cashReceived, digitalAmount, transactionCode FROM sales_transaction WHERE transactionID = ?`, [id], (stErr, stRes) => {
                 if (stErr || stRes.length === 0) return res.status(500).json({ error: "Failed to fetch main transaction" });
-                
+
                 const txn = stRes[0];
                 const total = parseFloat(txn.totalAmount);
                 let cash = parseFloat(txn.cashReceived || 0) + cAmt;
                 let digital = parseFloat(txn.digitalAmount || 0) + dAmt;
-                
+
                 const totalPaid = cash + digital;
                 const newStatus = (totalPaid >= (total - 0.01)) ? 'Paid' : 'Partial';
 
@@ -1966,6 +2009,15 @@ app.post('/api/saveTransaction', (req, res) => {
                             .then(() => {
                                 db.commit(cErr => {
                                     if (cErr) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
+
+                                    // Log the initial collected payment
+                                    const initCash = parseFloat(cashReceived) || 0;
+                                    const initDigital = parseFloat(digitalAmount) || 0;
+                                    if (initCash > 0 || initDigital > 0) {
+                                        db.query(`INSERT INTO payment_log (transactionCode, cashAmount, digitalAmount, paymentDate, paymentMethod, referenceNumber, status, paymentType) VALUES (?, ?, ?, NOW(), ?, ?, 'Paid', 'Initial')`,
+                                            [newTransactionCode, initCash, initDigital, paymentMethod || 'Cash', referenceNumber || null]);
+                                    }
+
                                     db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Sale', ?)`,
                                         [finalUserID, `Transaction ${newTransactionCode} - Amount: ₱${parseFloat(totalAmount).toFixed(2)} - ${paymentMethod}`]);
                                     res.status(201).json({ message: "Transaction completed successfully.", transactionCode: newTransactionCode });
@@ -1981,9 +2033,11 @@ app.post('/api/saveTransaction', (req, res) => {
                         const instValues = installments.map(inst => [
                             newTransactionCode,
                             inst.dueDate,
-                            parseFloat(inst.amountDue) || 0
+                            parseFloat(inst.amountDue) || 0,
+                            'Scheduled',
+                            'Installment'
                         ]);
-                        const sqlInst = `INSERT INTO installment_schedules (transactionCode, dueDate, amountDue) VALUES ?`;
+                        const sqlInst = `INSERT INTO payment_log (transactionCode, dueDate, amountDue, status, paymentType) VALUES ?`;
                         db.query(sqlInst, [instValues], (instErr) => {
                             if (instErr) {
                                 console.error("❌ DB ERROR (Installments):", instErr.message);

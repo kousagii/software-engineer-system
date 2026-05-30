@@ -58,15 +58,16 @@
             </div>
 
             <div class="form-panel dash-stat-card">
-                <div class="dash-stat-icon" style="background:#fde2e2;">
+                <div class="dash-stat-icon dash-icon-green">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3 10h18M3 14h18" stroke="#c63939" stroke-width="1.8" stroke-linecap="round" />
-                        <rect x="5" y="6" width="14" height="12" rx="2" stroke="#c63939" stroke-width="1.8" />
+                        <rect x="2" y="6" width="20" height="13" rx="2" stroke="#2b8a4e" stroke-width="1.8" />
+                        <path d="M2 10h20" stroke="#2b8a4e" stroke-width="1.8" />
+                        <path d="M6 15h4" stroke="#2b8a4e" stroke-width="1.8" stroke-linecap="round" />
                     </svg>
                 </div>
                 <div class="dash-stat-info">
-                    <div class="sub-text">Refunds / Exchanges</div>
-                    <h3 class="mt-0" id="stat-refunds" style="color:var(--red-main);">—</h3>
+                    <div class="sub-text">Collected Payments</div>
+                    <h3 class="mt-0" id="stat-collected" style="color:#2b8a4e;">—</h3>
                 </div>
             </div>
 
@@ -82,6 +83,32 @@
                 <div class="dash-stat-info">
                     <div class="sub-text">Unpaid / Partial</div>
                     <h3 class="mt-0" id="stat-unpaid" style="color:#d97706;">—</h3>
+                </div>
+            </div>
+
+            <div class="form-panel dash-stat-card">
+                <div class="dash-stat-icon" style="background:#e0e7ff;">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#4f46e5"
+                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <div class="dash-stat-info">
+                    <div class="sub-text">Receivables</div>
+                    <h3 class="mt-0" id="stat-receivables" style="color:#4f46e5;">—</h3>
+                </div>
+            </div>
+
+            <div class="form-panel dash-stat-card">
+                <div class="dash-stat-icon" style="background:#fde2e2;">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 10h18M3 14h18" stroke="#c63939" stroke-width="1.8" stroke-linecap="round" />
+                        <rect x="5" y="6" width="14" height="12" rx="2" stroke="#c63939" stroke-width="1.8" />
+                    </svg>
+                </div>
+                <div class="dash-stat-info">
+                    <div class="sub-text">Refunds / Exchanges</div>
+                    <h3 class="mt-0" id="stat-refunds" style="color:var(--red-main);">—</h3>
                 </div>
             </div>
         </div>
@@ -475,7 +502,7 @@
             return '₱ ' + Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        function updateSummaryCards() {
+        async function updateSummaryCards() {
             const totalCount = filteredTransactions.length;
             const todayStr = new Date().toLocaleDateString('en-CA');
             const dateFrom = el("filterDateFrom").value;
@@ -513,10 +540,34 @@
             const unpaidCount = filteredTransactions
                 .filter(t => t.paymentStatus === 'Unpaid' || t.paymentStatus === 'Partial').length;
 
+            // Outstanding Receivables
+            const totalReceivables = filteredTransactions
+                .filter(t => t.paymentStatus === 'Unpaid' || t.paymentStatus === 'Partial')
+                .reduce((sum, t) => {
+                    const total = parseFloat(t.totalAmount || 0);
+                    const cash = parseFloat(t.cashReceived || 0);
+                    const digital = parseFloat(t.digitalAmount || 0);
+                    return sum + (total - cash - digital);
+                }, 0);
+
             el("stat-count").textContent = totalCount;
             el("stat-sales").textContent = fmtPeso(dateSales);
             el("stat-refunds").textContent = fmtPeso(totalRefunds);
             el("stat-unpaid").textContent = unpaidCount;
+            if (el("stat-receivables")) el("stat-receivables").textContent = fmtPeso(totalReceivables);
+
+            // Fetch today's actual collections from API
+            try {
+                const colRes = await fetch('/api/dashboard/collections-today');
+                if (colRes.ok) {
+                    const colData = await colRes.json();
+                    if (el("stat-collected")) el("stat-collected").textContent = fmtPeso(colData.totalCollected);
+                } else {
+                    if (el("stat-collected")) el("stat-collected").textContent = "N/A";
+                }
+            } catch (err) {
+                if (el("stat-collected")) el("stat-collected").textContent = "N/A";
+            }
         }
 
         function performSearch() {
