@@ -501,6 +501,63 @@ app.get('/api/archive/products', (req, res) => {
     });
 });
 
+// GET archived purchase orders
+app.get('/api/archive/orders', (req, res) => {
+    const sql = `
+        SELECT po.*, s.supplierName 
+        FROM purchase_order po
+        LEFT JOIN supplier s ON po.supplierID = s.supplierID
+        WHERE po.isActive = 0 
+        ORDER BY po.orderID DESC
+    `;
+    db.query(sql, (err, orders) => {
+        if (err) return res.status(500).json({ error: "Failed to fetch archived orders" });
+        if (!orders || orders.length === 0) return res.json([]);
+
+        const ids = orders.map(o => o.orderID);
+        const itemsSql = `
+            SELECT pi.orderID, pi.productID, pi.quantity, pi.receivedQty, pi.defectiveQty, pi.unitCost, p.productName
+            FROM purchase_item pi
+            LEFT JOIN product p ON pi.productID = p.productID
+            WHERE pi.orderID IN (?);
+        `;
+
+        db.query(itemsSql, [ids], (itErr, items) => {
+            if (itErr) {
+                console.error(itErr);
+                return res.status(500).json({ error: "Failed to fetch archived order items" });
+            }
+
+            const itemsByOrder = {};
+            (items || []).forEach(it => {
+                if (!itemsByOrder[it.orderID]) itemsByOrder[it.orderID] = [];
+                itemsByOrder[it.orderID].push({ productID: it.productID, productName: it.productName, qty: it.quantity, receivedQty: it.receivedQty, defectiveQty: it.defectiveQty, unitCost: it.unitCost });
+            });
+
+            const result = orders.map(o => {
+                const orderDate = o.orderDateTime || o.orderDate || null;
+                return {
+                    ...o,
+                    orderDate: orderDate,
+                    items: itemsByOrder[o.orderID] || []
+                };
+            });
+
+            res.json(result);
+        });
+    });
+});
+
+// Restore an archived purchase order
+app.put('/api/archive/orders/:id/restore', (req, res) => {
+    const { id } = req.params;
+    const sql = `UPDATE purchase_order SET isActive = 1 WHERE orderID = ?`;
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Failed to restore order" });
+        res.status(200).json({ message: "Order restored!" });
+    });
+});
+
 // GET archived (soft-deleted) suppliers
 app.get('/api/archive/suppliers', (req, res) => {
     db.query("SET SESSION group_concat_max_len = 1000000", (err) => {
@@ -678,6 +735,7 @@ app.get('/api/orders', (req, res) => {
         SELECT po.*, s.supplierName, s.termsOfPayment
         FROM purchase_order po
         LEFT JOIN supplier s ON po.supplierID = s.supplierID
+        WHERE po.isActive = 1
         ORDER BY po.orderID DESC
     `;
 
@@ -712,7 +770,7 @@ app.get('/api/orders', (req, res) => {
             const result = orders.map(o => {
                 const orderDate = o.orderDateTime || o.orderDate || null;
                 const terms = o.termsOfPayment || 'COD';
-                
+
                 // Calculate due date based on order date and terms
                 let dueDateStr = 'N/A';
                 if (orderDate) {
@@ -755,14 +813,14 @@ app.get('/api/orders', (req, res) => {
 app.post('/api/orders', (req, res) => {
     const userID = req.session && req.session.user ? req.session.user.id : null;
     if (!userID) return res.status(401).json({ error: "Please log in to create an order" });
-    const { supplierID, contact, shipmentInfo, status, paymentStatus, items } = req.body;
+    const { supplierID, contact, shipmentInfo, status, paymentStatus, items, shipToAddress } = req.body;
 
     if (!supplierID) return res.status(400).json({ error: "supplierID is required" });
 
     const orderDateTime = new Date();
-    const insertSql = `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo, paymentStatus) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    const insertSql = `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo, paymentStatus, shipToAddress) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    db.query(insertSql, [userID, supplierID, orderDateTime, status || 'To Order', contact || null, shipmentInfo || null, paymentStatus || 'Pending'], (err, result) => {
+    db.query(insertSql, [userID, supplierID, orderDateTime, status || 'To Order', contact || null, shipmentInfo || null, paymentStatus || 'Pending', shipToAddress || null], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: "Failed to create order" });
@@ -819,7 +877,7 @@ app.post('/api/orders', (req, res) => {
 // PUT update an existing order (replace items)
 app.put('/api/orders/:id', async (req, res) => {
     const { id } = req.params;
-    const { supplierID, contact, shipmentInfo, status, items } = req.body;
+    const { supplierID, contact, shipmentInfo, status, items, shipToAddress } = req.body;
 
     try {
 
@@ -856,7 +914,8 @@ app.put('/api/orders/:id', async (req, res) => {
                 status = ?,
                 contact = ?,
                 shipmentInfo = ?,
-                paymentStatus = ?
+                paymentStatus = ?,
+                shipToAddress = ?
             WHERE orderID = ?
         `;
 
@@ -866,6 +925,7 @@ app.put('/api/orders/:id', async (req, res) => {
             contact || null,
             shipmentInfo || null,
             req.body.paymentStatus || 'Pending',
+            shipToAddress || null,
             id
         ]);
 
@@ -1022,26 +1082,21 @@ app.put('/api/orders/:id/payment', async (req, res) => {
     }
 });
 
-// DELETE an order
+// DELETE an order (soft delete - marks as inactive)
 app.delete('/api/orders/:id', (req, res) => {
     const { id } = req.params;
-    db.query(`DELETE FROM purchase_item WHERE orderID = ?`, [id], (err) => {
+    const sql = `UPDATE purchase_order SET isActive = 0 WHERE orderID = ?`;
+    db.query(sql, [id], (err, result) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: "Failed to delete order items" });
+            return res.status(500).json({ error: "Failed to archive order" });
         }
-        db.query(`DELETE FROM purchase_order WHERE orderID = ?`, [id], (err2) => {
-            if (err2) {
-                console.error(err2);
-                return res.status(500).json({ error: "Failed to delete order" });
-            }
-            const sessionUserID = req.session?.user?.id;
-            if (sessionUserID) {
-                db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Delete Order', ?)`,
-                    [sessionUserID, `Deleted order ID: ${id}`]);
-            }
-            res.json({ message: "Order deleted" });
-        });
+        const sessionUserID = req.session?.user?.id;
+        if (sessionUserID) {
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Archive Order', ?)`,
+                [sessionUserID, `Archived order ID: ${id}`]);
+        }
+        res.json({ message: "Order archived" });
     });
 });
 
@@ -1129,7 +1184,7 @@ app.post('/api/auto-reorder', async (req, res) => {
 
         for (const [suppID, data] of Object.entries(bySupplier)) {
             const [orderResult] = await db.promise().query(
-                `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo) VALUES (?, ?, ?, 'To Order', NULL, NULL)`,
+                `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo, shipToAddress) VALUES (?, ?, ?, 'To Order', NULL, NULL, '#2 National Road, Brgy. San Juan,\\nTaytay, Rizal, Philippines\\nPhone: 8658-7984 / 8658-6802')`,
                 [userID, suppID, orderDateTime]
             );
             const orderID = orderResult.insertId;
@@ -1796,7 +1851,7 @@ app.put('/api/transactions/:id/installments/:scheduleId/pay', (req, res) => {
         WHERE i.scheduleID = ? AND st.transactionID = ?
     `, [scheduleId, id], (err, instRes) => {
         if (err || instRes.length === 0) return res.status(500).json({ error: "Failed to fetch installment" });
-        
+
         const inst = instRes[0];
         if (inst.status === 'Paid') return res.status(400).json({ error: "Installment is already paid" });
 
@@ -1808,12 +1863,12 @@ app.put('/api/transactions/:id/installments/:scheduleId/pay', (req, res) => {
             // Now update the main sales_transaction
             db.query(`SELECT totalAmount, cashReceived, digitalAmount, transactionCode FROM sales_transaction WHERE transactionID = ?`, [id], (stErr, stRes) => {
                 if (stErr || stRes.length === 0) return res.status(500).json({ error: "Failed to fetch main transaction" });
-                
+
                 const txn = stRes[0];
                 const total = parseFloat(txn.totalAmount);
                 let cash = parseFloat(txn.cashReceived || 0) + cAmt;
                 let digital = parseFloat(txn.digitalAmount || 0) + dAmt;
-                
+
                 const totalPaid = cash + digital;
                 const newStatus = (totalPaid >= (total - 0.01)) ? 'Paid' : 'Partial';
 
