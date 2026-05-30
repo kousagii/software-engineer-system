@@ -43,6 +43,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
+            if (userRole === 'Inventory') {
+                const plOpt = document.querySelector('option[value="pay-later"]');
+                if (plOpt) plOpt.remove();
+            }
+
             window.currentUserRole = userRole;
             window.availableRoles = availableRoles;
 

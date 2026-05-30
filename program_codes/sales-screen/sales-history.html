@@ -659,16 +659,10 @@
             const salesLabel = document.querySelector('#stat-sales').closest('.dash-stat-info').querySelector('.sub-text');
 
             if (dateFrom === todayStr && dateTo === todayStr) {
-                el("pageTitle").textContent = 'Records';
                 salesLabel.textContent = "Today's Sales";
             } else if (dateFrom || dateTo) {
-                const formatOpts = { year: 'numeric', month: 'short', day: 'numeric' };
-                const fromFmt = dateFrom ? new Date(dateFrom + 'T00:00:00').toLocaleDateString('en-PH', formatOpts) : 'Beginning';
-                const toFmt = dateTo ? new Date(dateTo + 'T00:00:00').toLocaleDateString('en-PH', formatOpts) : 'Present';
-                el("pageTitle").textContent = 'Sales History \u2014 ' + fromFmt + ' to ' + toFmt;
                 salesLabel.textContent = 'Filtered Sales';
             } else {
-                el("pageTitle").textContent = 'Sales History';
                 salesLabel.textContent = 'All Sales';
             }
             el("stat-count").textContent = totalCount;
