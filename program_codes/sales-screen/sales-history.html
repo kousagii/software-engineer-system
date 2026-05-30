@@ -66,23 +66,8 @@
                     </svg>
                 </div>
                 <div class="dash-stat-info">
-                    <div class="sub-text">Collected Payments</div>
+                    <div class="sub-text">Payments Received </div>
                     <h3 class="mt-0" id="stat-collected" style="color:#2b8a4e;">—</h3>
-                </div>
-            </div>
-
-            <div class="form-panel dash-stat-card">
-                <div class="dash-stat-icon" style="background:#fef3c7;">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
-                            stroke="#d97706" stroke-width="1.8" />
-                        <path d="M12 6V12L16 14" stroke="#d97706" stroke-width="1.8" stroke-linecap="round" />
-                    </svg>
-                </div>
-                <div class="dash-stat-info">
-                    <div class="sub-text">Unpaid / Partial</div>
-                    <h3 class="mt-0" id="stat-unpaid" style="color:#d97706;">—</h3>
                 </div>
             </div>
 
@@ -113,6 +98,32 @@
             </div>
         </div>
 
+        <!-- ACTIVE PAY LATER -->
+        <div class="table-container mb-20" id="activePayLaterContainer" style="margin-bottom: 20px;">
+            <div class="toolbar"
+                style="padding-bottom: 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 15px;">
+                <h3 style="margin: 0; color: var(--text-dark);" id="activePayLaterTitle">Active Pay Later Accounts</h3>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Transaction Code</th>
+                        <th>Customer</th>
+                        <th class="center-text">Total Amount</th>
+                        <th class="center-text">Paid Amount</th>
+                        <th class="center-text">Balance Due</th>
+                        <th>Due Date</th>
+                        <th class="center-text">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="activePayLaterBody">
+                    <tr>
+                        <td colspan="8" class="center-text">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <div class="table-container">
             <div class="toolbar">
                 <div class="toolbar-left search-bar-extended" style="align-items:center;">
@@ -123,7 +134,8 @@
                 </div>
                 <div class="toolbar-right">
                     <div class="toolbar-group">
-                        <label for="filterStatus" style="margin:0; font-size:13px; white-space:nowrap;">Status:</label>
+                        <label for="filterStatus" style="margin:0; font-size:13px; white-space:nowrap;">Filter
+                            By:</label>
                         <select id="filterStatus" onchange="applyFilters()" style="margin:0; width:auto;">
                             <option value="all">All</option>
                             <option value="Paid">Paid</option>
@@ -427,6 +439,7 @@
 
         let allTransactions = [];
         let filteredTransactions = [];
+        let activePayLaterData = [];
         let currentPage = 1;
         const perPage = 15;
 
@@ -447,6 +460,60 @@
                 console.error(err);
                 el("historyBody").innerHTML = `<tr><td colspan="6" class="empty-cart-msg">Failed to load transactions.</td></tr>`;
             }
+        }
+
+        async function fetchActivePayLater() {
+            try {
+                const res = await fetch('/api/dashboard/pay-later');
+                if (!res.ok) throw new Error('Failed to fetch active pay later accounts');
+                activePayLaterData = await res.json();
+                renderActivePayLater();
+            } catch (err) {
+                console.error(err);
+                el("activePayLaterBody").innerHTML = `<tr><td colspan="8" class="empty-cart-msg">Failed to load active pay later accounts.</td></tr>`;
+            }
+        }
+
+        function renderActivePayLater() {
+            const tbody = el("activePayLaterBody");
+            const titleEl = el("activePayLaterTitle");
+            if (activePayLaterData.length === 0) {
+                if (titleEl) titleEl.textContent = 'Active Pay Later Accounts (0)';
+                tbody.innerHTML = '<tr><td colspan="8" class="center-text">No active pay later accounts found.</td></tr>';
+                return;
+            }
+            if (titleEl) titleEl.textContent = `Active Pay Later Accounts (${activePayLaterData.length})`;
+
+            const formatDate = (dateStr) => {
+                if (!dateStr) return 'N/A';
+                return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            };
+
+            tbody.innerHTML = activePayLaterData.map(r => {
+                const totalAmt = parseFloat(r.totalAmount || 0);
+                const cashAmt = parseFloat(r.cashReceived || 0);
+                const digitalAmt = parseFloat(r.digitalAmount || 0);
+                const paidAmt = cashAmt + digitalAmt;
+                const balanceDue = totalAmt - paidAmt;
+
+                return `
+                    <tr>
+                        <td>${formatDate(r.transDateTime)}</td>
+                        <td>${r.transactionCode}</td>
+                        <td>
+                            <div><strong>${r.customerName || 'Unknown'}</strong></div>
+                            <div class="sub-text" style="font-size: 11px;">${r.contactInfo || 'N/A'}</div>
+                        </td>
+                        <td class="center-text">₱ ${totalAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        <td class="center-text">₱ ${paidAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        <td class="center-text text-danger"><strong>₱ ${balanceDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></td>
+                        <td>${r.dueDate ? formatDate(r.dueDate) : 'N/A'}</td>
+                        <td class="center-text">
+                            <button class="btn-edit" onclick="openSettleModal(${r.transactionID})" style="margin:0; background-color: #f97316; border-color: #f97316; color: white;">Settle</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function applyFilters() {
@@ -499,7 +566,7 @@
         }
 
         function fmtPeso(val) {
-            return '₱ ' + Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return '₱\u00A0' + Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
         async function updateSummaryCards() {
@@ -535,15 +602,9 @@
                 el("pageTitle").textContent = 'Sales History';
                 salesLabel.textContent = 'All Sales';
             }
-
-            // Unpaid / Partial
-            const unpaidCount = filteredTransactions
-                .filter(t => t.paymentStatus === 'Unpaid' || t.paymentStatus === 'Partial').length;
-
             el("stat-count").textContent = totalCount;
             el("stat-sales").textContent = fmtPeso(dateSales);
             el("stat-refunds").textContent = fmtPeso(totalRefunds);
-            el("stat-unpaid").textContent = unpaidCount;
 
             // Fetch today's actual collections and overall receivables from APIs
             try {
@@ -844,7 +905,10 @@
         }
 
         async function openSettleModal(transactionID) {
-            const txn = allTransactions.find(t => t.transactionID === transactionID);
+            let txn = allTransactions.find(t => t.transactionID === transactionID);
+            if (!txn && activePayLaterData) {
+                txn = activePayLaterData.find(t => t.transactionID === transactionID);
+            }
             if (!txn) return showToast("Transaction not found", true);
 
             const total = parseFloat(txn.totalAmount || 0);
@@ -1042,6 +1106,8 @@
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Confirm Payment";
+                fetchActivePayLater();
+                loadTransactions(); // Refresh UI fully
             }
         }
 
@@ -1100,6 +1166,8 @@
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Confirm Payment";
+                fetchActivePayLater();
+                loadTransactions(); // Refresh UI fully
             }
         }
 
@@ -1117,6 +1185,7 @@
             el("filterDateTo").value = todayISO;
 
             loadTransactions();
+            fetchActivePayLater();
             el("searchInput").focus();
         });
     </script>
