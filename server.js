@@ -272,6 +272,31 @@ app.get('/api/products', (req, res) => {
     });
 });
 
+// GET today's income (profit)
+app.get('/api/dashboard/today-income', (req, res) => {
+    // using MySQL CURDATE() for accuracy
+    const sql = `
+        SELECT 
+            SUM(si.quantity * COALESCE(si.unitPrice, p.price, 0)) AS totalSales,
+            SUM(si.quantity * COALESCE(p.initialPrice, 0)) AS totalCost
+        FROM sales_transaction st
+        JOIN sales_item si ON st.transactionID = si.transactionID
+        LEFT JOIN product p ON si.productID = p.productID
+        WHERE DATE(st.transDateTime) = CURDATE()
+          AND st.paymentStatus IN ('Paid', 'Partial', 'Exchanged')
+    `;
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error('Error fetching today income:', err);
+            return res.status(500).json({ error: "Failed to fetch today income" });
+        }
+        const sales = parseFloat(results[0]?.totalSales) || 0;
+        const cost = parseFloat(results[0]?.totalCost) || 0;
+        const income = sales - cost;
+        res.json({ income, sales, cost });
+    });
+});
+
 // POST route to add a new product 
 app.post('/api/products', upload.single('productImage'), (req, res) => {
     const { productName, barcode, category, stockQuantity, price, initialPrice, brand, productDescription, lowStockThreshold, variantOptions } = req.body;
@@ -488,6 +513,30 @@ app.put('/api/products/:id', upload.single('productImage'), async (req, res) => 
     }
 });
 
+// PUT update a product's threshold directly
+app.put('/api/products/:id/threshold', async (req, res) => {
+    const { id } = req.params;
+    const { lowStockThreshold } = req.body;
+
+    if (lowStockThreshold === undefined) return res.status(400).json({ error: "Threshold is required" });
+
+    try {
+        await db.promise().query(
+            'UPDATE product SET lowStockThreshold = ? WHERE productID = ?',
+            [lowStockThreshold, id]
+        );
+        res.json({ message: "Threshold updated successfully" });
+
+        const sessionUserID = req.session?.user?.id;
+        if (sessionUserID) {
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Edit Product', ?)`,
+                [sessionUserID, `Updated Low Stock Threshold for Product ${id} to ${lowStockThreshold}`]);
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to update threshold" });
+    }
+});
 
 // DELETE route to REMOVE a product (soft delete - marks as inactive)
 app.delete('/api/products/:id', (req, res) => {
@@ -507,10 +556,80 @@ app.delete('/api/products/:id', (req, res) => {
             [sessionUserID, id, `Archived product ID: ${id}`]);
         res.status(200).json({ message: "Product removed!" });
     });
+
+
+});
+
+
+// GET route to suggest a low stock threshold based on sales velocity & lead time
+app.get('/api/products/:id/suggest-threshold', async (req, res) => {
+    const { id } = req.params;
+    const ANALYSIS_DAYS = 90; // Look at the last 90 days of data
+
+    try {
+        // 0. Find how many days the product has existed
+        const [ageRows] = await db.promise().query(`
+            SELECT DATEDIFF(NOW(), MIN(inventoryDate)) as ageDays
+            FROM inventory_record
+            WHERE productID = ?
+        `, [id]);
+
+        let productAge = parseInt(ageRows[0]?.ageDays) || 0;
+        productAge = Math.max(1, productAge); // prevent division by zero
+
+        // The divisor is either 90 or the product age, whichever is smaller
+        const actualAnalysisDays = Math.min(ANALYSIS_DAYS, productAge);
+
+        // 1. Get average daily sales for this product
+        const [salesRows] = await db.promise().query(`
+            SELECT COALESCE(SUM(si.quantity), 0) AS totalSold
+            FROM sales_item si
+            JOIN sales_transaction st ON si.transactionID = st.transactionID
+            WHERE si.productID = ?
+              AND st.transDateTime >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              AND st.paymentStatus = 'Paid'
+        `, [id, actualAnalysisDays]);
+
+        const totalSold = parseFloat(salesRows[0]?.totalSold) || 0;
+        const avgDailySales = totalSold / actualAnalysisDays;
+
+        // 2. Average lead time (computed from actual received purchase items)
+        const [leadRows] = await db.promise().query(`
+            SELECT AVG(leadTimeDays) AS avgLeadDays
+            FROM purchase_item
+            WHERE productID = ? AND leadTimeDays IS NOT NULL
+        `, [id]);
+
+        const avgLeadDays = parseFloat(leadRows[0]?.avgLeadDays) || 7; // default 7 days if no history
+        const safetyDays = 7; // Owner-configurable buffer; hardcoded default
+        const suggested = Math.ceil(avgDailySales * (avgLeadDays + safetyDays));
+
+        // Build a human-readable reason
+        let reason = '';
+        if (totalSold === 0) {
+            reason = `No sales data found in the last ${actualAnalysisDays} days. Using minimum baseline of ${Math.max(suggested, 5)} units.`;
+        } else {
+            reason = `Based on ~${avgDailySales.toFixed(1)} units/day sold (last ${actualAnalysisDays} days) × ${Math.round(avgLeadDays)} day lead time + ${safetyDays}-day safety buffer.`;
+        }
+
+        return res.json({
+            suggested: Math.max(suggested, 5), // minimum of 5
+            avgDailySales: parseFloat(avgDailySales.toFixed(2)),
+            avgLeadDays: parseFloat(avgLeadDays.toFixed(1)),
+            safetyDays,
+            analysisDays: actualAnalysisDays,
+            reason
+        });
+
+    } catch (err) {
+        console.error('suggest-threshold error:', err);
+        return res.status(500).json({ error: 'Failed to calculate suggestion' });
+    }
 });
 
 
 // ARCHIVE MANAGEMENT
+
 
 // GET archived (soft-deleted) products
 app.get('/api/archive/products', (req, res) => {
@@ -518,6 +637,63 @@ app.get('/api/archive/products', (req, res) => {
     db.query(sql, (err, results) => {
         if (err) return res.status(500).json({ error: "Failed to fetch archived products" });
         res.json(results);
+    });
+});
+
+// GET archived purchase orders
+app.get('/api/archive/orders', (req, res) => {
+    const sql = `
+        SELECT po.*, s.supplierName 
+        FROM purchase_order po
+        LEFT JOIN supplier s ON po.supplierID = s.supplierID
+        WHERE po.isActive = 0 
+        ORDER BY po.orderID DESC
+    `;
+    db.query(sql, (err, orders) => {
+        if (err) return res.status(500).json({ error: "Failed to fetch archived orders" });
+        if (!orders || orders.length === 0) return res.json([]);
+
+        const ids = orders.map(o => o.orderID);
+        const itemsSql = `
+            SELECT pi.orderID, pi.productID, pi.quantity, pi.receivedQty, pi.defectiveQty, pi.unitCost, p.productName
+            FROM purchase_item pi
+            LEFT JOIN product p ON pi.productID = p.productID
+            WHERE pi.orderID IN (?);
+        `;
+
+        db.query(itemsSql, [ids], (itErr, items) => {
+            if (itErr) {
+                console.error(itErr);
+                return res.status(500).json({ error: "Failed to fetch archived order items" });
+            }
+
+            const itemsByOrder = {};
+            (items || []).forEach(it => {
+                if (!itemsByOrder[it.orderID]) itemsByOrder[it.orderID] = [];
+                itemsByOrder[it.orderID].push({ productID: it.productID, productName: it.productName, qty: it.quantity, receivedQty: it.receivedQty, defectiveQty: it.defectiveQty, unitCost: it.unitCost });
+            });
+
+            const result = orders.map(o => {
+                const orderDate = o.orderDateTime || o.orderDate || null;
+                return {
+                    ...o,
+                    orderDate: orderDate,
+                    items: itemsByOrder[o.orderID] || []
+                };
+            });
+
+            res.json(result);
+        });
+    });
+});
+
+// Restore an archived purchase order
+app.put('/api/archive/orders/:id/restore', (req, res) => {
+    const { id } = req.params;
+    const sql = `UPDATE purchase_order SET isActive = 1 WHERE orderID = ?`;
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Failed to restore order" });
+        res.status(200).json({ message: "Order restored!" });
     });
 });
 
@@ -695,9 +871,10 @@ app.delete('/api/suppliers/:id', (req, res) => {
 // GET all orders with their items
 app.get('/api/orders', (req, res) => {
     const sql = `
-        SELECT po.*, s.supplierName, s.termsOfPayment
+        SELECT po.*, s.supplierName, s.termsOfPayment AS supplierTerms
         FROM purchase_order po
         LEFT JOIN supplier s ON po.supplierID = s.supplierID
+        WHERE po.isActive = 1
         ORDER BY po.orderID DESC
     `;
 
@@ -731,7 +908,7 @@ app.get('/api/orders', (req, res) => {
 
             const result = orders.map(o => {
                 const orderDate = o.orderDateTime || o.orderDate || null;
-                const terms = o.termsOfPayment || 'COD';
+                const terms = o.termsOfPayment || o.supplierTerms || 'COD';
 
                 // Calculate due date based on order date and terms
                 let dueDateStr = 'N/A';
@@ -775,14 +952,14 @@ app.get('/api/orders', (req, res) => {
 app.post('/api/orders', (req, res) => {
     const userID = req.session && req.session.user ? req.session.user.id : null;
     if (!userID) return res.status(401).json({ error: "Please log in to create an order" });
-    const { supplierID, contact, shipmentInfo, status, paymentStatus, items } = req.body;
+    const { supplierID, contact, shipmentInfo, status, paymentStatus, items, shipToAddress, termsOfPayment } = req.body;
 
     if (!supplierID) return res.status(400).json({ error: "supplierID is required" });
 
     const orderDateTime = new Date();
-    const insertSql = `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo, paymentStatus) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    const insertSql = `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo, paymentStatus, shipToAddress, termsOfPayment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    db.query(insertSql, [userID, supplierID, orderDateTime, status || 'Pending', contact || null, shipmentInfo || null, paymentStatus || 'Pending'], (err, result) => {
+    db.query(insertSql, [userID, supplierID, orderDateTime, status || 'To Order', contact || null, shipmentInfo || null, paymentStatus || 'Pending', shipToAddress || null, termsOfPayment || null], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: "Failed to create order" });
@@ -839,12 +1016,12 @@ app.post('/api/orders', (req, res) => {
 // PUT update an existing order (replace items)
 app.put('/api/orders/:id', async (req, res) => {
     const { id } = req.params;
-    const { supplierID, contact, shipmentInfo, status, items } = req.body;
+    const { supplierID, contact, shipmentInfo, status, items, shipToAddress, termsOfPayment } = req.body;
 
     try {
 
         const [existingOrders] = await db.promise().query(
-            `SELECT status FROM purchase_order WHERE orderID = ?`,
+            `SELECT status, paymentStatus FROM purchase_order WHERE orderID = ?`,
             [id]
         );
 
@@ -855,6 +1032,7 @@ app.put('/api/orders/:id', async (req, res) => {
         }
 
         const oldStatus = existingOrders[0].status;
+        const oldPaymentStatus = existingOrders[0].paymentStatus;
 
         if (oldStatus === 'Completed' || oldStatus === 'Partially Completed') {
             return res.status(400).json({
@@ -876,16 +1054,20 @@ app.put('/api/orders/:id', async (req, res) => {
                 status = ?,
                 contact = ?,
                 shipmentInfo = ?,
-                paymentStatus = ?
+                paymentStatus = ?,
+                shipToAddress = ?,
+                termsOfPayment = ?
             WHERE orderID = ?
         `;
 
         await db.promise().query(updateOrderSql, [
             supplierID,
-            status || 'Pending',
+            status || 'To Order',
             contact || null,
             shipmentInfo || null,
-            req.body.paymentStatus || 'Pending',
+            req.body.paymentStatus || oldPaymentStatus || 'Pending',
+            shipToAddress || null,
+            termsOfPayment || null,
             id
         ]);
 
@@ -977,7 +1159,7 @@ app.put('/api/orders/:id/receive', async (req, res) => {
 
     try {
         const [existingOrders] = await db.promise().query(
-            `SELECT status FROM purchase_order WHERE orderID = ?`,
+            `SELECT status, orderDateTime FROM purchase_order WHERE orderID = ?`,
             [id]
         );
 
@@ -986,6 +1168,7 @@ app.put('/api/orders/:id/receive', async (req, res) => {
         }
 
         const oldStatus = existingOrders[0].status;
+        const orderDateTime = existingOrders[0].orderDateTime;
         if (oldStatus === 'Completed') {
             return res.status(400).json({ error: "Completed orders cannot be modified." });
         }
@@ -999,10 +1182,19 @@ app.put('/api/orders/:id/receive', async (req, res) => {
             const oldReceived = oldItems.length > 0 ? oldItems[0].receivedQty : 0;
             const newReceived = parseInt(item.receivedQty) || 0;
             const defective = parseInt(item.defectiveQty) || 0;
-
-            await db.promise().query(`UPDATE purchase_item SET receivedQty = ?, defectiveQty = ? WHERE orderID = ? AND productID = ?`, [newReceived, defective, id, item.productID]);
-
             const stockDiff = newReceived - oldReceived;
+
+            let leadTimeSql = "";
+            let params = [newReceived, defective];
+            if (stockDiff > 0) {
+                // Set lead time on first reception (DATEDIFF of NOW and orderDateTime)
+                leadTimeSql = `, leadTimeDays = COALESCE(leadTimeDays, DATEDIFF(NOW(), ?))`;
+                params.push(orderDateTime);
+            }
+            params.push(id, item.productID);
+
+            await db.promise().query(`UPDATE purchase_item SET receivedQty = ?, defectiveQty = ? ${leadTimeSql} WHERE orderID = ? AND productID = ?`, params);
+
             if (stockDiff > 0) {
                 await db.promise().query(`UPDATE product SET stockQuantity = stockQuantity + ? WHERE productID = ?`, [stockDiff, item.productID]);
             } else if (stockDiff < 0) {
@@ -1042,26 +1234,21 @@ app.put('/api/orders/:id/payment', async (req, res) => {
     }
 });
 
-// DELETE an order
+// DELETE an order (soft delete - marks as inactive)
 app.delete('/api/orders/:id', (req, res) => {
     const { id } = req.params;
-    db.query(`DELETE FROM purchase_item WHERE orderID = ?`, [id], (err) => {
+    const sql = `UPDATE purchase_order SET isActive = 0 WHERE orderID = ?`;
+    db.query(sql, [id], (err, result) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: "Failed to delete order items" });
+            return res.status(500).json({ error: "Failed to archive order" });
         }
-        db.query(`DELETE FROM purchase_order WHERE orderID = ?`, [id], (err2) => {
-            if (err2) {
-                console.error(err2);
-                return res.status(500).json({ error: "Failed to delete order" });
-            }
-            const sessionUserID = req.session?.user?.id;
-            if (sessionUserID) {
-                db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Delete Order', ?)`,
-                    [sessionUserID, `Deleted order ID: ${id}`]);
-            }
-            res.json({ message: "Order deleted" });
-        });
+        const sessionUserID = req.session?.user?.id;
+        if (sessionUserID) {
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Archive Order', ?)`,
+                [sessionUserID, `Archived order ID: ${id}`]);
+        }
+        res.json({ message: "Order archived" });
     });
 });
 
@@ -1118,7 +1305,7 @@ app.get('/api/auto-reorder/preview', async (req, res) => {
     }
 });
 
-// POST auto-reorder: Create Pending purchase orders based on explicit user selections
+// POST auto-reorder: Create To Order purchase orders based on explicit user selections
 app.post('/api/auto-reorder', async (req, res) => {
     const userID = req.session && req.session.user ? req.session.user.id : null;
     if (!userID) return res.status(401).json({ error: 'Please log in to create orders.' });
@@ -1149,7 +1336,7 @@ app.post('/api/auto-reorder', async (req, res) => {
 
         for (const [suppID, data] of Object.entries(bySupplier)) {
             const [orderResult] = await db.promise().query(
-                `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo) VALUES (?, ?, ?, 'Pending', NULL, NULL)`,
+                `INSERT INTO purchase_order (userID, supplierID, orderDateTime, status, contact, shipmentInfo, shipToAddress) VALUES (?, ?, ?, 'To Order', NULL, NULL, '#2 National Road, Brgy. San Juan,\\nTaytay, Rizal, Philippines\\nPhone: 8658-7984 / 8658-6802')`,
                 [userID, suppID, orderDateTime]
             );
             const orderID = orderResult.insertId;
@@ -1488,6 +1675,82 @@ app.get('/api/reports/stocks', (req, res) => {
         }
         res.json(results);
     });
+});
+
+// GET threshold suggestions for all products
+app.get('/api/reports/thresholds', async (req, res) => {
+    try {
+        const ANALYSIS_DAYS = 90;
+
+        // 1. Get all active products with their age and lead time
+        const [products] = await db.promise().query(`
+            SELECT 
+                p.productID, 
+                p.productName, 
+                p.category, 
+                p.lowStockThreshold AS currentThreshold,
+                COALESCE(DATEDIFF(NOW(), MIN(ir.inventoryDate)), 0) AS ageDays,
+                (SELECT AVG(leadTimeDays) FROM purchase_item pi WHERE pi.productID = p.productID AND pi.leadTimeDays IS NOT NULL) AS avgLeadDays
+            FROM product p
+            LEFT JOIN inventory_record ir ON p.productID = ir.productID
+            WHERE p.isActive = 1
+            GROUP BY p.productID
+        `);
+
+        // 2. Get sales for all products in the last 90 days
+        const [sales] = await db.promise().query(`
+            SELECT 
+                si.productID,
+                SUM(si.quantity) AS totalSold
+            FROM sales_item si
+            JOIN sales_transaction st ON si.transactionID = st.transactionID
+            WHERE st.transDateTime >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              AND st.paymentStatus = 'Paid'
+            GROUP BY si.productID
+        `, [ANALYSIS_DAYS]);
+
+        const salesMap = {};
+        sales.forEach(s => {
+            salesMap[s.productID] = parseFloat(s.totalSold) || 0;
+        });
+
+        const results = products.map(p => {
+            const productAge = Math.max(1, parseInt(p.ageDays) || 0);
+            const actualAnalysisDays = Math.min(ANALYSIS_DAYS, productAge);
+
+            const totalSold = salesMap[p.productID] || 0;
+            const avgDailySales = totalSold / actualAnalysisDays;
+
+            const avgLeadDays = parseFloat(p.avgLeadDays) || 7;
+            const safetyDays = 7;
+            const suggested = Math.max(Math.ceil(avgDailySales * (avgLeadDays + safetyDays)), 5);
+
+            // Generate reason
+            let reason = '';
+            if (totalSold === 0) {
+                reason = `No sales data found in the last ${actualAnalysisDays} days. Using minimum baseline of ${suggested} units.`;
+            } else {
+                reason = `Avg daily sales: ${avgDailySales.toFixed(2)}. Lead time: ${Math.round(avgLeadDays)} days + ${safetyDays} day buffer.`;
+                if (productAge < ANALYSIS_DAYS) {
+                    reason += ` (Based on ${productAge} days of history).`;
+                }
+            }
+
+            return {
+                productID: p.productID,
+                productName: p.productName,
+                category: p.category || 'N/A',
+                currentThreshold: parseInt(p.currentThreshold) || 0,
+                suggestedThreshold: suggested,
+                reason: reason
+            };
+        });
+
+        res.json(results);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to generate threshold suggestions" });
+    }
 });
 // Losses / Defective Report
 // Combines: (1) defective units from PO receipts, (2) manual stock write-offs from inventory_record, (3) defective returns from refunds/exchanges

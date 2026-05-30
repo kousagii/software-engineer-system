@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     <th>Current Stock</th>
                                     <th>Order Qty</th>
                                     <th>Supplier</th>
+                                    <th style="width: 40px;"></th>
                                 </tr>
                             </thead>
                             <tbody id="reorder-modal-body">
@@ -68,7 +69,7 @@ async function openReorderModal(productID = null) {
 
         currentReorderItems = data;
 
-        // Auto-suggest logic: count supplier frequency to minimize POs
+        // Initialize defaults once
         const supplierCounts = {};
         data.forEach(p => {
             p.suppliers.forEach(s => {
@@ -76,11 +77,7 @@ async function openReorderModal(productID = null) {
             });
         });
 
-        const tbody = document.getElementById('reorder-modal-body');
-        tbody.innerHTML = '';
-
-        data.forEach((p, index) => {
-            // Pick default supplier: the one with the highest overall frequency
+        data.forEach(p => {
             let bestSupplierID = p.suppliers[0].supplierID;
             let maxCount = -1;
             p.suppliers.forEach(s => {
@@ -89,41 +86,17 @@ async function openReorderModal(productID = null) {
                     bestSupplierID = s.supplierID;
                 }
             });
-
-            // Store defaults
             p.selectedSupplierID = bestSupplierID;
             p.selectedQuantity = Math.max(p.lowStockThreshold, 1);
-
-            const supplierOptions = p.suppliers.map(s => 
-                `<option value="${s.supplierID}" ${s.supplierID === bestSupplierID ? 'selected' : ''}>${s.supplierName}</option>`
-            ).join('');
-
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td><strong>${p.productName}</strong></td>
-                <td>
-                    <span class="${p.stockQuantity === 0 ? 'status-pill status-outstock' : 'status-pill status-lowstock'}">
-                        ${p.stockQuantity}
-                    </span>
-                </td>
-                <td>
-                    <input type="number" min="1" value="${p.selectedQuantity}" style="width: 80px; padding: 4px;" 
-                           onchange="updateReorderItem(${index}, 'selectedQuantity', this.value)">
-                </td>
-                <td>
-                    <select style="width: 100%; padding: 4px;" onchange="updateReorderItem(${index}, 'selectedSupplierID', this.value)">
-                        ${supplierOptions}
-                    </select>
-                </td>
-            `;
-            tbody.appendChild(row);
         });
 
+        renderReorderTable();
+
         document.getElementById('reorder-modal-title').textContent = productID ? `Reorder: ${data[0].productName}` : 'Auto Reorder All';
-        document.getElementById('reorder-modal-subtitle').textContent = productID 
-            ? 'Adjust the order quantity and choose a supplier.' 
+        document.getElementById('reorder-modal-subtitle').textContent = productID
+            ? 'Adjust the order quantity and choose a supplier.'
             : 'Review the suggested order quantities and suppliers. The system has automatically grouped suppliers where possible to minimize purchase orders.';
-        
+
         document.getElementById('reorder-custom-modal').style.display = 'flex';
 
     } catch (err) {
@@ -134,6 +107,49 @@ async function openReorderModal(productID = null) {
             btn.disabled = false;
             btn.textContent = 'Auto Reorder All';
         }
+    }
+}
+
+function renderReorderTable() {
+    const tbody = document.getElementById('reorder-modal-body');
+    tbody.innerHTML = '';
+
+    currentReorderItems.forEach((p, index) => {
+        const supplierOptions = p.suppliers.map(s =>
+            `<option value="${s.supplierID}" ${s.supplierID === p.selectedSupplierID ? 'selected' : ''}>${s.supplierName}</option>`
+        ).join('');
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${p.productName}</strong></td>
+            <td>
+                <span class="${p.stockQuantity === 0 ? 'status-pill status-outstock' : 'status-pill status-lowstock'}">
+                    ${p.stockQuantity}
+                </span>
+            </td>
+            <td>
+                <input type="number" min="1" value="${p.selectedQuantity}" style="width: 80px; padding: 4px;" 
+                       onchange="updateReorderItem(${index}, 'selectedQuantity', this.value)">
+            </td>
+            <td>
+                <select style="width: 100%; padding: 4px;" onchange="updateReorderItem(${index}, 'selectedSupplierID', this.value)">
+                    ${supplierOptions}
+                </select>
+            </td>
+            <td style="text-align: center;">
+                <button class="btn-delete" style="padding: 4px 8px; margin: 0; min-width: unset; font-size: 10px;" onclick="removeReorderItem(${index})">X</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function removeReorderItem(index) {
+    currentReorderItems.splice(index, 1);
+    if (currentReorderItems.length === 0) {
+        closeReorderModal();
+    } else {
+        renderReorderTable();
     }
 }
 
@@ -175,12 +191,12 @@ async function submitReorder() {
         }
 
         closeReorderModal();
-        
+
         // Show success summary
-        const list = data.orders.map(o => 
+        const list = data.orders.map(o =>
             `<li style="margin-bottom:4px;"><strong>PO-${o.orderID}</strong> → ${o.supplierName} (${o.itemCount} item${o.itemCount > 1 ? 's' : ''})</li>`
         ).join('');
-        
+
         // Use existing modal if available, otherwise native alert
         if (typeof showInfoModal === 'function') {
             showInfoModal('Auto Reorder Complete!', `

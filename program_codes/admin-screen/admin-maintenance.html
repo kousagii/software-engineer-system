@@ -121,8 +121,10 @@
                 <label>Description</label>
                 <textarea id="mProdDescription" rows="3" placeholder="Product description"></textarea>
 
-                <div class="maint-form-actions">
+                <div class="maint-form-actions" style="display: flex; gap: 8px;">
                     <button type="button" class="btn-cancel" onclick="closeProductForm()">Cancel</button>
+                    <button type="button" class="btn-delete hidden" id="btn-archive-product"
+                        onclick="archiveProductFromModal()">Archive</button>
                     <button type="button" class="btn-create" id="btn-save-product" onclick="saveProduct()">Add
                         Product</button>
                 </div>
@@ -175,8 +177,10 @@
                     </div>
                 </div>
 
-                <div class="maint-form-actions">
+                <div class="maint-form-actions" style="display: flex; gap: 8px;">
                     <button type="button" class="btn-cancel" onclick="closeSupplierForm()">Cancel</button>
+                    <button type="button" class="btn-delete hidden" id="btn-archive-supplier"
+                        onclick="archiveSupplierFromModal()">Archive</button>
                     <button type="button" class="btn-create" id="btn-save-supplier" onclick="saveSupplier()">Add
                         Supplier</button>
                 </div>
@@ -244,6 +248,9 @@
                 <button class="maint-sub-tab-btn" id="arc-tab-suppliers" onclick="switchArchiveTab('suppliers')">
                     Suppliers &nbsp; <span class="tab-count" id="arc-supplier-count">0</span>
                 </button>
+                <button class="maint-sub-tab-btn" id="arc-tab-orders" onclick="switchArchiveTab('orders')">
+                    Purchase Orders &nbsp; <span class="tab-count" id="arc-order-count">0</span>
+                </button>
             </div>
 
             <div class="maint-toolbar">
@@ -305,12 +312,13 @@
                             <th>Email</th>
                             <th>Address</th>
                             <th>Terms of Payment</th>
+                            <th>Products</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="arc-suppliers-table-body">
                         <tr>
-                            <td colspan="6" class="center-text">Loading archived suppliers...</td>
+                            <td colspan="7" class="center-text">Loading archived suppliers...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -318,6 +326,32 @@
                     <button id="arc-sup-btn-prev" onclick="changeArcSupplierPage(-1)">Previous</button>
                     <span id="arc-sup-page-info">Page 1 of 1</span>
                     <button id="arc-sup-btn-next" onclick="changeArcSupplierPage(1)">Next</button>
+                </div>
+            </div>
+
+            <!-- Archive Purchase Orders Table -->
+            <div class="table-container hidden" id="arc-orders-table-section">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Supplier</th>
+                            <th>Date</th>
+                            <th>Products</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="arc-orders-table-body">
+                        <tr>
+                            <td colspan="6" class="center-text">Loading archived orders...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div id="arc-ord-pagination-controls" class="pagination-container hidden">
+                    <button id="arc-ord-btn-prev" onclick="changeArcOrderPage(-1)">Previous</button>
+                    <span id="arc-ord-page-info">Page 1 of 1</span>
+                    <button id="arc-ord-btn-next" onclick="changeArcOrderPage(1)">Next</button>
                 </div>
             </div>
         </div>
@@ -660,24 +694,30 @@
         // ======================== ARCHIVE TAB ========================
         let archivedProducts = [];
         let archivedSuppliers = [];
+        let archivedOrders = [];
         let arcCurrentTab = 'products';
         let arcCurrentPage = 1;
         let arcSupplierPage = 1;
+        let arcOrderPage = 1;
 
         function switchArchiveTab(tab) {
             arcCurrentTab = tab;
             $('arc-tab-products').classList.toggle('active-sub-tab', tab === 'products');
             $('arc-tab-suppliers').classList.toggle('active-sub-tab', tab === 'suppliers');
+            $('arc-tab-orders').classList.toggle('active-sub-tab', tab === 'orders');
             $('arc-products-table-section').classList.toggle('hidden', tab !== 'products');
             $('arc-suppliers-table-section').classList.toggle('hidden', tab !== 'suppliers');
+            $('arc-orders-table-section').classList.toggle('hidden', tab !== 'orders');
             arcCurrentPage = 1;
             arcSupplierPage = 1;
+            arcOrderPage = 1;
             processArchiveData();
         }
 
         function processArchiveData() {
             if (arcCurrentTab === 'products') processArcProducts();
-            else processArcSuppliers();
+            else if (arcCurrentTab === 'suppliers') processArcSuppliers();
+            else if (arcCurrentTab === 'orders') processArcOrders();
         }
 
         function processArcProducts() {
@@ -744,6 +784,39 @@
             renderArcSuppliersTable(paginatedData);
         }
 
+        function processArcOrders() {
+            let data = [...archivedOrders];
+            const query = val('arcSearchInput').toLowerCase();
+            const sort = val('arcSortMode');
+            const limitVal = val('arcShowLimit');
+
+            if (query) {
+                data = data.filter(o =>
+                    String(o.orderID).includes(query) ||
+                    (o.supplierName || '').toLowerCase().includes(query) ||
+                    (o.status || '').toLowerCase().includes(query)
+                );
+            }
+
+            if (sort === 'asc') data.sort((a, b) => a.orderID - b.orderID);
+            else if (sort === 'desc') data.sort((a, b) => b.orderID - a.orderID);
+
+            let paginatedData;
+            if (limitVal === 'all') {
+                paginatedData = data;
+                updatePaginationUI('arc-ord-pagination-controls', 'arc-ord-page-info', 'arc-ord-btn-prev', 'arc-ord-btn-next', data.length, data.length, arcOrderPage);
+            } else {
+                const limit = parseInt(limitVal);
+                const totalPages = Math.ceil(data.length / limit);
+                if (arcOrderPage > totalPages && totalPages > 0) arcOrderPage = totalPages;
+                const start = (arcOrderPage - 1) * limit;
+                paginatedData = data.slice(start, start + limit);
+                updatePaginationUI('arc-ord-pagination-controls', 'arc-ord-page-info', 'arc-ord-btn-prev', 'arc-ord-btn-next', data.length, limit, arcOrderPage);
+            }
+
+            renderArcOrdersTable(paginatedData);
+        }
+
         function updatePaginationUI(containerId, infoId, prevId, nextId, totalItems, limit, page) {
             const container = $(containerId);
             if (limit === 'all' || limit >= totalItems || totalItems === 0) {
@@ -763,6 +836,7 @@
 
         function changeArcPage(dir) { arcCurrentPage += dir; processArcProducts(); }
         function changeArcSupplierPage(dir) { arcSupplierPage += dir; processArcSuppliers(); }
+        function changeArcOrderPage(dir) { arcOrderPage += dir; processArcOrders(); }
 
         function renderArcProductsTable(data) {
             if (data.length === 0) {
@@ -806,7 +880,7 @@
         function renderArcSuppliersTable(data) {
             if (data.length === 0) {
                 $('arc-suppliers-table-body').innerHTML = `
-                <tr><td colspan="6">
+                <tr><td colspan="7">
                     <div class="maint-empty-state">
                         <div class="empty-icon">🏭</div>
                         <p>No archived suppliers found.</p>
@@ -817,6 +891,9 @@
 
             $('arc-suppliers-table-body').innerHTML = data.map(s => {
                 const addr = (s.address && s.address.length > 35) ? s.address.substring(0, 35) + '...' : (s.address || 'N/A');
+                const count = s.productIDs ? s.productIDs.toString().split(',').length : 0;
+                const safeName = (s.supplierName || '').replace(/'/g, "\\'");
+                const safeProds = (s.productNames || '').replace(/'/g, "\\'");
                 return `
                 <tr>
                     <td><strong>${s.supplierName}</strong><br><small class="sub-text">ID: ${s.supplierID}</small></td>
@@ -824,11 +901,51 @@
                     <td class="sub-text">${s.email || 'N/A'}</td>
                     <td class="sub-text address-cell">${addr}</td>
                     <td class="sub-text">${s.termsOfPayment || 'COD'}</td>
+                    <td><button class="btn-view" onclick="viewSupplierProducts('${safeName}', '${safeProds}')">View (${count})</button></td>
                     <td>
-                        <button class="btn-restore" onclick="restoreSupplier(${s.supplierID}, '${(s.supplierName || '').replace(/'/g, "\\'")}')">Restore</button>
+                        <button class="btn-restore" onclick="restoreSupplier(${s.supplierID}, '${safeName}')">Restore</button>
                     </td>
                 </tr>
             `;
+            }).join('');
+        }
+
+        function viewOrderProducts(encodedStr) {
+            try {
+                const items = JSON.parse(decodeURIComponent(encodedStr));
+                const listItems = items.length ? items.map(p => `<li style="padding: 8px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;"><span>${p.name}</span> <span style="font-weight: bold;">x${p.qty}</span></li>`).join('') : '<li>No products.</li>';
+                showAlert(`<h3 style="margin-bottom:15px; text-align:center;">Products List</h3><ul style="list-style:none; padding:0; margin:0; max-height:300px; overflow-y:auto; text-align:left;">${listItems}</ul>`);
+            } catch (e) { }
+        }
+
+        function renderArcOrdersTable(data) {
+            if (data.length === 0) {
+                $('arc-orders-table-body').innerHTML = `
+                <tr><td colspan="6">
+                    <div class="maint-empty-state">
+                        <div class="empty-icon">📄</div>
+                        <p>No archived purchase orders found.</p>
+                    </div>
+                </td></tr>`;
+                return;
+            }
+
+            $('arc-orders-table-body').innerHTML = data.map(o => {
+                const date = new Date(o.orderDateTime).toLocaleDateString();
+                const statusClass = 'status-' + (o.status || 'To Order').toLowerCase().replace(' ', '-');
+                const productsStr = encodeURIComponent(JSON.stringify((o.items || []).map(it => ({ name: it.productName, qty: it.qty }))));
+                const productsHtml = `<button class="btn-view" onclick="viewOrderProducts('${productsStr}')">View</button>`;
+                return `
+                <tr>
+                    <td>PO-${o.orderID}</td>
+                    <td>${o.supplierName || 'N/A'}</td>
+                    <td>${date}</td>
+                    <td><div class="order-products-col">${productsHtml}</div></td>
+                    <td><span class="status-pill ${statusClass}">${o.status}</span></td>
+                    <td>
+                        <button class="btn-restore" onclick="restoreOrder(${o.orderID})">Restore</button>
+                    </td>
+                </tr>`;
             }).join('');
         }
 
@@ -854,8 +971,18 @@
             }
         }
 
+        async function loadArchivedOrders() {
+            try {
+                const res = await fetch('/api/archive/orders');
+                archivedOrders = await res.json();
+                $('arc-order-count').textContent = archivedOrders.length;
+            } catch {
+                console.error("Failed to load archived orders");
+            }
+        }
+
         async function loadArchiveData() {
-            await Promise.all([loadArchivedProducts(), loadArchivedSuppliers()]);
+            await Promise.all([loadArchivedProducts(), loadArchivedSuppliers(), loadArchivedOrders()]);
         }
 
         function restoreProduct(id, name) {
@@ -988,7 +1115,6 @@
                     <td class="center-text">
                         <div class="action-btns">
                             <button class="btn-edit" onclick="openProductForm(${p.productID})">Edit</button>
-                            <button class="btn-delete" onclick="deleteProduct(${p.productID}, '${(p.productName || '').replace(/'/g, "\\'")}')">Delete</button>
                         </div>
                     </td>
                 </tr>
@@ -1015,9 +1141,11 @@
                 val('mProdInitialPrice', p.initialPrice || '');
                 val('mProdPrice', p.price || '');
                 val('mProdDescription', p.productDescription || '');
+                $('btn-archive-product').classList.remove('hidden');
             } else {
                 $('product-form-title').textContent = 'Add Product';
                 $('btn-save-product').textContent = 'Add Product';
+                $('btn-archive-product').classList.add('hidden');
             }
 
             $('product-form-modal').classList.add('flex');
@@ -1076,20 +1204,27 @@
             }
         }
 
-        function deleteProduct(id, name) {
-            showAlert(`Are you sure you want to delete <strong>${name}</strong>?`, true, async () => {
+        function archiveProductFromModal() {
+            if (!prodEditId) return;
+            const name = val('mProdName');
+            archiveProduct(prodEditId, name);
+        }
+
+        function archiveProduct(id, name) {
+            showAlert(`Are you sure you want to archive <strong>${name}</strong>?<br><br>Archived products will no longer appear in the active products list.`, true, async () => {
                 try {
                     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                    const r = await res.json();
                     if (res.ok) {
-                        showToast(`"${name}" deleted successfully.`);
+                        showToast('Product archived');
+                        closeProductForm();
                         loadProducts();
-                        loadArchiveData(); // refresh archive
                     } else {
-                        const result = await res.json();
-                        showAlert('Error: ' + result.error);
+                        showAlert('Error: ' + (r.error || 'Archive failed'));
                     }
-                } catch {
-                    showAlert('Failed to connect to the server.');
+                } catch (e) {
+                    console.error(e);
+                    showAlert('Failed to connect to server');
                 }
             });
         }
@@ -1168,7 +1303,6 @@
                     <td class="center-text">
                         <div class="action-btns">
                             <button class="btn-edit" onclick="openSupplierForm(${s.supplierID})">Edit</button>
-                            <button class="btn-delete" onclick="deleteSupplier(${s.supplierID}, '${safeName}')">Delete</button>
                         </div>
                     </td>
                 </tr>
@@ -1241,6 +1375,7 @@
                     if (!s) return;
                     $('supplier-form-title').textContent = 'Edit Supplier';
                     $('btn-save-supplier').textContent = 'Save Changes';
+                    $('btn-archive-supplier').classList.remove('hidden');
                     val('mSupName', s.supplierName || '');
                     val('mSupContact', s.contactNumber || '');
                     val('mSupEmail', s.email || '');
@@ -1262,6 +1397,7 @@
                 } else {
                     $('supplier-form-title').textContent = 'Add Supplier';
                     $('btn-save-supplier').textContent = 'Add Supplier';
+                    $('btn-archive-supplier').classList.add('hidden');
                 }
 
                 $('supplier-form-modal').classList.add('flex');
@@ -1330,20 +1466,27 @@
             }
         }
 
-        function deleteSupplier(id, name) {
-            showAlert(`Are you sure you want to delete <strong>${name}</strong>?`, true, async () => {
+        function archiveSupplierFromModal() {
+            if (!supEditId) return;
+            const name = val('mSupName');
+            archiveSupplier(supEditId, name);
+        }
+
+        function archiveSupplier(id, name) {
+            showAlert(`Are you sure you want to archive supplier <strong>${name}</strong>?<br><br>They will be hidden from the active suppliers list.`, true, async () => {
                 try {
                     const res = await fetch(`/api/suppliers/${id}`, { method: 'DELETE' });
+                    const r = await res.json();
                     if (res.ok) {
-                        showToast(`"${name}" deleted successfully.`);
+                        showToast('Supplier archived');
+                        closeSupplierForm();
                         loadSuppliers();
-                        loadArchiveData(); // refresh archive
                     } else {
-                        const result = await res.json();
-                        showAlert('Error: ' + result.error);
+                        showAlert('Error: ' + (r.error || 'Archive failed'));
                     }
-                } catch {
-                    showAlert('Failed to connect to the server.');
+                } catch (e) {
+                    console.error(e);
+                    showAlert('Failed to connect to server');
                 }
             });
         }
@@ -1351,7 +1494,21 @@
         // ======================== INIT ========================
         document.addEventListener("DOMContentLoaded", async () => {
             // Load initial data
-            fetchBackups();
+            try {
+                const res = await fetch('/api/auth-status');
+                const data = await res.json();
+                if (data.role !== 'Admin') {
+                    const backupTab = document.getElementById('tab-backups');
+                    if (backupTab) backupTab.style.display = 'none';
+                    const sectionBackups = document.getElementById('section-backups');
+                    if (sectionBackups) sectionBackups.innerHTML = '<div class="center-text mt-20" style="padding:40px;">Access Denied</div>';
+                } else {
+                    fetchBackups();
+                }
+            } catch(e) {
+                fetchBackups();
+            }
+
             await loadArchiveData();
             await loadProducts();
             await loadSuppliers();
@@ -1381,6 +1538,22 @@
                 });
             });
         });
+        function restoreOrder(id) {
+            showAlert(`Restore Purchase Order <strong>PO-${id}</strong> back to active list?`, true, async () => {
+                try {
+                    const res = await fetch(`/api/archive/orders/${id}/restore`, { method: 'PUT' });
+                    if (res.ok) {
+                        showToast(`PO-${id} restored successfully.`);
+                        loadArchiveData(); // refresh archive
+                    } else {
+                        const result = await res.json();
+                        showAlert('Error: ' + result.error);
+                    }
+                } catch {
+                    showAlert('Failed to connect to the server.');
+                }
+            });
+        }
     </script>
 </body>
 

@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             } else if (userRole === 'Inventory') {
                 const inventoryPages = [
-                    'inventory-screen', 'admin-product', 'admin-supplier', 'admin-search', 'admin-report', 'admin-maintenance', 'admin-archive'
+                    'inventory-dashboard', 'inventory-screen', 'admin-product', 'admin-supplier', 'admin-search', 'admin-report', 'admin-maintenance', 'admin-archive'
                 ];
                 if (inventoryPages.some(p => currentPath.includes(p))) {
                     isAllowed = true;
@@ -121,19 +121,19 @@ function renderSidebar(name, role, availableRoles) {
             <div>
                 <img id="logo" src="../assets/uc_logo.png" />
                 <div class="menu">
-                    <a href="../admin-screen/admin-dashboard.html">Dashboard</a>
-                    <a href="../admin-screen/admin-search.html">Search</a>
-                    <a href="../admin-screen/admin-product.html">Product</a>
-                    <a href="../admin-screen/admin-supplier.html">Supplier</a>
-                    <a href="../inventory-screen/inventory-order-management.html">Order Management</a>
-                    <a href="../admin-screen/admin-report.html">Reports</a>
+                    <a href="../admin-screen/admin-dashboard.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> Dashboard</a>
+                    <a href="../admin-screen/admin-search.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Search</a>
+                    <a href="../admin-screen/admin-product.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> Product</a>
+                    <a href="../admin-screen/admin-supplier.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg> Supplier</a>
+                    <a href="../inventory-screen/inventory-order-management.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>Purchase Order</a>
+                    <a href="../admin-screen/admin-report.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> Reports</a>
                 </div>
             </div>
             <div class="bottom-menu">
                 <div class="menu">
-                    <a href="../admin-screen/admin-user-management.html">User Management</a>
-                    <a href="../admin-screen/admin-maintenance.html">Maintenance</a>
-                    <a href="../admin-screen/admin-help.html">Help</a>
+                    <a href="../admin-screen/admin-user-management.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Users</a>
+                    <a href="../admin-screen/admin-maintenance.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg> Maintenance</a>
+                    <a href="../admin-screen/admin-help.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Help</a>
                     ${switchButtonsHTML}
                 </div>
                 ${userProfileHTML}
@@ -146,17 +146,18 @@ function renderSidebar(name, role, availableRoles) {
             <div>
                 <img id="logo" src="../assets/uc_logo.png" />
                 <div class="menu">
-                    <a href="../admin-screen/admin-search.html">Search</a>
-                    <a href="../admin-screen/admin-product.html">Product</a>
-                    <a href="../admin-screen/admin-supplier.html">Supplier</a>
-                    <a href="../inventory-screen/inventory-order-management.html">Order Management</a>
-                    <a href="../admin-screen/admin-report.html">Reports</a>
-                    <a href="../admin-screen/admin-maintenance.html">Maintenance</a>
+                    <a href="../inventory-screen/inventory-dashboard.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> Dashboard</a>
+                    <a href="../admin-screen/admin-search.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Search</a>
+                    <a href="../admin-screen/admin-product.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> Product</a>
+                    <a href="../admin-screen/admin-supplier.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg> Supplier</a>
+                    <a href="../inventory-screen/inventory-order-management.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>Purchase Order</a>
+                    <a href="../admin-screen/admin-report.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> Reports</a>
                 </div>
             </div>
             <div class="bottom-menu">
                 <div class="menu">
-                    <a href="../inventory-screen/inventory-help.html">Help</a>
+                    <a href="../admin-screen/admin-maintenance.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg> Maintenance</a>
+                    <a href="../inventory-screen/inventory-help.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Help</a>
                     ${switchButtonsHTML}
                 </div>
                 ${userProfileHTML}
@@ -168,14 +169,14 @@ function renderSidebar(name, role, availableRoles) {
             <div>
                 <img id="logo" src="../assets/uc_logo.png" />
                 <div class="menu">
-                    <a href="../sales-screen/sales-transaction.html">Sales Transaction</a>
-                    <a href="../sales-screen/sales-refund-or-exchange.html">Refund / Exchange</a>
-                    <a href="../sales-screen/sales-history.html">Transaction Records</a>
+                    <a href="../sales-screen/sales-transaction.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> Sales Transaction</a>
+                    <a href="../sales-screen/sales-refund-or-exchange.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg> Refund / Exchange</a>
+                    <a href="../sales-screen/sales-history.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Transaction Records</a>
                 </div>
             </div>
             <div class="bottom-menu">
                 <div class="menu">
-                    <a href="../sales-screen/sales-help.html">Help</a>
+                    <a href="../sales-screen/sales-help.html" style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Help</a>
                     ${switchButtonsHTML}
                 </div>
                 ${userProfileHTML}
@@ -213,7 +214,7 @@ function switchRole(newRole) {
             } else if (data.role === 'Sales') {
                 window.location.href = '../sales-screen/sales-transaction.html';
             } else if (data.role === 'Inventory') {
-                window.location.href = '../admin-screen/admin-search.html';
+                window.location.href = '../inventory-screen/inventory-dashboard.html';
             } else {
                 alert(data.error || 'Could not switch role.');
             }

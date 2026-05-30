@@ -66,6 +66,7 @@
                                 <option value="userlogs">User Logs</option>
                                 <option value="stocks">Stocks Alert</option>
                                 <option value="losses">Losses / Defective</option>
+                                <option value="thresholds">Low Stock Threshold Suggestions</option>
                             </select>
                         </div>
                         <div id="userFilterDiv" style="display: none;">
@@ -100,6 +101,18 @@
                                 <option value="">All Sources</option>
                                 <option value="po">PO Defective</option>
                                 <option value="adjustment">Stock Write-off</option>
+                            </select>
+                        </div>
+                        <div id="thresholdSearchDiv" style="display: none;">
+                            <label>Search Product</label>
+                            <input type="text" id="thresholdSearch" placeholder="Type name..." oninput="renderReport()">
+                        </div>
+                        <div id="thresholdStatusFilterDiv" style="display: none;">
+                            <label>Status</label>
+                            <select id="thresholdStatus" onchange="renderReport()">
+                                <option value="">All</option>
+                                <option value="diff">Needs Update</option>
+                                <option value="ok">Up to date</option>
                             </select>
                         </div>
                         <div id="dateFromDiv">
@@ -145,36 +158,29 @@
 
             <!-- Summary Cards using CSS .split and .form-panel -->
             <div id="report-summary" class="split hidden" style="margin-bottom: 20px; gap: 20px;">
-                <div class="form-panel center-text p-20"
-                    style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <div class="sub-text" style="text-align: center; width: 100%;">Sales</div>
-                    <h3 id="summaryTotal" style="margin: 5px 0 0 0; text-align: center; width: 100%;">₱ 0.00</h3>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Sales</div>
+                    <h3 id="summaryTotal" class="report-summary-value">₱ 0.00</h3>
                 </div>
-                <div class="form-panel center-text p-20"
-                    style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <div class="sub-text" style="text-align: center; width: 100%;">Purchases</div>
-                    <h3 id="summaryExpenses" style="margin: 5px 0 0 0; text-align: center; width: 100%;">₱ 0.00</h3>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Purchases</div>
+                    <h3 id="summaryExpenses" class="report-summary-value">₱ 0.00</h3>
                 </div>
-                <div class="form-panel center-text p-20"
-                    style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <div class="sub-text" style="text-align: center; width: 100%;">Income / Gross Margin</div>
-                    <h3 id="summaryRevenue" style="margin: 5px 0 0 0; text-align: center; width: 100%;">₱ 0.00</h3>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Income / Gross Margin</div>
+                    <h3 id="summaryRevenue" class="report-summary-value">₱ 0.00</h3>
                 </div>
-                <div class="form-panel center-text p-20"
-                    style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <div class="sub-text" style="text-align: center; width: 100%;">Total Orders</div>
-                    <h3 id="summaryOrders" style="margin: 5px 0 0 0; text-align: center; width: 100%;">0</h3>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Total Orders</div>
+                    <h3 id="summaryOrders" class="report-summary-value">0</h3>
                 </div>
-                <div class="form-panel center-text p-20"
-                    style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <div class="sub-text" style="text-align: center; width: 100%;">Products Sold</div>
-                    <h3 id="summaryProductsSold" style="margin: 5px 0 0 0; text-align: center; width: 100%;">0</h3>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Products Sold</div>
+                    <h3 id="summaryProductsSold" class="report-summary-value">0</h3>
                 </div>
-                <div class="form-panel center-text p-20"
-                    style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <div class="sub-text" style="text-align: center; width: 100%;">Refunds / Exchanges</div>
-                    <h3 id="summaryRefunds" style="margin: 5px 0 0 0; text-align: center; width: 100%; color: #d32f2f;">
-                        ₱ 0.00</h3>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Refunds / Exchanges</div>
+                    <h3 id="summaryRefunds" class="report-summary-value text-danger">₱ 0.00</h3>
                 </div>
             </div>
 
@@ -244,11 +250,15 @@
             const logFilterByDiv = $('logFilterByDiv');
             const salesSortByDiv = $('salesSortByDiv');
             const userLogSortByDiv = $('userLogSortByDiv');
+            const thresholdSearchDiv = $('thresholdSearchDiv');
+            const thresholdStatusFilterDiv = $('thresholdStatusFilterDiv');
 
             // Hide/show filters based on report type
             if (currentReportType === 'sales') {
                 stockStatusDiv.style.display = 'none';
                 lossSourceDiv.style.display = 'none';
+                if (thresholdSearchDiv) thresholdSearchDiv.style.display = 'none';
+                if (thresholdStatusFilterDiv) thresholdStatusFilterDiv.style.display = 'none';
                 if (userFilterDiv) userFilterDiv.style.display = 'none';
                 if (logFilterByDiv) logFilterByDiv.style.display = 'none';
                 if (userLogSortByDiv) userLogSortByDiv.style.display = 'none';
@@ -271,6 +281,8 @@
             } else if (currentReportType === 'userlogs') {
                 stockStatusDiv.style.display = 'none';
                 lossSourceDiv.style.display = 'none';
+                if (thresholdSearchDiv) thresholdSearchDiv.style.display = 'none';
+                if (thresholdStatusFilterDiv) thresholdStatusFilterDiv.style.display = 'none';
                 if (userFilterDiv) {
                     userFilterDiv.style.display = 'flex';
                     userFilterDiv.style.flexDirection = 'column';
@@ -303,6 +315,8 @@
                 stockStatusDiv.style.flexDirection = 'column';
                 stockStatusDiv.style.gap = '0';
                 lossSourceDiv.style.display = 'none';
+                if (thresholdSearchDiv) thresholdSearchDiv.style.display = 'none';
+                if (thresholdStatusFilterDiv) thresholdStatusFilterDiv.style.display = 'none';
                 if (userFilterDiv) userFilterDiv.style.display = 'none';
                 if (logFilterByDiv) logFilterByDiv.style.display = 'none';
                 if (salesSortByDiv) salesSortByDiv.style.display = 'none';
@@ -326,6 +340,8 @@
                 lossSourceDiv.style.display = 'flex';
                 lossSourceDiv.style.flexDirection = 'column';
                 lossSourceDiv.style.gap = '0';
+                if (thresholdSearchDiv) thresholdSearchDiv.style.display = 'none';
+                if (thresholdStatusFilterDiv) thresholdStatusFilterDiv.style.display = 'none';
                 if (userFilterDiv) userFilterDiv.style.display = 'none';
                 if (logFilterByDiv) logFilterByDiv.style.display = 'none';
                 if (salesSortByDiv) salesSortByDiv.style.display = 'none';
@@ -342,10 +358,39 @@
                         <th>Reason / Reference</th>
                     </tr>
                 `;
+            } else if (currentReportType === 'thresholds') {
+                stockStatusDiv.style.display = 'none';
+                lossSourceDiv.style.display = 'none';
+                if (thresholdSearchDiv) {
+                    thresholdSearchDiv.style.display = 'flex';
+                    thresholdSearchDiv.style.flexDirection = 'column';
+                    thresholdSearchDiv.style.gap = '0';
+                }
+                if (thresholdStatusFilterDiv) {
+                    thresholdStatusFilterDiv.style.display = 'flex';
+                    thresholdStatusFilterDiv.style.flexDirection = 'column';
+                    thresholdStatusFilterDiv.style.gap = '0';
+                }
+                if (userFilterDiv) userFilterDiv.style.display = 'none';
+                if (logFilterByDiv) logFilterByDiv.style.display = 'none';
+                if (salesSortByDiv) salesSortByDiv.style.display = 'none';
+                if (userLogSortByDiv) userLogSortByDiv.style.display = 'none';
+                summaryPanel.classList.add('hidden');
+                summaryPanel.classList.remove('flex');
+                if (reorderBtn) reorderBtn.classList.add('hidden');
+                $('report-table-head').innerHTML = `
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Current Threshold</th>
+                        <th>Suggested Threshold</th>
+                        <th>Reasoning</th>
+                        <th>Action</th>
+                    </tr>
+                `;
             }
 
             // Show/hide date range pickers
-            const showDates = currentReportType !== 'stocks';
+            const showDates = currentReportType !== 'stocks' && currentReportType !== 'thresholds';
             $('dateFromDiv').style.display = showDates ? '' : 'none';
             $('dateToDiv').style.display = showDates ? '' : 'none';
 
@@ -360,7 +405,7 @@
             const dateFrom = val('dateFrom');
             const dateTo = val('dateTo');
 
-            const needsDates = currentReportType !== 'stocks';
+            const needsDates = currentReportType !== 'stocks' && currentReportType !== 'thresholds';
             if (needsDates && (!dateFrom || !dateTo)) {
                 return;
             }
@@ -372,7 +417,7 @@
             const userParam = currentReportType === 'userlogs' ? `&user=${val('userFilter')}` : '';
             const logFilterByParam = currentReportType === 'userlogs' ? `&filterBy=${val('logFilterBy')}` : '';
             const stockParam = currentReportType === 'stocks' ? `&status=${val('stockStatus')}` : '';
-            const noDates = currentReportType === 'stocks';
+            const noDates = currentReportType === 'stocks' || currentReportType === 'thresholds';
             const dateParams = noDates ? '' : `from=${val('dateFrom')}&to=${val('dateTo')}`;
 
             try {
@@ -510,6 +555,18 @@
             } else if (currentReportType === 'losses') {
                 // Keep the default UI chronological reversal for losses
                 filteredData.reverse();
+            } else if (currentReportType === 'thresholds') {
+                const q = (val('thresholdSearch') || '').toLowerCase().trim();
+                const stat = val('thresholdStatus');
+
+                if (q) {
+                    filteredData = filteredData.filter(r => (r.productName || '').toLowerCase().includes(q));
+                }
+                if (stat === 'diff') {
+                    filteredData = filteredData.filter(r => r.currentThreshold !== r.suggestedThreshold);
+                } else if (stat === 'ok') {
+                    filteredData = filteredData.filter(r => r.currentThreshold === r.suggestedThreshold);
+                }
             }
 
             const totalPages = Math.ceil(filteredData.length / limit) || 1;
@@ -525,7 +582,7 @@
                     <tr>
                         <td><strong>${r.productName}</strong></td>
                         <td class="center-text">${r.qtySold}</td>
-                        <td class="center-text" style="color: ${r.qtyReturned > 0 ? '#d32f2f' : 'inherit'}">${r.qtyReturned}</td>
+                        <td class="center-text ${r.qtyReturned > 0 ? 'text-danger' : ''}">${r.qtyReturned}</td>
                         <td>${r.income}</td>
                     </tr>
                 `).join('') || '<tr><td colspan="4" class="center-text">No data available.</td></tr>';
@@ -586,9 +643,48 @@
                         <td class="sub-text">${r.reason}</td>
                     </tr>
                 `).join('') || '<tr><td colspan="5" class="center-text">No losses recorded in this period.</td></tr>';
+            } else if (currentReportType === 'thresholds') {
+                tbody.innerHTML = paginatedData.map(r => {
+                    const isUpToDate = r.currentThreshold === r.suggestedThreshold;
+                    const actionBtn = isUpToDate
+                        ? '<span class="status-pill status-instock">Up to date</span>'
+                        : `<button class="btn-success" onclick="applyThreshold(${r.productID}, ${r.suggestedThreshold})">Apply</button>`;
+                    return `
+                    <tr>
+                        <td><strong>${r.productName}</strong></td>
+                        <td class="center-text">${r.currentThreshold}</td>
+                        <td class="center-text text-highlight-blue">${r.suggestedThreshold}</td>
+                        <td class="sub-text">${r.reason}</td>
+                        <td class="center-text">${actionBtn}</td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="5" class="center-text">No suggestions available.</td></tr>';
             }
 
             updatePaginationUI(filteredData.length, totalPages);
+        }
+
+        async function applyThreshold(productID, suggestedValue) {
+            try {
+                const response = await fetch(`/api/products/${productID}/threshold`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lowStockThreshold: suggestedValue })
+                });
+
+                if (response.ok) {
+                    showAlert(`Threshold updated to ${suggestedValue} successfully.`);
+                    const item = reportData.find(r => r.productID === productID);
+                    if (item) {
+                        item.currentThreshold = suggestedValue;
+                        renderReport();
+                    }
+                } else {
+                    showAlert('Failed to update threshold.');
+                }
+            } catch (e) {
+                console.error(e);
+                showAlert('Network error updating threshold.');
+            }
         }
 
         function updateLossesSummary() {
@@ -706,6 +802,9 @@
             } else if (currentReportType === 'losses') {
                 headers = ['Date', 'Source', 'Product', 'Qty Lost', 'Reason / Reference'];
                 rows = reportData.map(r => [r.date, r.source, r.product, r.qtyLost, r.reason]);
+            } else if (currentReportType === 'thresholds') {
+                headers = ['Product Name', 'Current Threshold', 'Suggested Threshold', 'Reasoning'];
+                rows = reportData.map(r => [r.productName, r.currentThreshold, r.suggestedThreshold, r.reason]);
             }
 
             return { headers, rows };
@@ -721,12 +820,13 @@
             const reportLabel = currentReportType === 'sales' ? 'Sales Performance'
                 : currentReportType === 'userlogs' ? 'User Logs'
                     : currentReportType === 'losses' ? 'Losses & Defective'
-                        : 'Stock Alerts';
+                        : currentReportType === 'thresholds' ? 'Threshold Suggestions'
+                            : 'Stock Alerts';
 
             // Build CSV content with BOM for Excel compatibility
             let csv = '\uFEFF'; // UTF-8 BOM
             csv += `Udicon Trading - ${reportLabel} Report\n`;
-            if (currentReportType !== 'stocks') {
+            if (currentReportType !== 'stocks' && currentReportType !== 'thresholds') {
                 csv += `Date Range: ${val('dateFrom')} to ${val('dateTo')}\n`;
             }
             csv += `Generated: ${new Date().toLocaleString('en-PH')}\n\n`;
@@ -782,9 +882,10 @@
             const reportLabel = currentReportType === 'sales' ? 'Sales Performance'
                 : currentReportType === 'userlogs' ? 'User Logs'
                     : currentReportType === 'losses' ? 'Losses & Defective'
-                        : 'Stock Alerts';
+                        : currentReportType === 'thresholds' ? 'Threshold Suggestions'
+                            : 'Stock Alerts';
 
-            const dateInfo = currentReportType === 'stocks'
+            const dateInfo = currentReportType === 'stocks' || currentReportType === 'thresholds'
                 ? `Generated: ${new Date().toLocaleString('en-PH')}`
                 : `Date Range: ${val('dateFrom')} to ${val('dateTo')}<br>Generated: ${new Date().toLocaleString('en-PH')}`;
 
