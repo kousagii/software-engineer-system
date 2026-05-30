@@ -471,7 +471,7 @@
             </div>
 
             <div class="no-print flex-col-gap-10 mt-15">
-                <button class="btn-receipt-action" onclick="window.print()">Print Receipt</button>
+                <button class="btn-receipt-action" onclick="printReceipt()">Print Receipt</button>
                 <button class="btn-receipt-cancel" onclick="closeModal('receiptModal')">Close</button>
             </div>
         </div>
@@ -1597,7 +1597,7 @@
                 const receiptModal = el('receiptModal');
                 if (receiptModal && receiptModal.style.display !== 'none') {
                     e.preventDefault();
-                    window.print();
+                    printReceipt();
                     return;
                 }
                 const clearModal = el('clearCartModal');
@@ -1630,6 +1630,60 @@
                 openPayment();
             }
         });
+        function printReceipt() {
+            const receiptEl = document.getElementById('printableReceipt');
+            if (!receiptEl) return;
+            const receiptHTML = receiptEl.innerHTML;
+            const printWin = window.open('', '_blank', 'width=400,height=800');
+            printWin.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Receipt</title>
+                    <style>
+                        @page { size: 80mm auto; margin: 4mm; }
+                        * { box-sizing: border-box; margin: 0; padding: 0; }
+                        body {
+                            font-family: 'Courier New', Courier, monospace;
+                            font-size: 13px;
+                            font-weight: bold;
+                            width: 72mm;
+                            color: #000;
+                            background: white;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        h2 { font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 2px; }
+                        h5 { font-size: 13px; margin: 0; }
+                        p { margin: 1px 0; font-size: 12px; }
+                        .receipt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px; }
+                        .receipt-items { width: 100%; border-collapse: collapse; margin: 6px 0; }
+                        .receipt-items th, .receipt-items td { padding: 2px 4px; font-size: 12px; word-wrap: break-word; word-break: normal; }
+                        .receipt-items th { border-bottom: 1px dashed #000; font-weight: bold; }
+                        .receipt-items tbody tr:last-child td { border-bottom: 1px dashed #000; padding-bottom: 4px; }
+                        .text-left { text-align: left; }
+                        .center-text, .text-center { text-align: center; }
+                        .text-right { text-align: right; }
+                        .receipt-totals { margin-top: 4px; font-size: 12px; }
+                        .receipt-totals > div { display: flex; justify-content: space-between; padding: 1px 0; }
+                        .receipt-totals .grand-total { font-weight: bold; font-size: 14px; border-top: 1px dashed #000; margin-top: 4px; padding-top: 4px; }
+                        .receipt-payment-info { margin-top: 6px; font-size: 12px; }
+                        .receipt-payment-info > div { display: flex; justify-content: space-between; padding: 1px 0; }
+                        .receipt-qr-row { margin-top: 8px; text-align: center; font-size: 12px; }
+                        .no-print { display: none !important; }
+                        strong { font-weight: bold; }
+                    </style>
+                </head>
+                <body>
+                    ${receiptHTML}
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+            printWin.focus();
+            setTimeout(() => { printWin.print(); printWin.close(); }, 400);
+        }
     </script>
 </body>
 
