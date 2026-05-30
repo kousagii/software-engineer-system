@@ -251,6 +251,9 @@
                             <label>Low Stock Threshold</label>
                             <input type="number" id="prodLowStock" placeholder="10" value="10" min="0"
                                 oninput="updatePreview()">
+                            <p id="threshold-hint"
+                                style="display:none; margin:4px 0 0; font-size:0.78rem; color:#6b7280; line-height:1.4;">
+                            </p>
                         </div>
                     </div>
 
@@ -776,6 +779,24 @@
         // Per-variant unlock tracking: Map<rowElement, { unlocked: bool, reason: string }>
         const variantStockState = new Map();
         let _pendingVariantRow = null; // row element waiting for reason modal
+
+        // Fetch and display low-stock threshold suggestion for existing products
+        async function fetchThresholdSuggestion(productId) {
+            const hint = $('threshold-hint');
+            if (!hint || !productId) return;
+            hint.style.display = 'none';
+            hint.innerHTML = '';
+            try {
+                const res = await fetch(`/api/products/${productId}/suggest-threshold`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.suggested !== undefined) {
+                    hint.innerHTML = `<strong>Suggested: ${data.suggested} units</strong> — ${data.reason}`;
+                    hint.style.display = 'block';
+                }
+            } catch (e) { }
+        }
+
 
         function openStockReasonModal() {
             _pendingVariantRow = null; // single-product mode
@@ -1313,6 +1334,9 @@
                         val('prodDescription', p.productDescription || '');
                         val('prodLowStock', p.lowStockThreshold !== undefined && p.lowStockThreshold !== null ? p.lowStockThreshold : 10);
 
+                        // Load threshold suggestion for variant group using first sibling's ID
+                        fetchThresholdSuggestion(siblings[0].productID);
+
                         // Use first sibling's price/stock as base hints
                         val('prodStock', siblings[0].stockQuantity || 0);
                         val('prodInitialPrice', siblings[0].initialPrice || '');
@@ -1416,6 +1440,9 @@
                 val('prodDescription', p.productDescription || '');
                 val('prodLowStock', p.lowStockThreshold !== undefined && p.lowStockThreshold !== null ? p.lowStockThreshold : 10);
 
+                // Load threshold suggestion for this product
+                fetchThresholdSuggestion(id);
+
                 $('prodImage').value = '';
                 $('img-preview').src = p.imagePath ? p.imagePath : placeholderImg;
 
@@ -1438,6 +1465,10 @@
                 val('prodPrice', p.price || '');
                 val('prodDescription', p.productDescription || '');
                 val('prodLowStock', p.lowStockThreshold !== undefined && p.lowStockThreshold !== null ? p.lowStockThreshold : 10);
+
+                // Hide hint for create mode
+                const hint2 = $('threshold-hint');
+                if (hint2) hint2.style.display = 'none';
 
                 $('prodImage').value = '';
                 $('img-preview').src = placeholderImg;

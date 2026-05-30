@@ -3446,3 +3446,21 @@ input:checked+.slider:before {
     background: #b4c6e7;
     font-weight: bold;
 }
+/* Report Summary Classes */
+.flex-column-center {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.report-summary-value {
+    margin: 5px 0 0 0;
+    width: 100%;
+}
+.text-danger {
+    color: #d32f2f !important;
+}
+.text-highlight-blue {
+    color: #356ac3 !important;
+    font-weight: bold !important;
+}

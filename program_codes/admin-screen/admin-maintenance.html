@@ -1494,7 +1494,21 @@
         // ======================== INIT ========================
         document.addEventListener("DOMContentLoaded", async () => {
             // Load initial data
-            fetchBackups();
+            try {
+                const res = await fetch('/api/auth-status');
+                const data = await res.json();
+                if (data.role !== 'Admin') {
+                    const backupTab = document.getElementById('tab-backups');
+                    if (backupTab) backupTab.style.display = 'none';
+                    const sectionBackups = document.getElementById('section-backups');
+                    if (sectionBackups) sectionBackups.innerHTML = '<div class="center-text mt-20" style="padding:40px;">Access Denied</div>';
+                } else {
+                    fetchBackups();
+                }
+            } catch(e) {
+                fetchBackups();
+            }
+
             await loadArchiveData();
             await loadProducts();
             await loadSuppliers();

@@ -189,9 +189,16 @@
                     <label>Supplier</label>
                     <select id="supplierSelect" onchange="handleSupplierChange()" class="w-full"></select>
 
-                    <p id="supplierTermsDisplay" class="sub-text mt-5"
-                        style="color: #666; font-style: italic; display: none;">Payment Terms: <span
-                            id="supplierTermsValue"></span></p>
+                    <div id="supplierTermsDisplay" class="mt-15">
+                        <label>Terms of Payment</label>
+                        <select id="poTermsOfPayment" class="w-full">
+                            <option value="COD">COD</option>
+                            <option value="15 Days">15 Days</option>
+                            <option value="30 Days">30 Days</option>
+                            <option value="60 Days">60 Days</option>
+                            <option value="90 Days">90 Days</option>
+                        </select>
+                    </div>
 
                     <div id="supplierInfoDisplay" class="mt-10"
                         style="display:none; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px;">
@@ -371,6 +378,9 @@
             } else {
                 if (order.contact) vendorDetails += `${order.contact}<br>`;
             }
+            if (order.termsOfPayment) {
+                vendorDetails += `Terms of Payment: ${order.termsOfPayment}<br>`;
+            }
 
             const printHtml = `
             <div class="print-po-body">
@@ -494,6 +504,18 @@
                 val('shipmentInfo', order.shipmentInfo || '');
                 val('shipToAddress', order.shipToAddress || "#2 National Road, Brgy. San Juan,\nTaytay, Rizal, Philippines\nPhone: 8658-7984 / 8658-6802");
 
+                if (order.termsOfPayment) {
+                    const sel = $('poTermsOfPayment');
+                    const options = Array.from(sel.options).map(o => o.value);
+                    if (!options.includes(order.termsOfPayment)) {
+                        const opt = document.createElement('option');
+                        opt.value = order.termsOfPayment;
+                        opt.textContent = order.termsOfPayment;
+                        sel.appendChild(opt);
+                    }
+                    val('poTermsOfPayment', order.termsOfPayment);
+                }
+
                 $('orderStatusLabel').style.display = 'block';
                 $('orderStatus').style.display = 'block';
 
@@ -542,6 +564,7 @@
             $('supplierSelect').disabled = !enabled;
             $('shipmentInfo').disabled = !enabled;
             $('shipToAddress').disabled = !enabled;
+            if ($('poTermsOfPayment')) $('poTermsOfPayment').disabled = !enabled;
             if (supplierSelectInstance) {
                 enabled ? supplierSelectInstance.enable() : supplierSelectInstance.disable();
             }
@@ -628,6 +651,19 @@
                 $('supplierInfoDisplay').style.display = 'block';
                 $('dispContact').innerText = s.contactNumber || s.email || 'N/A';
                 $('dispAddress').innerText = s.address || 'N/A';
+
+                const sel = $('poTermsOfPayment');
+                if (sel) {
+                    const term = s.termsOfPayment || 'COD';
+                    const options = Array.from(sel.options).map(o => o.value);
+                    if (!options.includes(term)) {
+                        const opt = document.createElement('option');
+                        opt.value = term;
+                        opt.textContent = term;
+                        sel.appendChild(opt);
+                    }
+                    sel.value = term;
+                }
             } else {
                 $('supplierInfoDisplay').style.display = 'none';
             }
@@ -736,6 +772,7 @@
                 contact: contact,
                 shipmentInfo: val('shipmentInfo'),
                 shipToAddress: val('shipToAddress'),
+                termsOfPayment: val('poTermsOfPayment'),
                 status: val('orderStatus') || 'To Order',
                 items: getItemsFromUI()
             };
@@ -749,6 +786,7 @@
 
                 if (res.ok) {
                     showAlert(`Order ${currentEditId ? 'updated' : 'created'} successfully`);
+                    await loadOrders();
                     toggleView('order-list-view');
                 } else {
                     const r = await res.json();

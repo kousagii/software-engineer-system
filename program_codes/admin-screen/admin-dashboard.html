@@ -38,28 +38,27 @@
       <div class="form-panel dash-stat-card">
         <div class="dash-stat-icon dash-icon-green">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="7" width="20" height="14" rx="2" stroke="#2b8a4e" stroke-width="1.8"
-              stroke-linejoin="round" />
-            <path d="M16 7V5a4 4 0 0 0-8 0v2" stroke="#2b8a4e" stroke-width="1.8" stroke-linecap="round" />
-            <path d="M9 12h6M9 16h4" stroke="#2b8a4e" stroke-width="1.8" stroke-linecap="round" />
+            <circle cx="12" cy="12" r="9" stroke="#2b8a4e" stroke-width="1.8" />
+            <path d="M12 7v10M9 10h6M9 14h6" stroke="#2b8a4e" stroke-width="1.8" stroke-linecap="round" />
           </svg>
         </div>
         <div class="dash-stat-info">
-          <div class="sub-text">Total Products</div>
-          <h3 class="mt-0" id="stat-products">—</h3>
+          <div class="sub-text">Today's Income</div>
+          <h3 class="mt-0" id="stat-income">—</h3>
         </div>
       </div>
 
       <div class="form-panel dash-stat-card">
         <div class="dash-stat-icon dash-icon-blue">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="8" r="4" stroke="#356ac3" stroke-width="1.8" />
-            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#356ac3" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z"
+              stroke="#356ac3" stroke-width="1.8" />
+            <path d="M12 6v6l4 2" stroke="#356ac3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </div>
         <div class="dash-stat-info">
-          <div class="sub-text">System Users</div>
-          <h3 class="mt-0" id="stat-users">—</h3>
+          <div class="sub-text">Pending POs</div>
+          <h3 class="mt-0" id="stat-pending-pos">—</h3>
         </div>
       </div>
 
@@ -242,15 +241,22 @@
 
     // --- Stat Cards ---
     async function loadStats() {
-      const [products, suppliers, users, txns] = await Promise.all([
+      const [products, suppliers, users, txns, orders, todayIncome] = await Promise.all([
         safeFetch('/api/products'),
         safeFetch('/api/suppliers'),
         safeFetch('/api/users'),
-        safeFetch('/api/transactions?limit=200')
+        safeFetch('/api/transactions?limit=200'),
+        safeFetch('/api/orders'),
+        safeFetch('/api/dashboard/today-income')
       ]);
 
+      if (todayIncome) {
+        document.getElementById('stat-income').textContent = fmtPeso(todayIncome.income || 0);
+      } else {
+        document.getElementById('stat-income').textContent = 'N/A';
+      }
+
       if (products) {
-        document.getElementById('stat-products').textContent = products.length;
         const lowStock = products.filter(p => {
           const threshold = (p.lowStockThreshold !== undefined && p.lowStockThreshold !== null)
             ? parseInt(p.lowStockThreshold) : 10;
@@ -259,13 +265,17 @@
         document.getElementById('stat-lowstock').textContent = lowStock.length;
         renderAlertTable(lowStock, suppliers || []);
       } else {
-        document.getElementById('stat-products').textContent = 'N/A';
         document.getElementById('stat-lowstock').textContent = 'N/A';
         document.getElementById('dash-alert-body').innerHTML =
           '<tr><td colspan="7" class="center-text sub-text">Could not load stock data.</td></tr>';
       }
 
-      document.getElementById('stat-users').textContent = users ? users.length : 'N/A';
+      if (orders) {
+        const pendingPos = orders.filter(o => ['Pending Order', 'To Order', 'Partially Completed'].includes(o.status)).length;
+        document.getElementById('stat-pending-pos').textContent = pendingPos;
+      } else {
+        document.getElementById('stat-pending-pos').textContent = 'N/A';
+      }
 
       // Today's sales total from /api/transactions
       if (txns && Array.isArray(txns)) {
