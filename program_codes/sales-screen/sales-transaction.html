@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -32,7 +32,8 @@
                             <input type="text" id="barcodeInput" placeholder="Scan barcode, search by name, or brand..."
                                 autocomplete="off" style="margin: 0; flex: 1;">
                         </div>
-                        <span class="sub-text" style="font-size: 11px; display: block; margin-top: 6px;">Use
+                        <span class="sub-text"
+                            style="font-size: 11px; display: block; margin-top: 6px; margin-left: 65px;">Use
                             <strong>↑/↓</strong> to select product, <strong>Enter</strong> to add, <strong>Alt +
                                 ←/→</strong> to change category, <strong>Alt + ↑/↓</strong> to sort.</span>
                     </div>
@@ -763,7 +764,7 @@
                     <tr>
                         <td style="padding: 8px 12px; width: 100%;">
                             <div style="font-weight: 600; color: #1e293b; white-space: normal; line-height: 1.2;" title="${safeName}">${safeName}</div>
-                            <div style="color: #64748b; font-size: 11px; margin-top: 4px;">${item.barcode} | ₱${parseFloat(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                            <div style="color: #64748b; font-size: 11px; margin-top: 4px;">₱${parseFloat(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                         </td>
                         <td class="text-center" style="padding: 8px 12px; vertical-align: middle;">
                             <div class="pos-qty-controls" style="margin: 0 auto; transform: scale(0.85); transform-origin: center;">
