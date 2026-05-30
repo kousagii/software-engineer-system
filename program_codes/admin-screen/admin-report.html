@@ -67,6 +67,7 @@
                                 <option value="stocks">Stocks Alert</option>
                                 <option value="losses">Losses / Defective</option>
                                 <option value="thresholds">Low Stock Threshold Suggestions</option>
+                                <option value="pay-later">Pay Later Accounts</option>
                             </select>
                         </div>
                         <div id="userFilterDiv" style="display: none;">
@@ -132,7 +133,7 @@
                                 <option value="sold-asc">Products Sold (Lowest)</option>
                                 <option value="returns-desc">Returns (Highest)</option>
                                 <option value="returns-asc">Returns (Lowest)</option>
-                                <option value="product-asc">Product (A-Z)< /option>
+                                <option value="product-asc">Product (A-Z)</option>
                             </select>
                         </div>
                         <div id="userLogSortByDiv" style="display: none;">
@@ -181,6 +182,10 @@
                 <div class="form-panel center-text p-20 flex-column-center">
                     <div class="sub-text">Refunds / Exchanges</div>
                     <h3 id="summaryRefunds" class="report-summary-value text-danger">₱ 0.00</h3>
+                </div>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Outstanding Receivables</div>
+                    <h3 id="summaryReceivables" class="report-summary-value text-danger">₱ 0.00</h3>
                 </div>
             </div>
 
@@ -405,7 +410,7 @@
             const dateFrom = val('dateFrom');
             const dateTo = val('dateTo');
 
-            const needsDates = currentReportType !== 'stocks' && currentReportType !== 'thresholds';
+            const needsDates = currentReportType !== 'stocks' && currentReportType !== 'thresholds' && currentReportType !== 'pay-later';
             if (needsDates && (!dateFrom || !dateTo)) {
                 return;
             }
@@ -417,7 +422,7 @@
             const userParam = currentReportType === 'userlogs' ? `&user=${val('userFilter')}` : '';
             const logFilterByParam = currentReportType === 'userlogs' ? `&filterBy=${val('logFilterBy')}` : '';
             const stockParam = currentReportType === 'stocks' ? `&status=${val('stockStatus')}` : '';
-            const noDates = currentReportType === 'stocks' || currentReportType === 'thresholds';
+            const noDates = currentReportType === 'stocks' || currentReportType === 'thresholds' || currentReportType === 'pay-later';
             const dateParams = noDates ? '' : `from=${val('dateFrom')}&to=${val('dateTo')}`;
 
             try {
@@ -658,6 +663,21 @@
                         <td class="center-text">${actionBtn}</td>
                     </tr>`;
                 }).join('') || '<tr><td colspan="5" class="center-text">No suggestions available.</td></tr>';
+            } else if (currentReportType === 'pay-later') {
+                tbody.innerHTML = paginatedData.map(r => `
+                    <tr>
+                        <td>${formatDate(r.transDate)}</td>
+                        <td>${r.transactionCode}</td>
+                        <td>
+                            <div><strong>${r.customerName}</strong></div>
+                            <div class="sub-text" style="font-size: 11px;">${r.contactInfo || 'N/A'}</div>
+                        </td>
+                        <td class="center-text">₱ ${parseFloat(r.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        <td class="center-text">₱ ${parseFloat(r.paidAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        <td class="center-text text-danger"><strong>₱ ${parseFloat(r.balanceDue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></td>
+                        <td>${r.dueDate ? formatDate(r.dueDate) : 'N/A'}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="7" class="center-text">No active pay later accounts found.</td></tr>';
             }
 
             updatePaginationUI(filteredData.length, totalPages);
@@ -751,6 +771,7 @@
                     const totalRevenue = totalSales - totalRefunds - totalExpenses;
                     const totalOrders = parseInt(data.totalOrders || 0);
                     const totalProductsSold = parseInt(data.totalProductsSold || 0);
+                    const totalReceivables = parseFloat(data.totalReceivables || 0);
 
                     $('summaryTotal').textContent = `₱ ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     $('summaryExpenses').textContent = `₱ ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -758,6 +779,7 @@
                     $('summaryOrders').textContent = totalOrders;
                     $('summaryProductsSold').textContent = totalProductsSold;
                     $('summaryRefunds').textContent = `₱ ${totalRefunds.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    $('summaryReceivables').textContent = `₱ ${totalReceivables.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 }
             } catch (e) {
                 console.error('Error fetching sales summary:', e);
@@ -805,6 +827,9 @@
             } else if (currentReportType === 'thresholds') {
                 headers = ['Product Name', 'Current Threshold', 'Suggested Threshold', 'Reasoning'];
                 rows = reportData.map(r => [r.productName, r.currentThreshold, r.suggestedThreshold, r.reason]);
+            } else if (currentReportType === 'pay-later') {
+                headers = ['Date', 'Txn Code', 'Customer', 'Total Amount', 'Paid Amount', 'Balance Due', 'Due Date'];
+                rows = reportData.map(r => [formatDate(r.transDate), r.transactionCode, `${r.customerName} (${r.contactInfo || 'N/A'})`, `₱${parseFloat(r.totalAmount || 0).toFixed(2)}`, `₱${parseFloat(r.paidAmount || 0).toFixed(2)}`, `₱${parseFloat(r.balanceDue || 0).toFixed(2)}`, r.dueDate ? formatDate(r.dueDate) : 'N/A']);
             }
 
             return { headers, rows };
@@ -821,12 +846,13 @@
                 : currentReportType === 'userlogs' ? 'User Logs'
                     : currentReportType === 'losses' ? 'Losses & Defective'
                         : currentReportType === 'thresholds' ? 'Threshold Suggestions'
-                            : 'Stock Alerts';
+                            : currentReportType === 'pay-later' ? 'Pay Later Accounts'
+                                : 'Stock Alerts';
 
             // Build CSV content with BOM for Excel compatibility
             let csv = '\uFEFF'; // UTF-8 BOM
             csv += `Udicon Trading - ${reportLabel} Report\n`;
-            if (currentReportType !== 'stocks' && currentReportType !== 'thresholds') {
+            if (currentReportType !== 'stocks' && currentReportType !== 'thresholds' && currentReportType !== 'pay-later') {
                 csv += `Date Range: ${val('dateFrom')} to ${val('dateTo')}\n`;
             }
             csv += `Generated: ${new Date().toLocaleString('en-PH')}\n\n`;
@@ -883,9 +909,10 @@
                 : currentReportType === 'userlogs' ? 'User Logs'
                     : currentReportType === 'losses' ? 'Losses & Defective'
                         : currentReportType === 'thresholds' ? 'Threshold Suggestions'
-                            : 'Stock Alerts';
+                            : currentReportType === 'pay-later' ? 'Pay Later Accounts'
+                                : 'Stock Alerts';
 
-            const dateInfo = currentReportType === 'stocks' || currentReportType === 'thresholds'
+            const dateInfo = currentReportType === 'stocks' || currentReportType === 'thresholds' || currentReportType === 'pay-later'
                 ? `Generated: ${new Date().toLocaleString('en-PH')}`
                 : `Date Range: ${val('dateFrom')} to ${val('dateTo')}<br>Generated: ${new Date().toLocaleString('en-PH')}`;
 

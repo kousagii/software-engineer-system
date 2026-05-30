@@ -89,7 +89,6 @@ db.connect((err) => {
         )
     `, (tblErr) => {
         if (tblErr) console.error('⚠️ payment_log table creation error:', tblErr.message);
-        else console.log('✅ payment_log table ready.');
     });
 });
 
@@ -1478,7 +1477,7 @@ app.get('/api/reports/sales', (req, res) => {
         JOIN sales_transaction st ON si.transactionID = st.transactionID
         LEFT JOIN product p ON si.productID = p.productID
         WHERE DATE(st.transDateTime) BETWEEN ? AND ?
-          AND st.paymentStatus IN ('Paid', 'Refunded', 'Exchanged')
+          AND st.paymentStatus IN ('Paid', 'Refunded', 'Exchanged', 'Unpaid', 'Partial')
         GROUP BY si.productID, COALESCE(si.productName, p.productName, CONCAT('Product ID ', si.productID))
         ORDER BY income DESC
     `;
@@ -1499,22 +1498,26 @@ app.get('/api/reports/sales-summary', (req, res) => {
 
     const sql = `
         SELECT 
-            (SELECT SUM(CASE WHEN paymentStatus IN ('Paid', 'Exchanged') THEN totalAmount ELSE 0 END) 
+            (SELECT SUM(CASE WHEN paymentStatus IN ('Paid', 'Exchanged', 'Unpaid', 'Partial') THEN totalAmount ELSE 0 END) 
              FROM sales_transaction WHERE DATE(transDateTime) BETWEEN ? AND ?) AS totalSales,
             (SELECT SUM(CASE WHEN paymentStatus = 'Refunded' THEN ABS(totalAmount) ELSE 0 END) 
              FROM sales_transaction WHERE DATE(transDateTime) BETWEEN ? AND ?) AS totalRefunds,
             (SELECT COUNT(*) 
-             FROM sales_transaction WHERE paymentStatus IN ('Paid', 'Exchanged') AND DATE(transDateTime) BETWEEN ? AND ?) AS totalOrders,
+             FROM sales_transaction WHERE paymentStatus IN ('Paid', 'Exchanged', 'Unpaid', 'Partial') AND DATE(transDateTime) BETWEEN ? AND ?) AS totalOrders,
             (SELECT COALESCE(SUM(COALESCE(p.initialPrice, 0) * si.quantity), 0) 
              FROM sales_item si JOIN sales_transaction st ON si.transactionID = st.transactionID 
              LEFT JOIN product p ON si.productID = p.productID 
              WHERE DATE(st.transDateTime) BETWEEN ? AND ?) AS totalExpenses,
             (SELECT COALESCE(SUM(CASE WHEN si.quantity > 0 THEN si.quantity ELSE 0 END), 0) 
              FROM sales_item si JOIN sales_transaction st ON si.transactionID = st.transactionID 
-             WHERE DATE(st.transDateTime) BETWEEN ? AND ?) AS totalProductsSold
+             WHERE DATE(st.transDateTime) BETWEEN ? AND ? AND st.paymentStatus IN ('Paid', 'Exchanged', 'Unpaid', 'Partial')) AS totalProductsSold,
+            (SELECT SUM(totalAmount - COALESCE(cashReceived, 0) - COALESCE(digitalAmount, 0))
+             FROM sales_transaction WHERE paymentStatus IN ('Unpaid', 'Partial') AND DATE(transDateTime) BETWEEN ? AND ?) AS totalReceivables,
+            (SELECT COALESCE(SUM(cashAmount + digitalAmount), 0)
+             FROM payment_log WHERE status = 'Paid' AND DATE(paymentDate) BETWEEN ? AND ?) AS totalCollected
     `;
 
-    db.query(sql, [from, to, from, to, from, to, from, to, from, to], (err, results) => {
+    db.query(sql, [from, to, from, to, from, to, from, to, from, to, from, to, from, to], (err, results) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: 'Failed to generate sales summary' });
@@ -1836,6 +1839,32 @@ app.get('/api/reports/losses', (req, res) => {
     });
 });
 
+// Pay Later Report - All active unpaid/partial debts
+app.get('/api/reports/pay-later', (req, res) => {
+    // Ignore date filters to show ALL active debts as requested
+    const sql = `
+        SELECT 
+            DATE(st.transDateTime) as transDate,
+            st.transactionCode,
+            COALESCE(st.customerName, 'Unknown') as customerName,
+            st.contactInfo,
+            st.totalAmount,
+            COALESCE(st.cashReceived, 0) + COALESCE(st.digitalAmount, 0) as paidAmount,
+            st.totalAmount - (COALESCE(st.cashReceived, 0) + COALESCE(st.digitalAmount, 0)) as balanceDue,
+            st.dueDate
+        FROM sales_transaction st
+        WHERE st.paymentStatus IN ('Unpaid', 'Partial')
+        ORDER BY st.transDateTime DESC
+    `;
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error('Pay Later Report Error:', err);
+            return res.status(500).json({ error: 'Failed to fetch pay later report' });
+        }
+        res.json(results);
+    });
+});
+
 // --- SALES SYSTEM API ---
 
 // Get product by barcode for scanner
@@ -1954,6 +1983,22 @@ app.get('/api/dashboard/collections-today', (req, res) => {
             return res.status(500).json({ error: 'Failed to fetch collections' });
         }
         res.json({ totalCollected: parseFloat(results[0]?.totalCollected || 0) });
+    });
+});
+
+// GET overall unpaid receivables
+app.get('/api/dashboard/overall-receivables', (req, res) => {
+    const sql = `
+        SELECT SUM(totalAmount - COALESCE(cashReceived, 0) - COALESCE(digitalAmount, 0)) AS totalReceivables
+        FROM sales_transaction
+        WHERE paymentStatus IN ('Unpaid', 'Partial')
+    `;
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Failed to fetch overall receivables' });
+        }
+        res.json({ totalReceivables: parseFloat(results[0]?.totalReceivables || 0) });
     });
 });
 

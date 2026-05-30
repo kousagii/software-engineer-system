@@ -94,7 +94,7 @@
                     </svg>
                 </div>
                 <div class="dash-stat-info">
-                    <div class="sub-text">Receivables</div>
+                    <div class="sub-text">Overall Receivables</div>
                     <h3 class="mt-0" id="stat-receivables" style="color:#4f46e5;">—</h3>
                 </div>
             </div>
@@ -540,33 +540,34 @@
             const unpaidCount = filteredTransactions
                 .filter(t => t.paymentStatus === 'Unpaid' || t.paymentStatus === 'Partial').length;
 
-            // Outstanding Receivables
-            const totalReceivables = filteredTransactions
-                .filter(t => t.paymentStatus === 'Unpaid' || t.paymentStatus === 'Partial')
-                .reduce((sum, t) => {
-                    const total = parseFloat(t.totalAmount || 0);
-                    const cash = parseFloat(t.cashReceived || 0);
-                    const digital = parseFloat(t.digitalAmount || 0);
-                    return sum + (total - cash - digital);
-                }, 0);
-
             el("stat-count").textContent = totalCount;
             el("stat-sales").textContent = fmtPeso(dateSales);
             el("stat-refunds").textContent = fmtPeso(totalRefunds);
             el("stat-unpaid").textContent = unpaidCount;
-            if (el("stat-receivables")) el("stat-receivables").textContent = fmtPeso(totalReceivables);
 
-            // Fetch today's actual collections from API
+            // Fetch today's actual collections and overall receivables from APIs
             try {
-                const colRes = await fetch('/api/dashboard/collections-today');
+                const [colRes, recRes] = await Promise.all([
+                    fetch('/api/dashboard/collections-today'),
+                    fetch('/api/dashboard/overall-receivables')
+                ]);
+
                 if (colRes.ok) {
                     const colData = await colRes.json();
                     if (el("stat-collected")) el("stat-collected").textContent = fmtPeso(colData.totalCollected);
                 } else {
                     if (el("stat-collected")) el("stat-collected").textContent = "N/A";
                 }
+
+                if (recRes.ok) {
+                    const recData = await recRes.json();
+                    if (el("stat-receivables")) el("stat-receivables").textContent = fmtPeso(recData.totalReceivables);
+                } else {
+                    if (el("stat-receivables")) el("stat-receivables").textContent = "N/A";
+                }
             } catch (err) {
                 if (el("stat-collected")) el("stat-collected").textContent = "N/A";
+                if (el("stat-receivables")) el("stat-receivables").textContent = "N/A";
             }
         }
 
