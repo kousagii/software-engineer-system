@@ -62,6 +62,23 @@
         </div>
     </div>
 
+    <!-- Backup Restore Modal -->
+    <div id="restore-backup-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Restore Backup</h3>
+            <div
+                style="background: #ffebeb; border: 1px solid #ffb3b3; color: #cc0000; padding: 10px; margin-bottom: 15px; border-radius: 4px;">
+                <strong>WARNING:</strong> This will overwrite all current data with the selected backup. This action
+                cannot be undone!
+            </div>
+            <p>Are you sure you want to proceed?</p>
+            <div>
+                <button id="cancel-restore-backup-btn" class="modal-btn btn-cancel">Cancel</button>
+                <button id="confirm-restore-backup-btn" class="modal-btn btn-danger">Restore</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Product Add/Edit Modal -->
     <div id="product-form-modal" class="maint-form-modal">
         <div class="maint-form-box">
@@ -540,6 +557,11 @@
         const confirmDeleteBackupBtn = $('confirm-delete-backup-btn');
         const cancelDeleteBackupBtn = $('cancel-delete-backup-btn');
 
+        const restoreBackupModal = $('restore-backup-modal');
+        const confirmRestoreBackupBtn = $('confirm-restore-backup-btn');
+        const cancelRestoreBackupBtn = $('cancel-restore-backup-btn');
+        let backupToRestoreId = null;
+
         btnSettings.addEventListener('click', async () => {
             try {
                 const response = await fetch('/api/backups/schedule');
@@ -563,9 +585,15 @@
             backupToDeleteId = null;
         });
 
+        cancelRestoreBackupBtn.addEventListener('click', () => {
+            restoreBackupModal.style.display = 'none';
+            backupToRestoreId = null;
+        });
+
         window.onclick = function (event) {
             if (event.target == settingsModal) settingsModal.style.display = "none";
             if (event.target == deleteBackupModal) { deleteBackupModal.style.display = "none"; backupToDeleteId = null; }
+            if (event.target == restoreBackupModal) { restoreBackupModal.style.display = "none"; backupToRestoreId = null; }
             // Close form modals on overlay click
             if (event.target == $('product-form-modal')) closeProductForm();
             if (event.target == $('supplier-form-modal')) closeSupplierForm();
@@ -652,7 +680,10 @@
                     <td>${backup.fileName}</td>
                     <td>${backup.backupType}</td>
                     <td><span class="status-pill status-instock">Completed</span></td>
-                    <td><button class="btn-delete" onclick="promptDeleteBackup(${backup.backupID})">Delete</button></td>
+                    <td>
+                        <button class="btn-primary" onclick="promptRestoreBackup(${backup.backupID})">Restore</button>
+                        <button class="btn-delete" onclick="promptDeleteBackup(${backup.backupID})">Delete</button>
+                    </td>
                 `;
                     tableBody.appendChild(tr);
                 });
@@ -688,6 +719,38 @@
                 backupToDeleteId = null;
                 confirmDeleteBackupBtn.innerText = "Delete";
                 confirmDeleteBackupBtn.disabled = false;
+            }
+        });
+
+        window.promptRestoreBackup = function (id) {
+            backupToRestoreId = id;
+            restoreBackupModal.style.display = 'flex';
+        };
+
+        confirmRestoreBackupBtn.addEventListener('click', async () => {
+            if (!backupToRestoreId) return;
+
+            confirmRestoreBackupBtn.innerText = "Restoring...";
+            confirmRestoreBackupBtn.disabled = true;
+
+            try {
+                const response = await fetch(`/api/backups/${backupToRestoreId}/restore`, { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast("Database restored successfully!");
+                    fetchBackups();
+                } else {
+                    showAlert(data.error || "Failed to restore backup.");
+                }
+            } catch (error) {
+                console.error("Error restoring backup:", error);
+                showAlert("Network error occurred during restore.");
+            } finally {
+                restoreBackupModal.style.display = 'none';
+                backupToRestoreId = null;
+                confirmRestoreBackupBtn.innerText = "Restore";
+                confirmRestoreBackupBtn.disabled = false;
             }
         });
 
@@ -1505,7 +1568,7 @@
                 } else {
                     fetchBackups();
                 }
-            } catch(e) {
+            } catch (e) {
                 fetchBackups();
             }
 

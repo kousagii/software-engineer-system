@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Name Help Desk</title>
+    <title>Inventory Help Desk | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css">
 </head>
 
@@ -23,30 +23,21 @@
         <div class="search-split">
             <div class="search-filters-panel form-panel">
                 <h3 class="filter-heading">Topics</h3>
+                
+<label class="filter-label filter-label-spaced">Product Management</label>
+<div class="filter-options">
+    <span class="sub-text">Creating Products</span><br>
+    <span class="sub-text">Stock Adjustment</span><br>
+    <span class="sub-text">Pricing Strategies</span>
+</div>
 
-                <label class="filter-label filter-label-spaced">Data Management</label>
-                <div class="filter-options">
-                    <span class="sub-text">Product & Barcode Setup</span><br>
-                    <span class="sub-text">Topic Item 2</span><br>
-                    <span class="sub-text">Topic Item 3</span>
-                </div>
+<label class="filter-label filter-label-spaced">Purchasing & Receiving</label>
+<div class="filter-options">
+    <span class="sub-text">Purchase Orders (POs)</span><br>
+    <span class="sub-text">Receiving Deliveries</span><br>
+    <span class="sub-text">Supplier Relations</span>
+</div>
 
-                <label class="filter-label filter-label-spaced">Sub-Category</label>
-                <div class="filter-options">
-                    <span class="sub-text">Topic Item 4</span><br>
-                    <span class="sub-text">Topic Item 5</span><br>
-                    <span class="sub-text">Topic Item 6</span><br>
-                    <span class="sub-text">Topic Item 7</span>
-                </div>
-
-                <h3 class="filter-heading">FAQ Index</h3>
-                <div class="filter-options">
-                    <span class="sub-text">Automatic Backups</span><br>
-                    <span class="sub-text">FAQ Title 2</span><br>
-                    <span class="sub-text">FAQ Title 3</span><br>
-                    <span class="sub-text">FAQ Title 4</span><br>
-                    <span class="sub-text">FAQ Title 5</span>
-                </div>
             </div>
 
             <div class="search-table-container tab-content active form-panel-wide">
@@ -58,8 +49,7 @@
                 </div>
 
                 <h3>Guides</h3>
-                <span class="sub-text">Step-by-step instructions for using the system and managing data and
-                    configurations.</span>
+                <span class="sub-text">Step-by-step instructions for using the system and managing data.</span>
 
                 <div class="table-container">
                     <table class="data-table">
@@ -71,49 +61,50 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td><span class="user-name">Product & Barcode Setup</span></td>
-                                <td>Adding items, categorizing, setting stock, and generating barcodes.</td>
-                                <td><button class="btn-view" data-guide="products-barcodes">Read</button></td>
-                            </tr>
-                            <tr>
-                                <td><span class="user-name">Guide Topic 2</span></td>
-                                <td>Brief description of what Guide 2 covers</td>
-                                <td><button class="btn-view" data-guide="guide-2">Read</button></td>
-                            </tr>
-                            <tr>
-                                <td><span class="user-name">Guide Topic 3</span></td>
-                                <td>Brief description of what Guide 3 covers</td>
-                                <td><button class="btn-view" data-guide="guide-3">Read</button></td>
-                            </tr>
-                            <tr>
-                                <td><span class="user-name">Guide Topic 4</span></td>
-                                <td>Brief description of what Guide 4 covers</td>
-                                <td><button class="btn-view" data-guide="guide-4">Read</button></td>
-                            </tr>
+                            
+<tr>
+    <td><span class="user-name">Creating Products & Barcodes</span></td>
+    <td>Detailed guide on adding items, setting thresholds, and barcodes.</td>
+    <td><button class="btn-view" data-guide="inv-products">Read</button></td>
+</tr>
+<tr>
+    <td><span class="user-name">Managing Suppliers</span></td>
+    <td>Adding, updating, and linking products to suppliers.</td>
+    <td><button class="btn-view" data-guide="inv-suppliers">Read</button></td>
+</tr>
+<tr>
+    <td><span class="user-name">Purchase Orders & Receiving</span></td>
+    <td>How to create POs, receive stock, and handle partial deliveries.</td>
+    <td><button class="btn-view" data-guide="inv-po">Read</button></td>
+</tr>
+<tr>
+    <td><span class="user-name">Stock Adjustment & Auditing</span></td>
+    <td>Performing manual physical counts and reconciling stock.</td>
+    <td><button class="btn-view" data-guide="inv-audit">Read</button></td>
+</tr>
+
                         </tbody>
                     </table>
                 </div>
 
-                <div class="form-panel">
+                <div class="form-panel" style="margin-top: 20px;">
                     <h3>Frequently Asked Questions</h3>
+                    
+<label>How do I update a product's stock count manually?</label>
+<span class="sub-text">Go to the Dashboard or Maintenance section, search for the product, click "Edit", and update the Stock Quantity field. Click "Save Product". Note: It's recommended to update stock via Purchase Orders for accurate auditing.</span>
 
-                    <label>How do I change the automatic backup schedule?</label>
-                    <span class="sub-text">Navigate to the <strong>Backups</strong> module and click the "Backup
-                        Settings" button. You can select the frequency for Full Backups and Incremental Backups, then
-                        click Save.</span>
+<label class="filter-label-spaced">What happens when an item reaches its Low Stock Threshold?</label>
+<span class="sub-text">The system will flag the item with a warning indicator on the Inventory Dashboard. It will also appear in the "Low Stock Alerts" widget, reminding you to reorder it soon.</span>
 
-                    <label class="filter-label-spaced">FAQ Question 2</label>
-                    <span class="sub-text">Detailed answer or explanation for FAQ 2.</span>
+<label class="filter-label-spaced">Can I delete a product entirely?</label>
+<span class="sub-text">Products cannot be permanently deleted if they are tied to past sales or purchase orders, to preserve historical data integrity. Instead, you should <strong>Archive</strong> the product, which hides it from active searches and point-of-sale screens.</span>
 
-                    <label class="filter-label-spaced">FAQ Question 3</label>
-                    <span class="sub-text">Detailed answer or explanation for FAQ 3.</span>
+<label class="filter-label-spaced">What does a 'Pending' Purchase Order mean?</label>
+<span class="sub-text">It means the order has been created and sent to the supplier, but no physical items have been received at the warehouse yet.</span>
 
-                    <label class="filter-label-spaced">FAQ Question 4</label>
-                    <span class="sub-text">Detailed answer or explanation for FAQ 4.</span>
+<label class="filter-label-spaced">How do I track partial deliveries?</label>
+<span class="sub-text">Open the pending Purchase Order, click "Receive", and enter the exact quantity you received for each line item. The system will automatically mark the order as "Partially Completed" and track the remaining balance due from the supplier.</span>
 
-                    <label class="filter-label-spaced">FAQ Question 5</label>
-                    <span class="sub-text">Detailed answer or explanation for FAQ 5.</span>
                 </div>
             </div>
         </div>
@@ -123,62 +114,91 @@
         <div class="modal-box">
             <h3 id="modal-title"></h3>
             <div id="modal-content"></div>
-            <button class="modal-btn btn-cancel" onclick="closeModal()">Close Button</button>
+            <button class="modal-btn btn-cancel" onclick="closeModal()">Close</button>
         </div>
     </div>
 
     <script src="../authGuard.js"></script>
     <script>
-        // Modal Content Data (Matches the data-guide attributes in the table buttons)
         const guides = {
-            'products-barcodes': {
-                title: 'Creating Products & Barcode',
-                content: `
-                    <p><strong>Step 1:</strong> Go to the Product Management page.</p>
-                    <p><strong>Step 2:</strong> Click "Add New Product".</p>
-                    <p><strong>Step 3:</strong> Enter product details: Name, Category, Price, Stock Quantity.</p>
-                    <p><strong>Step 4:</strong> Upload an image if available.</p>
-                    <p><strong>Step 5:</strong> The system will automatically generate a barcode.</p>
-                    <p><strong>Step 6:</strong> Save the product.</p>
-                    <p><em>Note: Barcodes are unique and cannot be edited once created.</em></p>
-                `
-            },
-            'guide-2': {
-                title: 'Guide 2 Modal Title',
-                content: `
-                    <p><strong>Step 1:</strong> Instruction placeholder for step 1</p>
-                    <p><strong>Step 2:</strong> Instruction placeholder for step 2</p>
-                    <p><strong>Step 3:</strong> Instruction placeholder for step 3</p>
-                `
-            },
-            'guide-3': {
-                title: 'Guide 3 Modal Title',
-                content: `
-                    <p><strong>Step 1:</strong> Instruction placeholder for step 1</p>
-                    <p><strong>Step 2:</strong> Instruction placeholder for step 2</p>
-                    <p><strong>Step 3:</strong> Instruction placeholder for step 3</p>
-                `
-            },
-            'guide-4': {
-                title: 'Guide 4 Modal Title',
-                content: `
-                    <p><strong>Step 1:</strong> Instruction placeholder for step 1</p>
-                    <p><strong>Step 2:</strong> Instruction placeholder for step 2</p>
-                    <p><strong>Step 3:</strong> Instruction placeholder for step 3</p>
-                `
-            },
+            
+'inv-products': {
+    title: 'Creating Products & Barcodes',
+    content: `
+        <div style="line-height: 1.6;">
+            <p><strong>Purpose:</strong> Add a new SKU to the system so it can be sold at the POS and ordered from suppliers.</p>
+            <hr style="margin: 10px 0;">
+            <p><strong>Step 1:</strong> On the Inventory Dashboard, click <strong>"+ Add Product"</strong>.</p>
+            <p><strong>Step 2:</strong> Enter the fundamental details: Name, Category (e.g., Tools, Cement), and Brand.</p>
+            <p><strong>Step 3:</strong> Enter the financial details: <strong>Purchase Price</strong> (your cost) and <strong>Selling Price</strong> (retail price).</p>
+            <p><strong>Step 4:</strong> Set the initial <strong>Stock Quantity</strong> and the <strong>Low Stock Threshold</strong>. The threshold triggers alerts when inventory dips below that number.</p>
+            <p><strong>Step 5:</strong> Click <strong>Save</strong>. The system will automatically generate a unique 12-digit barcode for this product, which can be printed and scanned at the POS.</p>
+        </div>
+    `
+},
+'inv-suppliers': {
+    title: 'Managing Suppliers',
+    content: `
+        <div style="line-height: 1.6;">
+            <p><strong>Purpose:</strong> Maintain a database of vendors to streamline the purchasing process.</p>
+            <hr style="margin: 10px 0;">
+            <p><strong>Step 1:</strong> Go to the <strong>Suppliers</strong> tab on the Dashboard or Maintenance page.</p>
+            <p><strong>Step 2:</strong> Click <strong>"+ Add Supplier"</strong>.</p>
+            <p><strong>Step 3:</strong> Enter their contact details, address, and default payment terms (e.g., 30 Days, COD).</p>
+            <p><strong>Step 4 (Important):</strong> In the Product List section, check the boxes next to all products that this specific supplier provides.</p>
+            <p><strong>Step 5:</strong> Click <strong>Save</strong>. Now, when you create a Purchase Order for this supplier, only the products you linked will be available to select.</p>
+        </div>
+    `
+},
+'inv-po': {
+    title: 'Purchase Orders & Receiving',
+    content: `
+        <div style="line-height: 1.6;">
+            <p><strong>Purpose:</strong> Request stock from vendors and officially receive it into the system to increase inventory levels.</p>
+            <hr style="margin: 10px 0;">
+            <p><strong>Part 1: Creating the Order</strong></p>
+            <ol style="margin-left: 20px;">
+                <li>Go to <strong>Order Management</strong> and click <strong>"+ Create Order"</strong>.</li>
+                <li>Select a Supplier from the dropdown. The item list will filter to show only their products.</li>
+                <li>Add the required products, specify the order quantities, and verify the unit costs.</li>
+                <li>Click <strong>Save as Pending</strong>. The order is now tracked in the system.</li>
+            </ol>
+            <p><strong>Part 2: Receiving the Delivery</strong></p>
+            <ol style="margin-left: 20px;">
+                <li>When the delivery truck arrives, find the Pending order in the list and click <strong>"Receive"</strong>.</li>
+                <li>Count the physical items and enter the <em>exact quantities received</em> in the modal.</li>
+                <li>If you received less than ordered, the system will mark the order as <strong>Partially Completed</strong>. If you received everything, it marks it <strong>Completed</strong>.</li>
+                <li>Upon saving, the received quantities are automatically added to the live product stock!</li>
+            </ol>
+        </div>
+    `
+},
+'inv-audit': {
+    title: 'Stock Adjustment & Auditing',
+    content: `
+        <div style="line-height: 1.6;">
+            <p><strong>Purpose:</strong> Correct discrepancies between system records and physical warehouse counts (due to shrinkage, damage, etc.).</p>
+            <hr style="margin: 10px 0;">
+            <p><strong>Step 1:</strong> Perform a physical count of the items in the warehouse.</p>
+            <p><strong>Step 2:</strong> On the Inventory Dashboard, search for the product with a discrepancy and click <strong>Edit</strong>.</p>
+            <p><strong>Step 3:</strong> Overwrite the current <strong>Stock Quantity</strong> with the actual physical count.</p>
+            <p><strong>Step 4:</strong> Click <strong>Save Product</strong>.</p>
+            <p><em>Note: All manual stock adjustments are tracked in the system's backend audit logs for accountability.</em></p>
+        </div>
+    `
+}
+,
             'contact-support': {
-                title: 'Contact Support Title',
+                title: 'Contact System Support',
                 content: `
-                    <p><strong>Support Name</strong></p>
-                    <p><strong>Contact Method 1:</strong> Details</p>
-                    <p><strong>Contact Method 2:</strong> Details</p>
-                    <p>Additional contact notes or emergency info placeholder</p>
+                    <p><strong>Udicon IT Support</strong></p>
+                    <p><strong>Email:</strong> support@udicontrading.com</p>
+                    <p><strong>Phone:</strong> (02) 8123-4567</p>
+                    <p><strong>Hours:</strong> Mon-Fri 8:00 AM - 6:00 PM</p>
                 `
             }
         };
 
-        // Modal Logic
         function openModal(title, content) {
             document.getElementById('modal-title').textContent = title;
             document.getElementById('modal-content').innerHTML = content;
@@ -189,7 +209,6 @@
             document.getElementById('guide-modal').style.display = 'none';
         }
 
-        // Search & Event Listeners
         document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.querySelector('.search-input');
             const searchBtn = document.querySelector('.btn-search');
@@ -211,7 +230,6 @@
             searchInput.addEventListener('input', performSearch);
             searchBtn.addEventListener('click', performSearch);
 
-            // Attach modal opening to all Read Guide buttons
             document.querySelectorAll('.btn-view[data-guide]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const guideKey = btn.getAttribute('data-guide');
@@ -222,17 +240,14 @@
                 });
             });
 
-            // Attach modal to Contact Support button
             document.getElementById('contact-support').addEventListener('click', () => {
                 const contact = guides['contact-support'];
                 openModal(contact.title, contact.content);
             });
 
-            // Auto-focus search input on load
             searchInput.focus();
         });
 
-        // Auto-focus search input when user starts typing anywhere
         document.addEventListener('keydown', function (e) {
             if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 const activeTag = document.activeElement.tagName.toLowerCase();
@@ -245,5 +260,4 @@
         });
     </script>
 </body>
-
 </html>

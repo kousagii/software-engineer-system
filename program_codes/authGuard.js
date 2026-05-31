@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const currentPath = window.location.pathname;
-            const userRole = data.role; // e.g., Admin, Sales, or Inventory
+            const userRole = data.role; // Admin, Sales, or Inventory
             const availableRoles = data.availableRoles || [];
 
             // Access Control Logic

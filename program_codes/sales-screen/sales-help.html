@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Name Help Desk</title>
+    <title>Sales Help Desk | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css">
 </head>
 
@@ -23,30 +23,20 @@
         <div class="search-split">
             <div class="search-filters-panel form-panel">
                 <h3 class="filter-heading">Topics</h3>
+                
+<label class="filter-label filter-label-spaced">Transactions</label>
+<div class="filter-options">
+    <span class="sub-text">Ringing up Sales</span><br>
+    <span class="sub-text">Applying Discounts</span><br>
+    <span class="sub-text">Payment Methods</span>
+</div>
 
-                <label class="filter-label filter-label-spaced">Data Management</label>
-                <div class="filter-options">
-                    <span class="sub-text">Product & Barcode Setup</span><br>
-                    <span class="sub-text">Topic Item 2</span><br>
-                    <span class="sub-text">Topic Item 3</span>
-                </div>
+<label class="filter-label filter-label-spaced">Customer Service</label>
+<div class="filter-options">
+    <span class="sub-text">Refunds & Exchanges</span><br>
+    <span class="sub-text">Receipt Printing</span>
+</div>
 
-                <label class="filter-label filter-label-spaced">Sub-Category</label>
-                <div class="filter-options">
-                    <span class="sub-text">Topic Item 4</span><br>
-                    <span class="sub-text">Topic Item 5</span><br>
-                    <span class="sub-text">Topic Item 6</span><br>
-                    <span class="sub-text">Topic Item 7</span>
-                </div>
-
-                <h3 class="filter-heading">FAQ Index</h3>
-                <div class="filter-options">
-                    <span class="sub-text">Automatic Backups</span><br>
-                    <span class="sub-text">FAQ Title 2</span><br>
-                    <span class="sub-text">FAQ Title 3</span><br>
-                    <span class="sub-text">FAQ Title 4</span><br>
-                    <span class="sub-text">FAQ Title 5</span>
-                </div>
             </div>
 
             <div class="search-table-container tab-content active form-panel-wide">
@@ -58,8 +48,7 @@
                 </div>
 
                 <h3>Guides</h3>
-                <span class="sub-text">Step-by-step instructions for using the system and managing data and
-                    configurations.</span>
+                <span class="sub-text">Step-by-step instructions for using the system and managing data.</span>
 
                 <div class="table-container">
                     <table class="data-table">
@@ -71,49 +60,50 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td><span class="user-name">Product & Barcode Setup</span></td>
-                                <td>Adding items, categorizing, setting stock, and generating barcodes.</td>
-                                <td><button class="btn-view" data-guide="products-barcodes">Read</button></td>
-                            </tr>
-                            <tr>
-                                <td><span class="user-name">Guide Topic 2</span></td>
-                                <td>Brief description of what Guide 2 covers</td>
-                                <td><button class="btn-view" data-guide="guide-2">Read</button></td>
-                            </tr>
-                            <tr>
-                                <td><span class="user-name">Guide Topic 3</span></td>
-                                <td>Brief description of what Guide 3 covers</td>
-                                <td><button class="btn-view" data-guide="guide-3">Read</button></td>
-                            </tr>
-                            <tr>
-                                <td><span class="user-name">Guide Topic 4</span></td>
-                                <td>Brief description of what Guide 4 covers</td>
-                                <td><button class="btn-view" data-guide="guide-4">Read</button></td>
-                            </tr>
+                            
+<tr>
+    <td><span class="user-name">Processing a Sale</span></td>
+    <td>Detailed guide on scanning items, cart management, and checkout.</td>
+    <td><button class="btn-view" data-guide="sales-checkout">Read</button></td>
+</tr>
+<tr>
+    <td><span class="user-name">Refunds & Exchanges</span></td>
+    <td>How to process a return for a customer and issue store credit.</td>
+    <td><button class="btn-view" data-guide="sales-refund">Read</button></td>
+</tr>
+<tr>
+    <td><span class="user-name">Applying Discounts</span></td>
+    <td>Adding item-specific discounts or order-wide discounts.</td>
+    <td><button class="btn-view" data-guide="sales-discount">Read</button></td>
+</tr>
+<tr>
+    <td><span class="user-name">Viewing Transaction History</span></td>
+    <td>Searching for past sales, re-printing receipts, and auditing.</td>
+    <td><button class="btn-view" data-guide="sales-history">Read</button></td>
+</tr>
+
                         </tbody>
                     </table>
                 </div>
 
-                <div class="form-panel">
+                <div class="form-panel" style="margin-top: 20px;">
                     <h3>Frequently Asked Questions</h3>
+                    
+<label>How do I scan a barcode?</label>
+<span class="sub-text">Simply click anywhere on the blank screen (ensure no modal popups are open) and use your USB/Bluetooth barcode scanner. The scanner acts like a fast keyboard, and the item will automatically be detected and added to the cart!</span>
 
-                    <label>How do I change the automatic backup schedule?</label>
-                    <span class="sub-text">Navigate to the <strong>Backups</strong> module and click the "Backup
-                        Settings" button. You can select the frequency for Full Backups and Incremental Backups, then
-                        click Save.</span>
+<label class="filter-label-spaced">Can I process a split payment?</label>
+<span class="sub-text">Currently, transactions must be completed using a single primary payment method (Cash, Gcash, Card, Pay Later) per receipt to ensure accurate accounting.</span>
 
-                    <label class="filter-label-spaced">FAQ Question 2</label>
-                    <span class="sub-text">Detailed answer or explanation for FAQ 2.</span>
+<label class="filter-label-spaced">How do I reprint a receipt?</label>
+<span class="sub-text">Go to the <strong>Transaction History</strong> page, find the specific sale record, click the "View" button, and then click the "Print Receipt" button in the modal.</span>
 
-                    <label class="filter-label-spaced">FAQ Question 3</label>
-                    <span class="sub-text">Detailed answer or explanation for FAQ 3.</span>
+<label class="filter-label-spaced">What do I do if the receipt printer runs out of paper during a sale?</label>
+<span class="sub-text">Don't panic! Finish processing the sale as normal. Replace the thermal paper roll. Once the printer is ready, navigate to <strong>Transaction History</strong>, locate the sale you just completed, and click "View" -> "Print Receipt" to print it out.</span>
 
-                    <label class="filter-label-spaced">FAQ Question 4</label>
-                    <span class="sub-text">Detailed answer or explanation for FAQ 4.</span>
+<label class="filter-label-spaced">Can I process multiple refunds in one transaction?</label>
+<span class="sub-text">Yes, when viewing an original transaction in the Refunds module, you can select multiple different items and quantities to refund simultaneously on a single refund receipt.</span>
 
-                    <label class="filter-label-spaced">FAQ Question 5</label>
-                    <span class="sub-text">Detailed answer or explanation for FAQ 5.</span>
                 </div>
             </div>
         </div>
@@ -123,62 +113,85 @@
         <div class="modal-box">
             <h3 id="modal-title"></h3>
             <div id="modal-content"></div>
-            <button class="modal-btn btn-cancel" onclick="closeModal()">Close Button</button>
+            <button class="modal-btn btn-cancel" onclick="closeModal()">Close</button>
         </div>
     </div>
 
     <script src="../authGuard.js"></script>
     <script>
-        // Modal Content Data (Matches the data-guide attributes in the table buttons)
         const guides = {
-            'products-barcodes': {
-                title: 'Creating Products & Barcode',
-                content: `
-                    <p><strong>Step 1:</strong> Go to the Product Management page.</p>
-                    <p><strong>Step 2:</strong> Click "Add New Product".</p>
-                    <p><strong>Step 3:</strong> Enter product details: Name, Category, Price, Stock Quantity.</p>
-                    <p><strong>Step 4:</strong> Upload an image if available.</p>
-                    <p><strong>Step 5:</strong> The system will automatically generate a barcode.</p>
-                    <p><strong>Step 6:</strong> Save the product.</p>
-                    <p><em>Note: Barcodes are unique and cannot be edited once created.</em></p>
-                `
-            },
-            'guide-2': {
-                title: 'Guide 2 Modal Title',
-                content: `
-                    <p><strong>Step 1:</strong> Instruction placeholder for step 1</p>
-                    <p><strong>Step 2:</strong> Instruction placeholder for step 2</p>
-                    <p><strong>Step 3:</strong> Instruction placeholder for step 3</p>
-                `
-            },
-            'guide-3': {
-                title: 'Guide 3 Modal Title',
-                content: `
-                    <p><strong>Step 1:</strong> Instruction placeholder for step 1</p>
-                    <p><strong>Step 2:</strong> Instruction placeholder for step 2</p>
-                    <p><strong>Step 3:</strong> Instruction placeholder for step 3</p>
-                `
-            },
-            'guide-4': {
-                title: 'Guide 4 Modal Title',
-                content: `
-                    <p><strong>Step 1:</strong> Instruction placeholder for step 1</p>
-                    <p><strong>Step 2:</strong> Instruction placeholder for step 2</p>
-                    <p><strong>Step 3:</strong> Instruction placeholder for step 3</p>
-                `
-            },
+            
+'sales-checkout': {
+    title: 'Processing a Sale',
+    content: `
+        <div style="line-height: 1.6;">
+            <p><strong>Purpose:</strong> Ring up customers quickly and accurately at the Point of Sale.</p>
+            <hr style="margin: 10px 0;">
+            <p><strong>Step 1 (Add Items):</strong> Scan the product barcode. Alternatively, use the search bar in the right panel to find the product manually and click it to add it to the cart.</p>
+            <p><strong>Step 2 (Adjust Cart):</strong> Use the <strong>+</strong> and <strong>-</strong> buttons next to the item in the cart to change the quantity. You can also click the trash icon to remove an item entirely.</p>
+            <p><strong>Step 3 (Checkout):</strong> Review the subtotal and click the green <strong>"Pay"</strong> button at the bottom right.</p>
+            <p><strong>Step 4 (Payment):</strong> Select the customer's payment method (Cash, Gcash, etc.). Enter the cash amount received from the customer so the system can calculate change.</p>
+            <p><strong>Step 5 (Complete):</strong> Click <strong>"Confirm Payment"</strong> to finalize the sale, adjust inventory, and trigger the receipt printer!</p>
+        </div>
+    `
+},
+'sales-refund': {
+    title: 'Refunds & Exchanges',
+    content: `
+        <div style="line-height: 1.6;">
+            <p><strong>Purpose:</strong> Process customer returns gracefully while keeping inventory and accounting records accurate.</p>
+            <hr style="margin: 10px 0;">
+            <p><strong>Step 1:</strong> Go to the <strong>Refunds / Exchanges</strong> page via the sidebar.</p>
+            <p><strong>Step 2:</strong> Ask the customer for their receipt. Enter the <strong>Transaction ID</strong> from the receipt into the search bar.</p>
+            <p><strong>Step 3:</strong> The original sale details will appear. Select the specific items the customer wants to return and specify the quantity being returned.</p>
+            <p><strong>Step 4:</strong> Choose the Action type:</p>
+            <ul style="margin-left: 20px;">
+                <li><strong>Refund:</strong> You are giving the customer their money back.</li>
+                <li><strong>Exchange:</strong> The customer is swapping the item for something else (store credit).</li>
+            </ul>
+            <p><strong>Step 5:</strong> Enter the reason for the return, process the transaction, and provide the customer with their refund receipt. The inventory stock will automatically be returned to the shelf.</p>
+        </div>
+    `
+},
+'sales-discount': {
+    title: 'Applying Discounts',
+    content: `
+        <div style="line-height: 1.6;">
+            <p><strong>Purpose:</strong> Apply promotional pricing or mandatory senior citizen discounts.</p>
+            <hr style="margin: 10px 0;">
+            <p><strong>Option A: Single Item Discount</strong></p>
+            <p>If you only want to discount one specific item, click the small <strong>% tag icon</strong> next to the item's name in the cart. You can apply a flat rate (₱) or percentage (%) discount just to that row.</p>
+            <p><strong>Option B: Cart-wide Discount</strong></p>
+            <p>If you want to apply a discount to the entire order subtotal, click the <strong>"Discount"</strong> button located near the bottom of the cart panel before clicking Pay.</p>
+            <p><em>Note: All applied discounts will be clearly itemized on the final printed receipt.</em></p>
+        </div>
+    `
+},
+'sales-history': {
+    title: 'Viewing Transaction History',
+    content: `
+        <div style="line-height: 1.6;">
+            <p><strong>Purpose:</strong> Audit past sales, verify payments, or reprint lost receipts.</p>
+            <hr style="margin: 10px 0;">
+            <p><strong>Step 1:</strong> Navigate to the <strong>Transaction History</strong> page.</p>
+            <p><strong>Step 2:</strong> Use the search bar to find a specific Transaction ID, or filter the list by Payment Method (e.g., showing only Gcash transactions for the day).</p>
+            <p><strong>Step 3:</strong> Click the <strong>"View"</strong> button on any row to open a detailed modal showing exactly what was sold, the cashier on duty, and the exact timestamp.</p>
+            <p><strong>Step 4:</strong> Click <strong>"Print Receipt"</strong> from within the modal to generate a duplicate copy for the customer.</p>
+        </div>
+    `
+}
+,
             'contact-support': {
-                title: 'Contact Support Title',
+                title: 'Contact System Support',
                 content: `
-                    <p><strong>Support Name</strong></p>
-                    <p><strong>Contact Method 1:</strong> Details</p>
-                    <p><strong>Contact Method 2:</strong> Details</p>
-                    <p>Additional contact notes or emergency info placeholder</p>
+                    <p><strong>Udicon IT Support</strong></p>
+                    <p><strong>Email:</strong> support@udicontrading.com</p>
+                    <p><strong>Phone:</strong> (02) 8123-4567</p>
+                    <p><strong>Hours:</strong> Mon-Fri 8:00 AM - 6:00 PM</p>
                 `
             }
         };
 
-        // Modal Logic
         function openModal(title, content) {
             document.getElementById('modal-title').textContent = title;
             document.getElementById('modal-content').innerHTML = content;
@@ -189,7 +202,6 @@
             document.getElementById('guide-modal').style.display = 'none';
         }
 
-        // Search & Event Listeners
         document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.querySelector('.search-input');
             const searchBtn = document.querySelector('.btn-search');
@@ -211,7 +223,6 @@
             searchInput.addEventListener('input', performSearch);
             searchBtn.addEventListener('click', performSearch);
 
-            // Attach modal opening to all Read Guide buttons
             document.querySelectorAll('.btn-view[data-guide]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const guideKey = btn.getAttribute('data-guide');
@@ -222,17 +233,14 @@
                 });
             });
 
-            // Attach modal to Contact Support button
             document.getElementById('contact-support').addEventListener('click', () => {
                 const contact = guides['contact-support'];
                 openModal(contact.title, contact.content);
             });
 
-            // Auto-focus search input on load
             searchInput.focus();
         });
 
-        // Auto-focus search input when user starts typing anywhere
         document.addEventListener('keydown', function (e) {
             if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 const activeTag = document.activeElement.tagName.toLowerCase();
@@ -245,5 +253,4 @@
         });
     </script>
 </body>
-
 </html>

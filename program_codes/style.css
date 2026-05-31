@@ -365,6 +365,7 @@ button:hover {
 .btn-add,
 .btn-edit,
 .btn-delete,
+.btn-primary,
 .btn-success {
     width: auto;
 }
@@ -401,12 +402,24 @@ button:hover {
 .btn-view,
 .btn-edit,
 .btn-delete,
+.btn-primary,
 .btn-add,
 .btn-success {
     padding: 12px;
     margin: 0;
     font-size: 13px;
     border-radius: var(--rad-sm);
+}
+
+.btn-primary {
+    background: var(--blue-main);
+    color: var(--white);
+    border: none;
+    transition: background 0.2s;
+}
+
+.btn-primary:hover {
+    background: var(--blue-hover);
 }
 
 .btn-view {

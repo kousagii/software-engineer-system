@@ -2581,6 +2581,128 @@ function performDatabaseBackup(backupType, userID) {
     });
 }
 
+                // True Incremental Backup using MySQL Binary Logs (mysqlbinlog)
+                // Extracts only the SQL events that occurred SINCE the last backup timestamp.
+                // Falls back to a full mysqldump if no prior backup exists.
+                function performIncrementalBackup(userID) {
+                    return new Promise((resolve, reject) => {
+                        db.query(`SELECT backupDate FROM backup ORDER BY backupDate DESC LIMIT 1`, (err, results) => {
+
+                            const nowTimestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                            const fileName = `inc_backup_${nowTimestamp}.sql`;
+                            const filePath = path.join(backupDir, fileName);
+
+                            const dbUser = process.env.DB_USER;
+                            const dbPass = process.env.DB_PASSWORD;
+                            const dbName = process.env.DB_NAME;
+                            const dbHost = process.env.DB_HOST || 'localhost';
+
+                            // If no prior backup exists, fall back to a full dump for safety
+                            if (err || results.length === 0) {
+                                console.log('ℹ️ No previous backup found. Running full dump as baseline for incremental.');
+                                const dumpCmd = `mysqldump -u ${dbUser} --password="${dbPass}" -h ${dbHost} ${dbName} > "${filePath}"`;
+                                exec(dumpCmd, (execErr) => {
+                                    if (execErr) {
+                                        console.error(`❌ Fallback full dump failed: ${execErr.message}`);
+                                        return reject(execErr);
+                                    }
+                                    logAndResolve(fileName, filePath, userID, resolve, reject);
+                                });
+                                return;
+                            }
+
+                            // Format the last backup time as a MySQL-compatible datetime string
+                            const lastBackupDate = new Date(results[0].backupDate);
+                            const sinceStr = lastBackupDate.toISOString()
+                                .replace('T', ' ')
+                                .replace(/\.\d{3}Z$/, '');
+
+                            console.log(`⏳ Running TRUE incremental backup using mysqlbinlog since: ${sinceStr}`);
+
+                            // Locate all binary log files that were modified AT OR AFTER the last backup time
+                            const binlogDir = 'C:/ProgramData/MySQL/MySQL Server 8.0/Data';
+                            const binlogIndexFile = path.join(binlogDir, 'ASHLEY-bin.index');
+
+                            fs.readFile(binlogIndexFile, 'utf8', (readErr, indexData) => {
+                                if (readErr) {
+                                    console.error('❌ Could not read binlog index file:', readErr.message);
+                                    return reject(readErr);
+                                }
+
+                                // Get all binlog file paths from the index
+                                const allBinlogs = indexData
+                                    .split('\n')
+                                    .map(l => l.trim().replace(/\//g, path.sep))
+                                    .filter(l => l.length > 0)
+                                    .map(l => path.isAbsolute(l) ? l : path.join(binlogDir, path.basename(l)));
+
+                                // Filter to only binlogs that were last modified at or after (lastBackupDate - 1 hour buffer)
+                                // We include a 1-hour buffer to ensure we don't miss events at the edge boundary
+                                const bufferTime = new Date(lastBackupDate.getTime() - 3600000); // 1 hour back
+
+                                const relevantBinlogs = allBinlogs.filter(f => {
+                                    try {
+                                        const stat = fs.statSync(f);
+                                        return stat.mtime >= bufferTime;
+                                    } catch (e) {
+                                        return false;
+                                    }
+                                });
+
+                                if (relevantBinlogs.length === 0) {
+                                    console.log('ℹ️ No new binary log activity since last backup. Writing empty incremental.');
+                                    const emptyContent = '-- Udicon Incremental Backup\n-- No changes since: ' + sinceStr + '\n-- Generated: ' + new Date().toISOString() + '\n';
+                                    fs.writeFileSync(filePath, emptyContent);
+                                    return logAndResolve(fileName, filePath, userID, resolve, reject);
+                                }
+
+                                console.log(`📋 Processing ${relevantBinlogs.length} binlog file(s): ${relevantBinlogs.map(f => path.basename(f)).join(', ')}`);
+
+                                // Build the mysqlbinlog command:
+                                // --start-datetime: only extract events at or after the last backup time
+                                // --database: filter to only our database's changes
+                                // --base64-output=DECODE-ROWS --verbose: decode ROW format to readable SQL
+                                const binlogFileArgs = relevantBinlogs.map(f => `"${f}"`).join(' ');
+                                const mysqlbinlogCmd = [
+                                    `mysqlbinlog`,
+                                    `--start-datetime="${sinceStr}"`,
+                                    `--database="${dbName}"`,
+                                    `--base64-output=DECODE-ROWS`,
+                                    `--verbose`,
+                                    binlogFileArgs,
+                                    `> "${filePath}"`
+                                ].join(' ');
+
+                                exec(mysqlbinlogCmd, { maxBuffer: 1024 * 1024 * 50 }, (execErr, stdout, stderr) => {
+                                    if (execErr) {
+                                        console.error(`❌ mysqlbinlog extraction failed: ${execErr.message}`);
+                                        return reject(execErr);
+                                    }
+                                    console.log(`✅ mysqlbinlog extraction complete → ${fileName}`);
+                                    logAndResolve(fileName, filePath, userID, resolve, reject);
+                                });
+                            });
+                        });
+                    });
+                }
+
+// Helper to record the backup in the DB after the file has been written
+function logAndResolve(fileName, filePath, userID, resolve, reject) {
+    const stat = fs.existsSync(filePath) ? fs.statSync(filePath) : null;
+    const sizeKB = stat ? Math.round(stat.size / 1024) : 0;
+    console.log(`📦 Backup file size: ${sizeKB} KB`);
+
+    const sql = `INSERT INTO backup (userID, backupDate, fileName, backupType) VALUES (?, NOW(), ?, 'Incremental')`;
+    db.query(sql, [userID, fileName], (dbErr) => {
+        if (dbErr) {
+            console.error('❌ Failed to log incremental backup in DB:', dbErr);
+            return reject(dbErr);
+        }
+        console.log(`✅ Incremental Backup logged: ${fileName}`);
+        resolve(fileName);
+    });
+}
+
 const backupConfigPath = path.join(__dirname, 'backup-config.json');
 
 // Dynamically Initialize Schedules
@@ -2663,6 +2785,46 @@ app.delete('/api/backups/:id', (req, res) => {
     });
 });
 
+// Restore a Backup
+app.post('/api/backups/:id/restore', (req, res) => {
+    const { id } = req.params;
+    const userID = req.session.user ? req.session.user.id : null;
+    if (!userID) return res.status(401).json({ error: "Unauthorized" });
+
+    db.query(`SELECT fileName FROM backup WHERE backupID = ?`, [id], (err, results) => {
+        if (err || results.length === 0) return res.status(404).json({ error: "Backup not found" });
+
+        const fileName = results[0].fileName;
+        const filePath = path.join(backupDir, fileName);
+
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ error: "Backup file is missing on the server" });
+        }
+
+        const dbUser = process.env.DB_USER;
+        const dbPass = process.env.DB_PASSWORD;
+        const dbName = process.env.DB_NAME;
+        const dbHost = process.env.DB_HOST || 'localhost';
+
+        const restoreCommand = `mysql -u ${dbUser} --password="${dbPass}" -h ${dbHost} ${dbName} < "${filePath}"`;
+
+        exec(restoreCommand, (execErr, stdout, stderr) => {
+            if (execErr) {
+                console.error(`❌ Restore failed: ${execErr.message}`);
+                return res.status(500).json({ error: "Failed to restore database." });
+            }
+
+            console.log(`✅ Database restored successfully from: ${fileName}`);
+
+            // Log the activity
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Restore Backup', ?)`,
+                [userID, `Restored backup: ${fileName}`]);
+
+            res.json({ message: "Database restored successfully!" });
+        });
+    });
+});
+
 // Update Backup Schedule Settings
 app.post('/api/backups/schedule', (req, res) => {
     const { fullSchedule, incSchedule } = req.body;
@@ -2677,7 +2839,6 @@ app.post('/api/backups/schedule', (req, res) => {
 
     try {
         initializeSchedules(fullSchedule, incSchedule);
-
         res.json({ message: 'Schedules updated successfully' });
     } catch (err) {
         console.error(err);
@@ -2698,52 +2859,3 @@ app.get('/api/backups/schedule', (req, res) => {
     res.json(config);
 });
 
-// --- INCREMENTAL BACKUP FUNCTION ---
-function performIncrementalBackup(userID) {
-    return new Promise((resolve, reject) => {
-        db.query('SHOW MASTER STATUS', (err, results) => {
-            if (err) {
-                console.error('❌ Failed to get master status. Does this DB user have SUPER or REPLICATION CLIENT privileges?', err);
-                return reject(err);
-            }
-
-            if (!results || results.length === 0) {
-                return reject(new Error('Binary logging is not enabled on the MySQL server.'));
-            }
-
-            const activeLogFile = results[0].File;
-
-            db.query('FLUSH LOGS', (flushErr) => {
-                if (flushErr) {
-                    console.error('❌ Failed to flush logs:', flushErr);
-                    return reject(flushErr);
-                }
-
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                const fileName = `incremental_${timestamp}.sql`;
-                const filePath = path.join(backupDir, fileName);
-
-                const dbUser = process.env.DB_USER;
-                const dbPass = process.env.DB_PASSWORD;
-                const dbHost = process.env.DB_HOST || 'localhost';
-
-                const binlogCmd = `mysqlbinlog --read-from-remote-server --host=${dbHost} --user=${dbUser} --password="${dbPass}" ${activeLogFile} > "${filePath}"`;
-
-                exec(binlogCmd, (execErr) => {
-                    if (execErr) {
-                        console.error(`❌ Incremental backup failed: ${execErr.message}`);
-                        return reject(execErr);
-                    }
-
-                    const sql = `INSERT INTO backup (userID, backupDate, fileName, backupType) VALUES (?, NOW(), ?, 'Incremental')`;
-                    db.query(sql, [userID, fileName], (dbErr) => {
-                        if (dbErr) return reject(dbErr);
-
-                        console.log(`✅ Incremental Backup completed successfully: ${fileName}`);
-                        resolve(fileName);
-                    });
-                });
-            });
-        });
-    });
-}
