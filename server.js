@@ -72,24 +72,6 @@ db.connect((err) => {
     }
     console.log('✅ Connected to MySQL Database!');
 
-    // Auto-create payment_log table (replaces installment_schedules and tracks actual collections)
-    db.query(`
-        CREATE TABLE IF NOT EXISTS payment_log (
-            paymentID INT AUTO_INCREMENT PRIMARY KEY,
-            transactionCode VARCHAR(50) NOT NULL,
-            dueDate DATE NULL,
-            amountDue DECIMAL(12,2) DEFAULT 0.00,
-            cashAmount DECIMAL(12,2) DEFAULT 0.00,
-            digitalAmount DECIMAL(12,2) DEFAULT 0.00,
-            paymentDate DATETIME NULL,
-            paymentMethod VARCHAR(50) NULL,
-            referenceNumber VARCHAR(100) NULL,
-            status VARCHAR(20) DEFAULT 'Scheduled',
-            paymentType VARCHAR(20) DEFAULT 'Installment'
-        )
-    `, (tblErr) => {
-        if (tblErr) console.error('⚠️ payment_log table creation error:', tblErr.message);
-    });
 });
 
 
@@ -909,15 +891,16 @@ app.get('/api/orders', (req, res) => {
                 const orderDate = o.orderDateTime || o.orderDate || null;
                 const terms = o.termsOfPayment || o.supplierTerms || 'COD';
 
-                // Calculate due date based on order date and terms
+                // Calculate due date based on receive date and terms. 
+                // Only start countdown if status is Partially Completed or Completed
                 let dueDateStr = 'N/A';
-                if (orderDate) {
+                if ((o.status === 'Partially Completed' || o.status === 'Completed') && (o.receiveDate || orderDate)) {
                     let days = 0;
                     if (terms.includes('Days')) {
                         const match = terms.match(/(\d+)\s*Days/i);
                         if (match) days = parseInt(match[1]);
                     }
-                    const dDate = new Date(orderDate);
+                    const dDate = new Date(o.receiveDate || orderDate);
                     dDate.setDate(dDate.getDate() + days);
                     dueDateStr = dDate.toLocaleDateString();
                 }
@@ -1174,7 +1157,7 @@ app.put('/api/orders/:id/receive', async (req, res) => {
 
         await db.promise().query('START TRANSACTION');
 
-        await db.promise().query(`UPDATE purchase_order SET status = ? WHERE orderID = ?`, [status, id]);
+        await db.promise().query(`UPDATE purchase_order SET status = ?, receiveDate = COALESCE(receiveDate, NOW()) WHERE orderID = ?`, [status, id]);
 
         for (const item of items) {
             const [oldItems] = await db.promise().query(`SELECT receivedQty FROM purchase_item WHERE orderID = ? AND productID = ?`, [id, item.productID]);

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -1329,23 +1329,23 @@
             el('receipt-total').innerText = `₱${data.totalAmount.toFixed(2)}`;
 
             // 4. Payment Details Logic
-            let paymentDetailsHTML = '<div class="receipt-payment-block">';
+            let paymentDetailsHTML = '';
 
             if (data.paymentMethod !== 'Cash' && data.digitalAmount > 0) {
-                paymentDetailsHTML += `<div class="receipt-row">
+                paymentDetailsHTML += `<div>
             <span>${data.paymentMethod} Paid:</span> 
             <span>₱${data.digitalAmount.toFixed(2)}</span>
         </div>`;
             }
 
             if (data.rawCash > 0 || data.paymentMethod === 'Cash') {
-                paymentDetailsHTML += `<div class="receipt-row">
+                paymentDetailsHTML += `<div>
             <span>Cash Received:</span> 
             <span>₱${data.rawCash.toFixed(2)}</span>
         </div>`;
             }
 
-            paymentDetailsHTML += `<div class="receipt-row receipt-change">
+            paymentDetailsHTML += `<div class="receipt-change">
         <span>Change:</span> 
         <span>₱${Math.max(0, data.change).toFixed(2)}</span>
     </div>`;
@@ -1366,8 +1366,6 @@
                 }
                 paymentDetailsHTML += `</div>`;
             }
-
-            paymentDetailsHTML += '</div>';
 
             el('receipt-payment-section').innerHTML = paymentDetailsHTML;
 
@@ -1631,10 +1629,9 @@
                 openPayment();
             }
         });
-        function printReceipt() {
-            const receiptEl = document.getElementById('printableReceipt');
+        function printReceipt(containerId = 'printableReceipt') {
+            const receiptEl = document.getElementById(containerId || 'printableReceipt');
             if (!receiptEl) return;
-            const receiptHTML = receiptEl.innerHTML;
             const printWin = window.open('', '_blank', 'width=400,height=800');
             printWin.document.write(`
                 <!DOCTYPE html>
@@ -1642,48 +1639,23 @@
                 <head>
                     <meta charset="UTF-8">
                     <title>Receipt</title>
+                    <link rel="stylesheet" href="../style.css">
                     <style>
                         @page { size: 80mm auto; margin: 4mm; }
-                        * { box-sizing: border-box; margin: 0; padding: 0; }
-                        body {
-                            font-family: 'Courier New', Courier, monospace;
-                            font-size: 13px;
-                            font-weight: bold;
-                            width: 72mm;
-                            color: #000;
-                            background: white;
-                            -webkit-print-color-adjust: exact;
-                            print-color-adjust: exact;
-                        }
-                        h2 { font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 2px; }
-                        h5 { font-size: 13px; margin: 0; }
-                        p { margin: 1px 0; font-size: 12px; }
-                        .receipt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px; }
-                        .receipt-items { width: 100%; border-collapse: collapse; margin: 6px 0; }
-                        .receipt-items th, .receipt-items td { padding: 2px 4px; font-size: 12px; word-wrap: break-word; word-break: normal; }
-                        .receipt-items th { border-bottom: 1px dashed #000; font-weight: bold; }
-                        .receipt-items tbody tr:last-child td { border-bottom: 1px dashed #000; padding-bottom: 4px; }
-                        .text-left { text-align: left; }
-                        .center-text, .text-center { text-align: center; }
-                        .text-right { text-align: right; }
-                        .receipt-totals { margin-top: 4px; font-size: 12px; }
-                        .receipt-totals > div { display: flex; justify-content: space-between; padding: 1px 0; }
-                        .receipt-totals .grand-total { font-weight: bold; font-size: 14px; border-top: 1px dashed #000; margin-top: 4px; padding-top: 4px; }
-                        .receipt-payment-info { margin-top: 6px; font-size: 12px; }
-                        .receipt-payment-info > div { display: flex; justify-content: space-between; padding: 1px 0; }
-                        .receipt-qr-row { margin-top: 8px; text-align: center; font-size: 12px; }
+                        body { background: white; margin: 0; padding: 0; display: flex; justify-content: center; }
+                        .receipt-container { box-shadow: none; margin-top: 0; }
                         .no-print { display: none !important; }
-                        strong { font-weight: bold; }
                     </style>
                 </head>
-                <body>
-                    ${receiptHTML}
+                <body onload="setTimeout(() => { window.print(); window.close(); }, 150);">
+                    <div id="receiptModal">
+                        ${receiptEl.outerHTML}
+                    </div>
                 </body>
                 </html>
             `);
             printWin.document.close();
             printWin.focus();
-            setTimeout(() => { printWin.print(); printWin.close(); }, 400);
         }
     </script>
 </body>

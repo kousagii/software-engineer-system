@@ -1236,85 +1236,129 @@ button:disabled,
     background: var(--white);
     padding: 10px;
     border-radius: var(--rad-md);
-    width: 100%;
-    max-width: 320px;
+    width: 72mm;
+    margin: 0 auto;
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: var(--shadow-light);
     color: #000;
-    text-align: left;
-}
-
-.receipt-header {
-    text-align: center;
-    border-bottom: 1px dashed var(--text-dark);
-    padding-bottom: 15px;
-    margin-bottom: 15px;
-}
-
-.receipt-header h2 {
-    margin: 0;
-    font-size: 22px;
+    font-size: 13px;
     font-weight: bold;
-}
-
-.receipt-header p {
-    margin: 4px 0;
-    font-size: 12px;
-    color: #000;
-}
-
-.receipt-items {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-    margin-bottom: 15px;
-}
-
-.receipt-items th {
     text-align: left;
-    border-bottom: 1px solid var(--text-dark);
-    padding-bottom: 5px;
 }
 
-.receipt-items td {
-    padding: 5px 0;
+.receipt-container h2 {
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 2px;
 }
 
-.receipt-totals {
-    border-top: 1px dashed var(--text-dark);
-    padding-top: 15px;
+.receipt-container h5 {
     font-size: 13px;
+    margin: 0;
 }
 
-.receipt-totals div {
-    display: flex;
-    justify-content: space-between;
+.receipt-container p {
+    margin: 1px 0;
+    font-size: 12px;
+}
+
+.receipt-container .receipt-header {
+    text-align: center;
+    border-bottom: 1px dashed #000;
+    padding-bottom: 6px;
     margin-bottom: 6px;
 }
 
-.receipt-totals .grand-total {
-    font-weight: bold;
-    font-size: 16px;
-    margin-top: 10px;
-    border-top: 1px solid var(--text-dark);
-    padding-top: 10px;
+.receipt-container .receipt-items {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0;
 }
 
-.receipt-row {
+.receipt-container .receipt-items th,
+.receipt-container .receipt-items td {
+    padding: 2px 4px;
+    font-size: 12px;
+    word-wrap: break-word;
+    word-break: normal;
+}
+
+.receipt-container .receipt-items th {
+    border-bottom: 1px dashed #000;
+    font-weight: bold;
+    text-align: left;
+}
+
+.receipt-container .receipt-items tbody tr:last-child td {
+    border-bottom: 1px dashed #000;
+    padding-bottom: 4px;
+}
+
+.receipt-container .text-left {
+    text-align: left;
+}
+
+.receipt-container .center-text,
+.receipt-container .text-center {
+    text-align: center;
+}
+
+.receipt-container .text-right {
+    text-align: right;
+}
+
+.receipt-container .receipt-totals {
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.receipt-container .receipt-totals>div {
+    display: flex;
+    justify-content: space-between;
+    padding: 1px 0;
+}
+
+.receipt-container .receipt-totals .grand-total {
+    font-weight: bold;
+    font-size: 14px;
+    border-top: 1px dashed #000;
+    margin-top: 4px;
+    padding-top: 4px;
+}
+
+.receipt-container .receipt-payment-info {
+    margin-top: 6px;
+    font-size: 12px;
+    display: block !important;
+}
+
+.receipt-container .receipt-payment-info>div {
+    display: flex;
+    justify-content: space-between;
+    padding: 1px 0;
+}
+
+.receipt-container .receipt-qr-row {
+    margin-top: 8px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.receipt-container strong {
+    font-weight: bold;
+}
+
+.receipt-container .receipt-row {
     display: flex;
     justify-content: space-between;
     padding: 2px 0;
-    border-bottom: 1px dashed var(--border-light);
+    border-bottom: 1px dashed #000;
 }
 
-.receipt-total {
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 2px solid var(--green-light);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.receipt-container .receipt-change {
+    margin-top: 5px;
 }
 
 /* CART & DATA TABLE */

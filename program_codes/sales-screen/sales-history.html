@@ -669,20 +669,22 @@
             el("stat-sales").textContent = fmtPeso(dateSales);
             el("stat-refunds").textContent = fmtPeso(totalRefunds);
 
-            // Fetch today's actual collections and overall receivables from APIs
+            // Calculate Receivables and Collections purely from the filtered transactions for the Payments Received stat
+            const filteredReceivables = filteredTransactions
+                .filter(t => t.paymentStatus === 'Unpaid' || t.paymentStatus === 'Partial')
+                .reduce((sum, t) => {
+                    const total = parseFloat(t.totalAmount || 0);
+                    const paid = parseFloat(t.cashReceived || 0) + parseFloat(t.digitalAmount || 0);
+                    return sum + (total - paid);
+                }, 0);
+
+            const filteredCollected = dateSales - filteredReceivables;
+
+            if (el("stat-collected")) el("stat-collected").textContent = fmtPeso(filteredCollected);
+
+            // Fetch overall receivables from API (unaffected by UI filters)
             try {
-                const [colRes, recRes] = await Promise.all([
-                    fetch('/api/dashboard/collections-today'),
-                    fetch('/api/dashboard/overall-receivables')
-                ]);
-
-                if (colRes.ok) {
-                    const colData = await colRes.json();
-                    if (el("stat-collected")) el("stat-collected").textContent = fmtPeso(colData.totalCollected);
-                } else {
-                    if (el("stat-collected")) el("stat-collected").textContent = "N/A";
-                }
-
+                const recRes = await fetch('/api/dashboard/overall-receivables');
                 if (recRes.ok) {
                     const recData = await recRes.json();
                     if (el("stat-receivables")) el("stat-receivables").textContent = fmtPeso(recData.totalReceivables);
@@ -690,7 +692,6 @@
                     if (el("stat-receivables")) el("stat-receivables").textContent = "N/A";
                 }
             } catch (err) {
-                if (el("stat-collected")) el("stat-collected").textContent = "N/A";
                 if (el("stat-receivables")) el("stat-receivables").textContent = "N/A";
             }
         }
@@ -899,22 +900,21 @@
                 const paymentSection = el('hist-receipt-payment-section');
                 let paymentHTML = '';
                 if (txn.paymentMethod === 'Pay Later') {
-                    paymentHTML = `<div class="receipt-payment-block">
-                        <div class="receipt-row"><span>Status:</span> <span>${txn.paymentStatus}</span></div>
-                        ${txn.dueDate ? `<div class="receipt-row"><span>Due Date:</span> <span>${new Date(txn.dueDate).toLocaleDateString('en-PH')}</span></div>` : ''}
-                    </div>`;
+                    paymentHTML = `
+                        <div><span>Status:</span> <span>${txn.paymentStatus}</span></div>
+                        ${txn.dueDate ? `<div><span>Due Date:</span> <span>${new Date(txn.dueDate).toLocaleDateString('en-PH')}</span></div>` : ''}
+                    `;
                 } else if (cashAmt > 0 || digitalAmt > 0) {
-                    paymentHTML = '<div class="receipt-payment-block">';
+                    paymentHTML = '';
                     if (digitalAmt > 0 && txn.paymentMethod !== 'Cash') {
-                        paymentHTML += `<div class="receipt-row"><span>${txn.paymentMethod} Paid:</span> <span>₱${digitalAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>`;
+                        paymentHTML += `<div><span>${txn.paymentMethod} Paid:</span> <span>₱${digitalAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>`;
                     }
                     if (cashAmt > 0) {
-                        paymentHTML += `<div class="receipt-row"><span>Cash Received:</span> <span>₱${cashAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>`;
+                        paymentHTML += `<div><span>Cash Received:</span> <span>₱${cashAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>`;
                     }
                     const totalReceived = cashAmt + digitalAmt;
                     const change = totalReceived - Math.abs(totalAmt);
-                    paymentHTML += `<div class="receipt-row receipt-change"><span>Change:</span> <span>₱${Math.max(0, change).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>`;
-                    paymentHTML += '</div>';
+                    paymentHTML += `<div class="receipt-change"><span>Change:</span> <span>₱${Math.max(0, change).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>`;
                 }
                 paymentSection.innerHTML = paymentHTML;
 
@@ -1274,10 +1274,10 @@
             fetchActivePayLater();
             el("searchInput").focus();
         });
-        function printReceipt(containerId) {
+
+        function printReceipt(containerId = 'printableReceipt') {
             const receiptEl = document.getElementById(containerId || 'printableReceipt');
             if (!receiptEl) return;
-            const receiptHTML = receiptEl.innerHTML;
             const printWin = window.open('', '_blank', 'width=400,height=800');
             printWin.document.write(`
                 <!DOCTYPE html>
@@ -1285,49 +1285,23 @@
                 <head>
                     <meta charset="UTF-8">
                     <title>Receipt</title>
+                    <link rel="stylesheet" href="../style.css">
                     <style>
                         @page { size: 80mm auto; margin: 4mm; }
-                        * { box-sizing: border-box; margin: 0; padding: 0; }
-                        body {
-                            font-family: 'Courier New', Courier, monospace;
-                            font-size: 13px;
-                            font-weight: bold;
-                            width: 72mm;
-                            color: #000;
-                            background: white;
-                            -webkit-print-color-adjust: exact;
-                            print-color-adjust: exact;
-                        }
-                        h2 { font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 2px; }
-                        h5 { font-size: 13px; margin: 0; }
-                        p { margin: 1px 0; font-size: 12px; }
-                        .receipt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px; }
-                        .receipt-items { width: 100%; border-collapse: collapse; margin: 6px 0; }
-                        .receipt-items th, .receipt-items td { padding: 2px 4px; font-size: 12px; word-wrap: break-word; word-break: normal; }
-                        .receipt-items th { border-bottom: 1px dashed #000; font-weight: bold; }
-                        .receipt-items tbody tr:last-child td { border-bottom: 1px dashed #000; padding-bottom: 4px; }
-                        .text-left { text-align: left; }
-                        .center-text, .text-center { text-align: center; }
-                        .text-right { text-align: right; }
-                        .w-full { width: 100%; }
-                        .receipt-totals { margin-top: 4px; font-size: 12px; }
-                        .receipt-totals > div { display: flex; justify-content: space-between; padding: 1px 0; }
-                        .receipt-totals .grand-total { font-weight: bold; font-size: 14px; border-top: 1px dashed #000; margin-top: 4px; padding-top: 4px; }
-                        .receipt-payment-info { margin-top: 6px; font-size: 12px; }
-                        .receipt-payment-info > div { display: flex; justify-content: space-between; padding: 1px 0; }
-                        .receipt-qr-row { margin-top: 8px; text-align: center; font-size: 12px; }
+                        body { background: white; margin: 0; padding: 0; display: flex; justify-content: center; }
+                        .receipt-container { box-shadow: none; margin-top: 0; }
                         .no-print { display: none !important; }
-                        strong { font-weight: bold; }
                     </style>
                 </head>
-                <body>
-                    ${receiptHTML}
+                <body onload="setTimeout(() => { window.print(); window.close(); }, 150);">
+                    <div id="receiptModal">
+                        ${receiptEl.outerHTML}
+                    </div>
                 </body>
                 </html>
             `);
             printWin.document.close();
             printWin.focus();
-            setTimeout(() => { printWin.print(); printWin.close(); }, 400);
         }
     </script>
 </body>
