@@ -147,6 +147,16 @@
                         </select>
                     </div>
                     <div class="toolbar-group">
+                        <label for="filterPaymentMethod" style="margin:0; font-size:13px; white-space:nowrap;">Method:</label>
+                        <select id="filterPaymentMethod" onchange="applyFilters()" style="margin:0; width:auto;">
+                            <option value="all">All</option>
+                            <option value="Cash">Cash</option>
+                            <option value="E-wallet">E-wallet</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Pay Later">Pay Later</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-group">
                         <label for="filterDateFrom" style="margin:0; font-size:13px; white-space:nowrap;">From:</label>
                         <input type="date" id="filterDateFrom" onchange="applyFilters()" style="margin:0; width:auto;">
                         <label for="filterDateTo"
@@ -393,7 +403,7 @@
                         <select id="instPayMode" class="payment-select" onchange="handleInstPayMode()"
                             style="width: 100%;">
                             <option value="Cash">Cash</option>
-                            <option value="GCash">GCash</option>
+                            <option value="E-wallet">E-wallet</option>
                             <option value="Bank Transfer">Bank Transfer</option>
                         </select>
                     </div>
@@ -446,7 +456,7 @@
                     <label for="settlePaymentMode" class="d-block mb-5">Payment Method</label>
                     <select id="settlePaymentMode" class="payment-select" onchange="handleSettleMode()">
                         <option value="Cash">Cash</option>
-                        <option value="GCash">GCash</option>
+                        <option value="E-wallet">E-wallet</option>
                         <option value="Bank Transfer">Bank Transfer</option>
                     </select>
                 </div>
@@ -587,6 +597,7 @@
 
         function applyFilters() {
             const statusFilter = el("filterStatus").value;
+            const methodFilter = el("filterPaymentMethod").value;
             const dateFrom = el("filterDateFrom").value;
             const dateTo = el("filterDateTo").value;
             const searchTerm = el("searchInput").value.trim().toLowerCase();
@@ -597,6 +608,15 @@
                     if (txn.paymentStatus !== 'Unpaid' && txn.paymentStatus !== 'Partial') return false;
                 } else if (statusFilter !== 'all' && txn.paymentStatus !== statusFilter) {
                     return false;
+                }
+
+                // Payment method filter
+                if (methodFilter !== 'all') {
+                    if (methodFilter === 'Pay Later') {
+                        if (txn.paymentMethod !== 'Pay Later') return false;
+                    } else if ((txn.paymentMethod || '') !== methodFilter) {
+                        return false;
+                    }
                 }
 
                 // Date filter
