@@ -2124,7 +2124,7 @@ app.put('/api/transactions/:id/installments/:scheduleId/pay', (req, res) => {
     if (totalNewPaid <= 0) return res.status(400).json({ error: "Invalid payment amount" });
 
     db.query(`
-        SELECT i.amountDue, i.status, i.paymentID as scheduleID
+        SELECT i.amountDue, i.status, i.paymentID as scheduleID, i.cashAmount, i.digitalAmount
         FROM payment_log i
         JOIN sales_transaction st ON i.transactionCode = st.transactionCode
         WHERE i.paymentID = ? AND st.transactionID = ? AND i.paymentType = 'Installment'
@@ -2134,12 +2134,16 @@ app.put('/api/transactions/:id/installments/:scheduleId/pay', (req, res) => {
         const inst = instRes[0];
         if (inst.status === 'Paid') return res.status(400).json({ error: "Installment is already paid" });
 
-        // Update the installment
-        let sqlInst = `UPDATE payment_log SET status = 'Paid', paymentDate = NOW(), paymentMethod = ?, referenceNumber = ?, cashAmount = ?, digitalAmount = ? WHERE paymentID = ?`;
-        db.query(sqlInst, [paymentMethod, referenceNumber || null, cAmt, dAmt, scheduleId], (updErr) => {
+        const currentPaid = parseFloat(inst.cashAmount || 0) + parseFloat(inst.digitalAmount || 0);
+        const newInstTotalPaid = currentPaid + totalNewPaid;
+        const expected = parseFloat(inst.amountDue);
+        
+        const instStatus = (newInstTotalPaid >= (expected - 0.01)) ? 'Paid' : 'Partial';
+
+        let sqlInst = `UPDATE payment_log SET status = ?, paymentDate = NOW(), paymentMethod = ?, referenceNumber = ?, cashAmount = cashAmount + ?, digitalAmount = digitalAmount + ? WHERE paymentID = ?`;
+        db.query(sqlInst, [instStatus, paymentMethod, referenceNumber || null, cAmt, dAmt, scheduleId], (updErr) => {
             if (updErr) return res.status(500).json({ error: "Failed to update installment" });
 
-            // Now update the main sales_transaction
             db.query(`SELECT totalAmount, cashReceived, digitalAmount, transactionCode FROM sales_transaction WHERE transactionID = ?`, [id], (stErr, stRes) => {
                 if (stErr || stRes.length === 0) return res.status(500).json({ error: "Failed to fetch main transaction" });
 
@@ -2165,8 +2169,13 @@ app.put('/api/transactions/:id/installments/:scheduleId/pay', (req, res) => {
                 db.query(sqlTxn, paramsTxn, (txUpdErr) => {
                     if (txUpdErr) return res.status(500).json({ error: "Failed to update main transaction payment" });
 
+                    // Auto-close any remaining installments if the full balance is paid
+                    if (newStatus === 'Paid') {
+                        db.query(`UPDATE payment_log SET status = 'Paid' WHERE transactionCode = ? AND paymentType = 'Installment'`, [txn.transactionCode]);
+                    }
+
                     db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Payment Settled', ?)`,
-                        [sessionUserID, `Settled Installment of ₱${totalNewPaid.toFixed(2)} for TXN: ${txn.transactionCode} (Status: ${newStatus})`]
+                        [sessionUserID, `Settled Installment (₱${totalNewPaid.toFixed(2)}) for TXN: ${txn.transactionCode} (Status: ${newStatus})`]
                     );
 
                     res.json({ message: "Installment paid successfully", paymentStatus: newStatus });

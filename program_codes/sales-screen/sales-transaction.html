@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales Transaction | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="sales-shared.js"></script>
 </head>
 
 <body>
@@ -30,7 +30,10 @@
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <label class="label-bold label-sm" style="margin: 0; white-space: nowrap;">Search</label>
                             <input type="text" id="barcodeInput" placeholder="Scan barcode, search by name, or brand..."
-                                autocomplete="off" style="margin: 0; flex: 1;">
+                                autocomplete="off" style="margin: 0; flex: 1; height: 38px; box-sizing: border-box;">
+                            <button class="pos-clear-btn" onclick="clearCart()"
+                                style="height: 38px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; padding: 0 16px;">Clear
+                                Cart</button>
                         </div>
                         <span class="sub-text"
                             style="font-size: 11px; display: block; margin-top: 6px; margin-left: 65px;">Use
@@ -40,9 +43,8 @@
                     <div style="margin-top:12px;">
                         <!-- Category Block -->
                         <div>
-                            <label class="label-bold label-sm"
-                                style="display:block; margin-bottom:6px;">Category</label>
-                            <div class="category-pills" id="posCategoryPills">
+                            <div class="category-pills" id="posCategoryPills" style="align-items:center;">
+                                <label class="label-bold label-sm" style="margin:0; margin-right:4px;">Category</label>
                                 <button class="category-pill active" data-cat="All"
                                     onclick="setPosCategory('All')">All</button>
                                 <button class="category-pill" data-cat="Tools"
@@ -71,9 +73,9 @@
                         </div>
 
                         <!-- Sort Block -->
-                        <div style="margin-top:12px; display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
-                            <label class="label-bold label-sm" style="margin:0;">Sort By</label>
-                            <div class="category-pills" id="posSortPills">
+                        <div style="margin-top:12px;">
+                            <div class="category-pills" id="posSortPills" style="align-items:center;">
+                                <label class="label-bold label-sm" style="margin:0; margin-right:4px;">Sort By</label>
                                 <button class="category-pill active" data-sort="name-asc"
                                     onclick="setPosSort('name-asc')">Name A-Z</button>
                                 <button class="category-pill" data-sort="name-desc"
@@ -124,43 +126,51 @@
                     <div class="pos-cart-empty">Cart is empty. Select products or scan barcode.</div>
                 </div>
 
-                <div class="pos-totals-section">
-                    <div class="pos-summary-row">
-                        <span>Items Count:</span>
-                        <strong id="itemCount">0</strong>
+                <div class="pos-totals-section" style="padding-top: 12px;">
+                    <div
+                        style="display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 6px;">
+                        <span>Items: <strong id="itemCount" style="color: #0f172a;">0</strong></span>
+                        <span>Subtotal: <strong style="color: #0f172a;">₱ <span
+                                    id="subtotalAmount">0.00</span></strong></span>
                     </div>
-                    <div class="pos-summary-row">
-                        <span>Subtotal:</span>
-                        <strong>₱ <span id="subtotalAmount">0.00</span></strong>
-                    </div>
-                    <div class="pos-summary-row vat-row">
-                        <span>VAT (12% inc.):</span>
-                        <span>₱ <span id="vatAmount">0.00</span></span>
-                    </div>
-                    <div class="pos-summary-row"
-                        style="align-items: flex-start; flex-direction: column; gap: 8px; margin-bottom: 16px;">
-                        <span style="font-size: 14px; font-weight: 500;">Discount:</span>
-                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                            <div class="pos-discount-input-group">
-                                <select id="discountType" onchange="updateTotal()">
+
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #475569; margin-bottom: 6px;">
+                        <span>Discount:</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="display: flex; height: 26px;">
+                                <select id="discountType" onchange="updateTotal()"
+                                    style="padding: 0 4px; font-size: 12px; height: 100%; border: 1px solid #cbd5e1; border-right: none; border-radius: 4px 0 0 4px; outline: none; cursor: pointer;">
                                     <option value="fixed">Fixed (₱)</option>
                                     <option value="percent">Percent (%)</option>
                                 </select>
                                 <input type="number" id="discount" value="0" min="0" oninput="updateTotal()"
-                                    placeholder="0" onfocus="if(this.value == '0') this.value = '';"
-                                    onblur="if(this.value == '') this.value = '0';">
+                                    onfocus="if(this.value == '0') this.value = '';"
+                                    onblur="if(this.value == '') this.value = '0';"
+                                    style="width: 60px; padding: 0 6px; font-size: 13px; height: 100%; border: 1px solid #cbd5e1; border-radius: 0 4px 4px 0; text-align: right; outline: none;">
                             </div>
-                            <span style="color: #e63946; font-weight: 700;">- ₱ <span
+                            <span style="color: #e63946; font-weight: 700; width: 65px; text-align: right;">- ₱ <span
                                     id="discountDisplay">0.00</span></span>
                         </div>
                     </div>
-                    <div class="pos-summary-row grand-total">
+
+                    <div
+                        style="display: flex; justify-content: space-between; font-size: 12px; color: #64748b; margin-bottom: 10px;">
+                        <span>VAT (12% inc.):</span>
+                        <span>₱ <span id="vatAmount">0.00</span></span>
+                    </div>
+
+                    <div class="pos-summary-row grand-total"
+                        style="padding-top: 10px; margin-top: 6px; border-top: 1px dashed #cbd5e1; margin-bottom: 12px;">
                         <span>Total Due:</span>
                         <span>₱ <span id="totalAmount">0.00</span></span>
                     </div>
 
-                    <button class="btn-create pos-proceed-btn" onclick="openPayment()">Proceed to Payment</button>
-                    <button class="pos-clear-btn" onclick="clearCart()">Clear Cart</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-create pos-proceed-btn" onclick="openPayment()"
+                            style="width: 100%; margin-bottom: 0; margin-top: 0; padding: 12px; font-size: 14px; border-radius: 6px; font-weight: bold;">Proceed
+                            to Payment</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -255,7 +265,7 @@
                             </div>
                             <div class="mb-10">
                                 <label for="plContactInfo" class="digital-label-blue" style="color: #664d03;">Contact
-                                    Number</label>
+                                    Number *</label>
                                 <input type="text" id="plContactInfo" placeholder="Enter contact" class="digital-input">
                             </div>
                             <div class="mb-10">
@@ -270,7 +280,7 @@
                             </div>
                             <div class="mb-10">
                                 <label for="plAddress" class="digital-label-blue"
-                                    style="color: #664d03;">Address</label>
+                                    style="color: #664d03;">Address *</label>
                                 <input type="text" id="plAddress" placeholder="Enter address" class="digital-input">
                             </div>
                             <div class="mb-10">
@@ -397,18 +407,19 @@
                     <h5 style="margin: 0; font-weight: bold;">SALES INVOICE</h5>
                     <p style="margin: 0; text-align: right;">TXN: <strong id="receipt-txn">---</strong></p>
                 </div>
-                <div style="text-align: left; margin-top: 4px;">
-                    <p style="margin: 0;">Date: <span id="receipt-date">---</span></p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                    <p style="margin: 0; text-align: left;">Cashier: <strong id="receipt-cashier">---</strong></p>
+                    <p style="margin: 0; text-align: right;">Date: <span id="receipt-date">---</span></p>
                 </div>
                 <div
-                    style="display: flex; flex-direction: column; align-items: flex-start; margin-top: 4px; margin-bottom: 10px;">
+                    style="display: flex; flex-direction: column; align-items: flex-start; margin-top: 2px; margin-bottom: 4px;">
                     <p style="margin: 0; text-align: left;" id="receipt-sold-to-row">Sold to: <strong
                             id="receipt-sold-to"></strong></p>
-                    <p style="margin: 2px 0 0; text-align: left;" id="receipt-tin-row">TIN: <strong
-                            id="receipt-tin"></strong></p>
-                    <p style="margin: 2px 0 0; text-align: left;" id="receipt-business-style-row">
+                    <p style="margin: 0; text-align: left;" id="receipt-tin-row">TIN: <strong id="receipt-tin"></strong>
+                    </p>
+                    <p style="margin: 0; text-align: left;" id="receipt-business-style-row">
                         Business Style: <strong id="receipt-business-style"></strong></p>
-                    <p style="margin: 2px 0 0; text-align: left;" id="receipt-address-row">Address:
+                    <p style="margin: 0; text-align: left;" id="receipt-address-row">Address:
                         <strong id="receipt-address"></strong>
                     </p>
                 </div>
@@ -438,7 +449,7 @@
             <div id="receipt-payment-section" class="receipt-payment-info"></div>
 
             <div id="receipt-customer-section"
-                style="display: none; border-top: 1px dashed #333; padding-top: 10px; margin-top: 10px; font-size: 12px; text-align: left;">
+                style="display: none; border-top: 1px dashed #333; padding-top: 4px; margin-top: 4px; font-size: 10px; text-align: left;">
                 <strong>Customer Details:</strong><br>
                 <span id="receipt-cust-name"></span><br>
                 <span id="receipt-cust-contact"></span>
@@ -447,26 +458,28 @@
 
             <!-- Signature Lines -->
             <div
-                style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 0px; font-size: 11px; text-align: center;">
-                <div style="margin-bottom: 20px; text-align: left;">
+                style="margin-top: 8px; border-top: 2px dashed #000; padding-top: 0; font-size: 9px; text-align: center;">
+                <div style="margin-bottom: 15px; text-align: left;">
                     <strong>Issued by:</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                     <div style="flex: 1;">
-                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 2px;"></div>
                         <strong>Received by</strong>
                     </div>
                     <div style="flex: 1;">
-                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 2px;"></div>
                         <strong>Cashier</strong>
                     </div>
                 </div>
             </div>
 
-            <div id="receipt-qr" class="receipt-qr-row" style="margin-top: 16px;">
+            <div id="receipt-qr" class="receipt-qr-row" style="margin-top: 8px;">
                 <div id="qrcode-canvas" class="qr-canvas-box"></div>
                 <div class="qr-text-col">
                     <span class="qr-scan-label">Scan for Refund/Exchange</span>
+                    <p style="margin: 0; font-size: 6px; text-align: left; font-style: italic;">Returns and exchanges
+                        accepted within 7 days. Original receipt required. Items must be in original condition.</p><br>
                     <p class="qr-thank-you">Thank you for purchasing at Udicon Trading!</p>
                 </div>
             </div>
@@ -516,12 +529,7 @@
         let scanQueue = [];
         let isProcessingScan = false;
 
-        function showToast(message, isError = false) {
-            const toast = el("toast");
-            toast.innerText = message;
-            toast.className = isError ? "show error" : "show";
-            setTimeout(() => { toast.className = toast.className.replace("show", "").replace("error", "").trim(); }, 3000);
-        }
+
 
         function updatePosTime() {
             if (el("posDateTime")) {
@@ -532,12 +540,7 @@
         setInterval(updatePosTime, 1000);
         updatePosTime();
 
-        function generateTransactionID(prefix = "UT") {
-            const now = new Date();
-            const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
-            const timePart = now.toTimeString().slice(0, 8).replace(/:/g, '');
-            return `${prefix}-${datePart}-${timePart}`;
-        }
+
 
         function setPosCategory(cat) {
             posCategory = cat;
@@ -734,6 +737,13 @@
                     el("barcodeInput").focus();
                 }
                 renderCart();
+
+                setTimeout(() => {
+                    const cartList = el("posCartList");
+                    if (cartList) {
+                        cartList.scrollTop = cartList.scrollHeight;
+                    }
+                }, 50);
             } catch (err) {
                 console.error("Error fetching product:", err);
                 showToast("Could not connect to the database.", true);
@@ -777,7 +787,7 @@
                             ₱${(item.price * item.qty).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
                         <td class="text-center" style="padding: 8px 12px; vertical-align: middle;">
-                            <button onclick="removeItem(${i})" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'" title="Remove Item">
+                            <button onclick="removeItem(${i})" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'" title="Remove Item">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                   <polyline points="3 6 5 6 21 6"></polyline>
                                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -977,7 +987,7 @@
             setTimeout(() => el("cashInput").focus(), 150);
         }
 
-        function closeModal(modalId) { el(modalId).style.display = "none"; }
+
 
         function calculateChange() {
             const total = parseFloat(el("modalTotal").innerText.replace(/,/g, ''));
@@ -1152,9 +1162,22 @@
 
             if (paymentMethod === "Pay Later") {
                 const customerName = el("plCustomerName").value.trim();
+                const contactInfo = el("plContactInfo").value.trim();
+                const address = el("plAddress").value.trim();
+
                 if (!customerName) {
                     showToast("Customer Name is required for Pay Later.", true);
                     el("plCustomerName").focus();
+                    return;
+                }
+                if (!contactInfo) {
+                    showToast("Contact Number is required for Pay Later.", true);
+                    el("plContactInfo").focus();
+                    return;
+                }
+                if (!address) {
+                    showToast("Address is required for Pay Later.", true);
+                    el("plAddress").focus();
                     return;
                 }
 
@@ -1216,7 +1239,8 @@
             const change = paymentMethod === "Pay Later" ? 0 : totalPaid - total;
             const adjustedCash = paymentMethod === "Pay Later" ? rawCash : rawCash - change;
 
-            const transactionID = generateTransactionID("UT");
+            let displayedTxnId = el("posTxnId") ? el("posTxnId").innerText.replace("Txn ID:", "").trim() : "";
+            const transactionID = displayedTxnId || generateTransactionID("UT");
             const confirmBtn = el("confirmBtn");
             confirmBtn.disabled = true;
             confirmBtn.innerText = "Processing...";
@@ -1271,6 +1295,9 @@
                     el("discountType").value = "fixed";
                     renderCart();
 
+                    // Generate and display a new Txn ID for the next transaction
+                    if (el("posTxnId")) el("posTxnId").innerText = "Txn ID: " + generateTransactionID("UT");
+
                     setTimeout(() => el("barcodeInput").focus(), 500);
 
                 } else {
@@ -1289,7 +1316,8 @@
         function generateDigitalReceipt(data) {
             // 1. Transaction Info
             el('receipt-txn').innerHTML = data.transactionId;
-            el('receipt-date').innerText = new Date(data.timestamp).toLocaleString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+            el('receipt-date').innerText = new Date(data.timestamp).toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric' });
+            if (el('receipt-cashier')) el('receipt-cashier').innerHTML = window.currentUserName || 'Sales Agent';
 
             // Sold To / Address — always show, leave blank if no data
             el('receipt-sold-to').innerText = data.customerName || '';
@@ -1629,34 +1657,7 @@
                 openPayment();
             }
         });
-        function printReceipt(containerId = 'printableReceipt') {
-            const receiptEl = document.getElementById(containerId || 'printableReceipt');
-            if (!receiptEl) return;
-            const printWin = window.open('', '_blank', 'width=400,height=800');
-            printWin.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Receipt</title>
-                    <link rel="stylesheet" href="../style.css">
-                    <style>
-                        @page { size: 80mm auto; margin: 4mm; }
-                        body { background: white; margin: 0; padding: 0; display: flex; justify-content: center; }
-                        .receipt-container { box-shadow: none; margin-top: 0; }
-                        .no-print { display: none !important; }
-                    </style>
-                </head>
-                <body onload="setTimeout(() => { window.print(); window.close(); }, 150);">
-                    <div id="receiptModal">
-                        ${receiptEl.outerHTML}
-                    </div>
-                </body>
-                </html>
-            `);
-            printWin.document.close();
-            printWin.focus();
-        }
+
     </script>
 </body>
 

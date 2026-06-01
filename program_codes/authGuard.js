@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             window.currentUserRole = userRole;
             window.availableRoles = availableRoles;
+            window.currentUserName = data.name;
 
             renderSidebar(data.name, userRole, availableRoles);
             setupLogoutButton();

@@ -14,8 +14,8 @@
                 <div style="margin-top:12px;">
                     <!-- Category Block -->
                     <div>
-                        <label class="label-bold label-sm" style="display:block; margin-bottom:6px;">Category</label>
-                        <div class="category-pills" id="categoryPills">
+                        <div class="category-pills" id="categoryPills" style="align-items:center;">
+                            <label class="label-bold label-sm" style="margin:0; margin-right:4px;">Category</label>
                             <button class="category-pill active" data-cat="All" onclick="setPlmCategory('All')">All</button>
                             <button class="category-pill" data-cat="Tools" onclick="setPlmCategory('Tools')">Tools</button>
                             <button class="category-pill" data-cat="Cement" onclick="setPlmCategory('Cement')">Cement</button>
@@ -32,9 +32,9 @@
                     </div>
 
                     <!-- Sort Block -->
-                    <div style="margin-top:12px; display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
-                        <label class="label-bold label-sm" style="margin:0;">Sort By</label>
-                        <div class="category-pills" id="sortPills">
+                    <div style="margin-top:12px;">
+                        <div class="category-pills" id="sortPills" style="align-items:center;">
+                            <label class="label-bold label-sm" style="margin:0; margin-right:4px;">Sort By</label>
                             <button class="category-pill active" data-sort="name-asc" onclick="setPlmSort('name-asc')">Name A-Z</button>
                             <button class="category-pill" data-sort="name-desc" onclick="setPlmSort('name-desc')">Name Z-A</button>
                             <button class="category-pill" data-sort="price-asc" onclick="setPlmSort('price-asc')">Price ↑</button>
