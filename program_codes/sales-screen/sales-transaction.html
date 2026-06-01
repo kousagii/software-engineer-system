@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -279,8 +279,8 @@
                                     class="digital-input">
                             </div>
                             <div class="mb-10">
-                                <label for="plAddress" class="digital-label-blue"
-                                    style="color: #664d03;">Address *</label>
+                                <label for="plAddress" class="digital-label-blue" style="color: #664d03;">Address
+                                    *</label>
                                 <input type="text" id="plAddress" placeholder="Enter address" class="digital-input">
                             </div>
                             <div class="mb-10">
@@ -389,8 +389,8 @@
                 </div>
 
                 <div class="flex-gap-10">
-                    <button id="confirmBtn" class="btn-confirm" onclick="confirmPayment()">Confirm Payment</button>
                     <button class="btn-cancel-large" onclick="closeModal('paymentModal')">Cancel</button>
+                    <button id="confirmBtn" class="btn-confirm" onclick="confirmPayment()">Confirm Payment</button>
                 </div>
             </div>
         </div>
@@ -407,21 +407,10 @@
                     <h5 style="margin: 0; font-weight: bold;">SALES INVOICE</h5>
                     <p style="margin: 0; text-align: right;">TXN: <strong id="receipt-txn">---</strong></p>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; margin-bottom: 8px;">
                     <p style="margin: 0; text-align: left;">Cashier: <strong id="receipt-cashier">---</strong></p>
                     <p style="margin: 0; text-align: right;">Date: <span id="receipt-date">---</span></p>
-                </div>
-                <div
-                    style="display: flex; flex-direction: column; align-items: flex-start; margin-top: 2px; margin-bottom: 4px;">
-                    <p style="margin: 0; text-align: left;" id="receipt-sold-to-row">Sold to: <strong
-                            id="receipt-sold-to"></strong></p>
-                    <p style="margin: 0; text-align: left;" id="receipt-tin-row">TIN: <strong id="receipt-tin"></strong>
-                    </p>
-                    <p style="margin: 0; text-align: left;" id="receipt-business-style-row">
-                        Business Style: <strong id="receipt-business-style"></strong></p>
-                    <p style="margin: 0; text-align: left;" id="receipt-address-row">Address:
-                        <strong id="receipt-address"></strong>
-                    </p>
                 </div>
                 <p style="text-align: left; margin: 0;">MOP: <strong id="receipt-method">---</strong></p>
             </div>
@@ -449,11 +438,15 @@
             <div id="receipt-payment-section" class="receipt-payment-info"></div>
 
             <div id="receipt-customer-section"
-                style="display: none; border-top: 1px dashed #333; padding-top: 4px; margin-top: 4px; font-size: 10px; text-align: left;">
-                <strong>Customer Details:</strong><br>
-                <span id="receipt-cust-name"></span><br>
-                <span id="receipt-cust-contact"></span>
-                <span id="receipt-cust-address"></span>
+                style="display: block; border-top: 1px dashed #333; padding-top: 6px; margin-top: 6px; font-size: 10px; text-align: left;">
+                <strong>Customer Details:</strong>
+                <div style="margin-top: 4px; line-height: 1.3;">
+                    <div>Name: <span id="receipt-cust-name"></span></div>
+                    <div>Contact: <span id="receipt-cust-contact"></span></div>
+                    <div>TIN: <span id="receipt-cust-tin"></span></div>
+                    <div>Business Style: <span id="receipt-cust-business"></span></div>
+                    <div>Address: <span id="receipt-cust-address"></span></div>
+                </div>
             </div>
 
             <!-- Signature Lines -->
@@ -1319,11 +1312,12 @@
             el('receipt-date').innerText = new Date(data.timestamp).toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric' });
             if (el('receipt-cashier')) el('receipt-cashier').innerHTML = window.currentUserName || 'Sales Agent';
 
-            // Sold To / Address — always show, leave blank if no data
-            el('receipt-sold-to').innerText = data.customerName || '';
-            el('receipt-tin').innerText = data.tin || '';
-            el('receipt-business-style').innerText = data.businessStyle || '';
-            el('receipt-address').innerText = data.address || '';
+            // Populate Customer Details at the bottom
+            el('receipt-cust-name').innerText = data.customerName || 'N/A';
+            el('receipt-cust-contact').innerText = data.contactInfo || 'N/A';
+            el('receipt-cust-tin').innerText = data.tin || 'N/A';
+            el('receipt-cust-business').innerText = data.businessStyle || 'N/A';
+            el('receipt-cust-address').innerText = data.address || 'N/A';
 
             let methodText = data.paymentMethod;
             if (data.rawCash > 0 && data.digitalAmount > 0) {
@@ -1397,9 +1391,9 @@
 
             el('receipt-payment-section').innerHTML = paymentDetailsHTML;
 
-            // Optional Customer Details - Removed because it's now shown in the receipt header (Sold to / Address)
+            // Customer details are now permanently shown at the bottom
             const custSection = el('receipt-customer-section');
-            if (custSection) custSection.style.display = 'none';
+            if (custSection) custSection.style.display = 'block';
 
             // 5. QR Code Generation
             const qrContainer = document.getElementById("qrcode-canvas");

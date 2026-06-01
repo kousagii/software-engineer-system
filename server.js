@@ -1993,16 +1993,25 @@ app.get('/api/dashboard/pay-later', (req, res) => {
             st.transactionCode,
             st.customerName,
             st.contactInfo,
+            st.address,
             st.totalAmount,
             st.cashReceived,
             st.digitalAmount,
             st.paymentStatus,
             st.dueDate,
-            st.transDateTime
+            st.transDateTime,
+            (SELECT MIN(pl.dueDate) FROM payment_log pl 
+             WHERE pl.transactionCode = st.transactionCode 
+             AND pl.paymentType = 'Installment' AND pl.status != 'Paid') AS nextInstallmentDue
         FROM sales_transaction st
         WHERE st.paymentStatus IN ('Unpaid', 'Partial')
-        ORDER BY st.transDateTime DESC
-        LIMIT 10
+        ORDER BY COALESCE(
+            (SELECT MIN(pl2.dueDate) FROM payment_log pl2 
+             WHERE pl2.transactionCode = st.transactionCode 
+             AND pl2.paymentType = 'Installment' AND pl2.status != 'Paid'),
+            st.dueDate,
+            st.transDateTime
+        ) ASC
     `;
     db.query(sql, (err, results) => {
         if (err) {
@@ -2097,7 +2106,8 @@ app.get('/api/transactions/:id/installments', (req, res) => {
     const sql = `
         SELECT 
             i.paymentID as scheduleID, i.transactionCode, i.dueDate, i.amountDue, 
-            i.status, i.paymentDate as paidDate, i.paymentMethod, i.referenceNumber
+            i.status, i.paymentDate as paidDate, i.paymentMethod, i.referenceNumber,
+            i.cashAmount, i.digitalAmount
         FROM payment_log i
         JOIN sales_transaction st ON i.transactionCode = st.transactionCode
         WHERE st.transactionID = ? AND i.paymentType = 'Installment'

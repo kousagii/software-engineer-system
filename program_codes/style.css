@@ -1237,6 +1237,7 @@ button:disabled,
 /* RECEIPT & FONTS */
 .font-receipt,
 .receipt-container {
+
     font-family: 'Arial Narrow', Arial, Helvetica, sans-serif;
 }
 
