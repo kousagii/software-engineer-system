@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Refund / Exchange | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="sales-shared.js"></script>
 </head>
 
 <body>
@@ -143,7 +143,7 @@
                 <label class="d-block mb-5">Payment Method</label>
                 <select id="paymentMode" class="payment-select" onchange="handlePaymentMode()">
                     <option value="Cash">Cash</option>
-                    <option value="GCash">GCash</option>
+                    <option value="E-wallet">E-wallet</option>
                     <option value="Bank Transfer">Bank Transfer</option>
                 </select>
             </div>
@@ -207,10 +207,11 @@
                 <div style="text-align: right; margin: 0;">
                     <p style="margin: 0;">Orig: <strong id="receipt-orig-txn">---</strong></p>
                 </div>
-                <div style="text-align: left; margin-top: 4px;">
-                    <p style="margin: 0;">Date: <span id="receipt-date">---</span></p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                    <p style="margin: 0; text-align: left;">Cashier: <strong id="receipt-cashier">---</strong></p>
+                    <p style="margin: 0; text-align: right;">Date: <span id="receipt-date">---</span></p>
                 </div>
-                <p style="text-align: left; margin: 8px 0 0;">MOP: <strong id="receipt-method">---</strong></p>
+                <p style="text-align: left; margin: 4px 0 0;">MOP: <strong id="receipt-method">---</strong></p>
             </div>
 
             <table class="receipt-items w-full">
@@ -239,28 +240,32 @@
 
             <!-- Signature Lines -->
             <div
-                style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 0px; font-size: 11px; text-align: center;">
-                <div style="margin-bottom: 20px; text-align: left;">
+                style="margin-top: 8px; border-top: 2px dashed #000; padding-top: 0px; font-size: 9px; text-align: center;">
+                <div style="margin-bottom: 15px; text-align: left;">
                     <strong>Issued by:</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                     <div style="flex: 1;">
-                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 2px;"></div>
                         <strong>Received by</strong>
                     </div>
                     <div style="flex: 1;">
-                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 2px;"></div>
                         <strong>Cashier</strong>
                     </div>
                 </div>
             </div>
 
-            <div id="receipt-qr" class="receipt-qr-row" style="margin-top: 16px;">
+            <div id="receipt-qr" class="receipt-qr-row" style="margin-top: 8px;">
                 <div id="qrcode-canvas" class="qr-canvas-box"></div>
                 <div class="qr-text-col">
                     <span class="qr-scan-label">Scan for Refund/Exchange</span>
                     <p class="qr-thank-you">Thank you for purchasing at Udicon Trading!</p>
                 </div>
+            </div>
+            
+            <div style="margin-top: 6px; text-align: center; border-top: 1px dashed #000; padding-top: 4px; font-size: 8px;">
+                <p style="margin: 0; font-style: italic; color: #333;">Returns and exchanges accepted within 7 days. Original receipt required. Items must be in original condition.</p>
             </div>
 
             <div class="no-print flex-col-gap-10 mt-15">
@@ -430,13 +435,6 @@
             return `${shortCode} (Orig: ${originalCode})`;
         }
 
-        function showToast(msg, isError = false) {
-            const toast = ui("toast");
-            toast.innerText = msg;
-            toast.className = "show" + (isError ? " error" : "");
-            setTimeout(() => { toast.className = ""; }, 3000);
-        }
-
         function setMode(m) {
             currentMode = m;
             document.querySelector(`input[name="mode"][value="${m}"]`).checked = true;
@@ -600,7 +598,7 @@
             }));
         }
 
-        function closeModal(id) { ui(id).style.display = 'none'; }
+
         function openModal(id) {
             ui(id).style.display = 'flex';
             setTimeout(() => {
@@ -718,9 +716,11 @@
 
         // --- 4. RECEIPT & QR GENERATION ---
         function showFinalReceipt(displayCode, shortCode, data) {
-            ui("receipt-txn").innerText = shortCode;
-            ui("receipt-orig-txn").innerText = data.originalTxnCode;
-            ui("receipt-date").innerText = new Date().toLocaleString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+            ui('receipt-txn').innerText = shortCode;
+            ui('receipt-orig-txn').innerText = data.originalTxnCode || 'N/A';
+            ui('receipt-date').innerText = new Date().toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric' });
+            if (ui('receipt-cashier')) ui('receipt-cashier').innerText = window.currentUserName || 'Sales Agent';
+
             ui("receipt-type-label").innerText = data.mode.toUpperCase() + " RECEIPT";
             ui("receipt-method").innerText = data.paymentMethod;
 
@@ -800,34 +800,7 @@
                 addExchangeItem();
             }
         });
-        function printReceipt(containerId = 'printableReceipt') {
-            const receiptEl = document.getElementById(containerId || 'printableReceipt');
-            if (!receiptEl) return;
-            const printWin = window.open('', '_blank', 'width=400,height=800');
-            printWin.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Receipt</title>
-                    <link rel="stylesheet" href="../style.css">
-                    <style>
-                        @page { size: 80mm auto; margin: 4mm; }
-                        body { background: white; margin: 0; padding: 0; display: flex; justify-content: center; }
-                        .receipt-container { box-shadow: none; margin-top: 0; }
-                        .no-print { display: none !important; }
-                    </style>
-                </head>
-                <body onload="setTimeout(() => { window.print(); window.close(); }, 150);">
-                    <div id="receiptModal">
-                        ${receiptEl.outerHTML}
-                    </div>
-                </body>
-                </html>
-            `);
-            printWin.document.close();
-            printWin.focus();
-        }
+
     </script>
 </body>
 

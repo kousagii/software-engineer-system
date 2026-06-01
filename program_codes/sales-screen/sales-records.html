@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales History | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="sales-shared.js"></script>
 </head>
 
 <body>
@@ -147,6 +147,16 @@
                         </select>
                     </div>
                     <div class="toolbar-group">
+                        <label for="filterPaymentMethod" style="margin:0; font-size:13px; white-space:nowrap;">Method:</label>
+                        <select id="filterPaymentMethod" onchange="applyFilters()" style="margin:0; width:auto;">
+                            <option value="all">All</option>
+                            <option value="Cash">Cash</option>
+                            <option value="E-wallet">E-wallet</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Pay Later">Pay Later</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-group">
                         <label for="filterDateFrom" style="margin:0; font-size:13px; white-space:nowrap;">From:</label>
                         <input type="date" id="filterDateFrom" onchange="applyFilters()" style="margin:0; width:auto;">
                         <label for="filterDateTo"
@@ -206,19 +216,20 @@
                 </div>
                 <p id="hist-receipt-orig-row" style="display:none; text-align: right; margin: 0;">Orig: <strong
                         id="hist-receipt-orig">---</strong></p>
-                <div style="text-align: left; margin-top: 4px;">
-                    <p style="margin: 0;">Date: <span id="hist-receipt-date">---</span></p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                    <p style="margin: 0; text-align: left;">Cashier: <strong id="hist-receipt-cashier">---</strong></p>
+                    <p style="margin: 0; text-align: right;">Date: <span id="hist-receipt-date">---</span></p>
                 </div>
                 <div
-                    style="display: flex; flex-direction: column; align-items: flex-start; margin-top: 4px; margin-bottom: 10px;">
+                    style="display: flex; flex-direction: column; align-items: flex-start; margin-top: 2px; margin-bottom: 4px;">
                     <p style="margin: 0; text-align: left;" id="hist-receipt-sold-to-row">Sold to: <strong
                             id="hist-receipt-sold-to"></strong></p>
-                    <p style="margin: 2px 0 0; text-align: left;" id="hist-receipt-tin-row">TIN: <strong
+                    <p style="margin: 0; text-align: left;" id="hist-receipt-tin-row">TIN: <strong
                             id="hist-receipt-tin"></strong></p>
-                    <p style="margin: 2px 0 0; text-align: left;" id="hist-receipt-business-style-row">Business Style:
+                    <p style="margin: 0; text-align: left;" id="hist-receipt-business-style-row">Business Style:
                         <strong id="hist-receipt-business-style"></strong>
                     </p>
-                    <p style="margin: 2px 0 0; text-align: left;" id="hist-receipt-address-row">Address: <strong
+                    <p style="margin: 0; text-align: left;" id="hist-receipt-address-row">Address: <strong
                             id="hist-receipt-address"></strong></p>
                 </div>
                 <p style="text-align: left; margin: 0;">MOP: <strong id="hist-receipt-method">---</strong></p>
@@ -249,7 +260,7 @@
             <div id="hist-receipt-payment-section" class="receipt-payment-info"></div>
 
             <div id="hist-receipt-customer-section"
-                style="display: none; border-top: 1px dashed #333; padding-top: 10px; margin-top: 10px; font-size: 12px; text-align: left;">
+                style="display: none; border-top: 1px dashed #333; padding-top: 4px; margin-top: 4px; font-size: 10px; text-align: left;">
                 <strong>Customer Details:</strong><br>
                 <span id="hist-receipt-cust-name"></span><br>
                 <span id="hist-receipt-cust-contact"></span>
@@ -258,28 +269,32 @@
 
             <!-- Signature Lines -->
             <div
-                style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 0px; font-size: 11px; text-align: center;">
-                <div style="margin-bottom: 20px; text-align: left;">
+                style="margin-top: 8px; border-top: 2px dashed #000; padding-top: 0px; font-size: 9px; text-align: center;">
+                <div style="margin-bottom: 15px; text-align: left;">
                     <strong>Issued by:</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                     <div style="flex: 1;">
-                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 2px;"></div>
                         <strong>Received by</strong>
                     </div>
                     <div style="flex: 1;">
-                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 2px;"></div>
                         <strong>Cashier</strong>
                     </div>
                 </div>
             </div>
 
-            <div class="receipt-qr-row" style="margin-top: 16px;">
+            <div class="receipt-qr-row" style="margin-top: 8px;">
                 <div id="qrcode-canvas" class="qr-canvas-box"></div>
                 <div class="qr-text-col">
                     <span class="qr-scan-label">Scan for Refund/Exchange</span>
                     <p class="qr-thank-you">Thank you for purchasing at Udicon Trading!</p>
                 </div>
+            </div>
+            
+            <div style="margin-top: 6px; text-align: center; border-top: 1px dashed #000; padding-top: 4px; font-size: 8px;">
+                <p style="margin: 0; font-style: italic; color: #333;">Returns and exchanges accepted within 7 days. Original receipt required. Items must be in original condition.</p>
             </div>
 
             <div class="no-print flex-col-gap-10 mt-15">
@@ -301,8 +316,9 @@
                     <h5 style="margin: 0; font-weight: bold;">PAYMENT SETTLEMENT</h5>
                     <p style="margin: 0; text-align: right;">TXN: <strong id="sr-txn">---</strong></p>
                 </div>
-                <div style="text-align: left; margin-top: 4px;">
-                    <p style="margin: 0;">Date: <span id="sr-date">---</span></p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                    <p style="margin: 0; text-align: left;">Cashier: <strong id="sr-cashier">---</strong></p>
+                    <p style="margin: 0; text-align: right;">Date: <span id="sr-date">---</span></p>
                 </div>
             </div>
 
@@ -320,23 +336,23 @@
 
             <!-- Signature Lines -->
             <div
-                style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 0px; font-size: 11px; text-align: center;">
-                <div style="margin-bottom: 20px; text-align: left;">
+                style="margin-top: 8px; border-top: 2px dashed #000; padding-top: 0px; font-size: 9px; text-align: center;">
+                <div style="margin-bottom: 15px; text-align: left;">
                     <strong>Issued by:</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                     <div style="flex: 1;">
-                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 2px;"></div>
                         <strong>Received by</strong>
                     </div>
                     <div style="flex: 1;">
-                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 4px;"></div>
+                        <div style="border-bottom: 1px solid #000; width: 80%; margin: 0 auto 2px;"></div>
                         <strong>Cashier</strong>
                     </div>
                 </div>
             </div>
 
-            <div class="receipt-qr-row" style="margin-top: 16px;">
+            <div class="receipt-qr-row" style="margin-top: 8px;">
                 <div class="qr-text-col" style="text-align: center; width: 100%;">
                     <p class="qr-thank-you">Thank you for your payment!</p>
                 </div>
@@ -393,7 +409,7 @@
                         <select id="instPayMode" class="payment-select" onchange="handleInstPayMode()"
                             style="width: 100%;">
                             <option value="Cash">Cash</option>
-                            <option value="GCash">GCash</option>
+                            <option value="E-wallet">E-wallet</option>
                             <option value="Bank Transfer">Bank Transfer</option>
                         </select>
                     </div>
@@ -446,7 +462,7 @@
                     <label for="settlePaymentMode" class="d-block mb-5">Payment Method</label>
                     <select id="settlePaymentMode" class="payment-select" onchange="handleSettleMode()">
                         <option value="Cash">Cash</option>
-                        <option value="GCash">GCash</option>
+                        <option value="E-wallet">E-wallet</option>
                         <option value="Bank Transfer">Bank Transfer</option>
                     </select>
                 </div>
@@ -512,12 +528,7 @@
         let currentPage = 1;
         const perPage = 15;
 
-        function showToast(message, isError = false) {
-            const toast = el("toast");
-            toast.innerText = message;
-            toast.className = isError ? "show error" : "show";
-            setTimeout(() => { toast.className = toast.className.replace("show", "").replace("error", "").trim(); }, 3000);
-        }
+
 
         async function loadTransactions() {
             try {
@@ -587,6 +598,7 @@
 
         function applyFilters() {
             const statusFilter = el("filterStatus").value;
+            const methodFilter = el("filterPaymentMethod").value;
             const dateFrom = el("filterDateFrom").value;
             const dateTo = el("filterDateTo").value;
             const searchTerm = el("searchInput").value.trim().toLowerCase();
@@ -597,6 +609,15 @@
                     if (txn.paymentStatus !== 'Unpaid' && txn.paymentStatus !== 'Partial') return false;
                 } else if (statusFilter !== 'all' && txn.paymentStatus !== statusFilter) {
                     return false;
+                }
+
+                // Payment method filter
+                if (methodFilter !== 'all') {
+                    if (methodFilter === 'Pay Later') {
+                        if (txn.paymentMethod !== 'Pay Later') return false;
+                    } else if ((txn.paymentMethod || '') !== methodFilter) {
+                        return false;
+                    }
                 }
 
                 // Date filter
@@ -781,12 +802,6 @@
             }
         }
 
-
-
-        function closeModal(modalId) {
-            el(modalId).style.display = "none";
-        }
-
         // Keyboard shortcuts
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
@@ -841,7 +856,8 @@
 
                 el('hist-receipt-type').textContent = typeLabel;
                 el('hist-receipt-txn').textContent = shortCode;
-                el('hist-receipt-date').textContent = new Date(txn.transDateTime).toLocaleString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+                el('hist-receipt-date').textContent = new Date(txn.transDateTime).toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric' });
+                if (el('hist-receipt-cashier')) el('hist-receipt-cashier').textContent = txn.cashier || 'Sales Agent';
 
                 // Payment method display
                 let displayMethod = txn.paymentMethod || '—';
@@ -1084,12 +1100,16 @@
         }
 
         function startInstPayment(scheduleId, num, amount) {
+            const currentBalText = el("settleBalance").innerText.replace(/,/g, '');
+            const currentBal = parseFloat(currentBalText) || 0;
+            const finalAmount = Math.min(amount, currentBal);
+
             el("instPayScheduleId").value = scheduleId;
             el("instPayNum").textContent = num;
-            el("instPayAmount").textContent = parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2 });
-            el("instPayAmountVal").value = amount;
+            el("instPayAmount").textContent = finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            el("instPayAmountVal").value = finalAmount;
             el("instPayMode").value = "Cash";
-            el("instCashAmount").value = parseFloat(amount).toFixed(2);
+            el("instCashAmount").value = finalAmount.toFixed(2);
             el("instDigitalAmount").value = "";
             el("instReference").value = "";
             el("instCashGiven").value = "";
@@ -1275,34 +1295,7 @@
             el("searchInput").focus();
         });
 
-        function printReceipt(containerId = 'printableReceipt') {
-            const receiptEl = document.getElementById(containerId || 'printableReceipt');
-            if (!receiptEl) return;
-            const printWin = window.open('', '_blank', 'width=400,height=800');
-            printWin.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Receipt</title>
-                    <link rel="stylesheet" href="../style.css">
-                    <style>
-                        @page { size: 80mm auto; margin: 4mm; }
-                        body { background: white; margin: 0; padding: 0; display: flex; justify-content: center; }
-                        .receipt-container { box-shadow: none; margin-top: 0; }
-                        .no-print { display: none !important; }
-                    </style>
-                </head>
-                <body onload="setTimeout(() => { window.print(); window.close(); }, 150);">
-                    <div id="receiptModal">
-                        ${receiptEl.outerHTML}
-                    </div>
-                </body>
-                </html>
-            `);
-            printWin.document.close();
-            printWin.focus();
-        }
+
     </script>
 </body>
 
