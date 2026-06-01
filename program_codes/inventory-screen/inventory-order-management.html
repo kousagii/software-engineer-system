@@ -613,6 +613,29 @@
             // Wait for DOM insertion before initializing TomSelect
             setTimeout(() => {
                 updateItemSelectOptions();
+
+                if (selectedProductId) {
+                    const exists = Array.from(sel.options).some(o => o.value === String(selectedProductId));
+                    if (!exists) {
+                        let pName = "Unknown Product";
+                        let uCost = 0;
+                        if (currentEditId) {
+                            const order = orders.find(x => x.orderID == currentEditId);
+                            if (order) {
+                                const item = (order.items || []).find(x => String(x.productID) === String(selectedProductId));
+                                if (item) {
+                                    pName = item.productName || "Archived Product";
+                                    uCost = item.unitCost || 0;
+                                }
+                            }
+                        }
+                        const opt = document.createElement('option');
+                        opt.value = String(selectedProductId);
+                        opt.textContent = `${pName} [Archived/Removed]`;
+                        sel.appendChild(opt);
+                    }
+                }
+
                 const ts = new TomSelect('#' + selId, {
                     create: false,
                     dropdownParent: 'body'
@@ -861,7 +884,7 @@
         function renderTable(data) {
             $('orders-table-body').innerHTML = data.map(o => {
                 const totalQty = (o.items || []).reduce((s, it) => s + (parseInt(it.qty) || 0), 0);
-                const productsStr = encodeURIComponent(JSON.stringify((o.items || []).map(it => ({ name: it.productName, qty: it.qty }))));
+                const productsStr = encodeURIComponent(JSON.stringify((o.items || []).map(it => ({ name: it.productName, qty: it.qty })))).replace(/'/g, '%27');
                 const productsHtml = `<button class="btn-view" onclick="viewOrderProducts('${productsStr}')">View</button>`;
                 const statusClass = 'status-' + (o.status || 'To Order').toLowerCase().replace(' ', '-');
 

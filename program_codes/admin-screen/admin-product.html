@@ -54,7 +54,9 @@
             <!-- Single Preview -->
             <div id="singlePreviewContainer" class="barcode-preview-container" style="display:none;">
                 <div id="barcodePreviewArea" class="barcode-label">
-                    <div id="barcodeProdName" class="barcode-prod-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0;">Product Name</div>
+                    <div id="barcodeProdName" class="barcode-prod-name"
+                        style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0;">
+                        Product Name</div>
                     <svg id="barcodeTarget" class="barcode-target"></svg>
                 </div>
             </div>
@@ -145,7 +147,7 @@
                         </select>
                         <label class="m-0">Sort</label>
                         <select id="sortMode" class="m-0">
-                            <option value="default">Default</option>
+                            <option value="default">Newest First</option>
                             <option value="az">Name: A-Z</option>
                             <option value="za">Name: Z-A</option>
                             <option value="priceLowHigh">Price: Low to High</option>
@@ -250,7 +252,7 @@
                         <div>
                             <label>Low Stock Threshold</label>
                             <input type="number" id="prodLowStock" placeholder="10" value="10" min="0"
-                                oninput="updatePreview()">
+                                oninput="updatePreview(); propagateBaseLowStock()">
                             <p id="threshold-hint"
                                 style="display:none; margin:4px 0 0; font-size:0.78rem; color:#6b7280; line-height:1.4;">
                             </p>
@@ -297,6 +299,7 @@
                                             <th>Stock</th>
                                             <th>Purchase (₱)</th>
                                             <th>Selling (₱)</th>
+                                            <th>Low Stock</th>
                                             <th class="center-text">Action</th>
                                         </tr>
                                     </thead>
@@ -573,7 +576,7 @@
                 formattedVariation = ' - ' + variationStr.split(/\s+/).map((w, idx) => {
                     if (/\d/.test(w)) return w;
                     if (idx === 0) return toTitleCase(w);
-                    
+
                     if (useInitials) {
                         return w.charAt(0).toUpperCase() + '.';
                     } else {
@@ -808,6 +811,32 @@
                     hint.style.display = 'block';
                 }
             } catch (e) { }
+        }
+
+        async function fetchThresholdSuggestionsForVariants(siblings) {
+            const hint = $('threshold-hint');
+            if (!hint) return;
+            hint.style.display = 'none';
+            hint.innerHTML = '';
+            let html = '';
+            
+            for (const sibling of siblings) {
+                try {
+                    const res = await fetch(`/api/products/${sibling.productID}/suggest-threshold`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.suggested !== undefined) {
+                            const nameParts = sibling.productName.split(' - ');
+                            const variantSuffix = nameParts.length > 1 ? nameParts.slice(1).join(' - ') : sibling.productName;
+                            html += `<div style="margin-top: 4px;"><strong>${variantSuffix}:</strong> Suggested: ${data.suggested} units — ${data.reason}</div>`;
+                        }
+                    }
+                } catch (e) {}
+            }
+            if (html) {
+                hint.innerHTML = html;
+                hint.style.display = 'block';
+            }
         }
 
 
@@ -1095,6 +1124,7 @@
             const baseStock = parseInt(val('prodStock')) || 25;
             const baseInitialPrice = parseFloat(val('prodInitialPrice')) || 0;
             const basePrice = parseFloat(val('prodPrice')) || 0;
+            const baseLowStock = parseInt(val('prodLowStock')) || 10;
 
             let addedCount = 0;
             combinations.forEach((combo, index) => {
@@ -1128,6 +1158,9 @@
                     <td>
                         <input type="number" class="variant-price-input w-90" value="${basePrice}" min="0" step="0.01" oninput="updatePreview()">
                     </td>
+                    <td>
+                        <input type="number" class="variant-lowstock-input w-70" value="${baseLowStock}" min="0" oninput="updatePreview()">
+                    </td>
                     <td class="center-text">
                         <button type="button" class="btn-danger-sm btn-icon-sm" onclick="removeCombinationRow(this)" title="Archive Variant">✕</button>
                     </td>
@@ -1140,13 +1173,14 @@
             updatePreview();
         }
 
-        function addCustomCombinationRow(variantValue = '', existingBarcode = null, existingStock = null, existingInitPrice = null, existingPrice = null, productId = null) {
+        function addCustomCombinationRow(variantValue = '', existingBarcode = null, existingStock = null, existingInitPrice = null, existingPrice = null, existingLowStock = null, productId = null) {
             const tbody = $('combinations-tbody');
             const index = tbody.querySelectorAll('tr').length;
             const barcode = existingBarcode !== null ? existingBarcode : generateUniqueLocalBarcode(index);
             const baseStock = existingStock !== null ? existingStock : (parseInt(val('prodStock')) || 25);
             const baseInitialPrice = existingInitPrice !== null ? existingInitPrice : (parseFloat(val('prodInitialPrice')) || 0);
             const basePrice = existingPrice !== null ? existingPrice : (parseFloat(val('prodPrice')) || 0);
+            const baseLowStock = existingLowStock !== null ? existingLowStock : (parseInt(val('prodLowStock')) || 10);
 
             const row = document.createElement('tr');
             row.className = 'combination-row';
@@ -1173,6 +1207,9 @@
                 </td>
                 <td>
                     <input type="number" class="variant-price-input w-90" value="${basePrice}" min="0" step="0.01" oninput="updatePreview()">
+                </td>
+                <td>
+                    <input type="number" class="variant-lowstock-input w-70" value="${baseLowStock}" min="0" oninput="updatePreview()">
                 </td>
                 <td class="center-text">
                     <button type="button" class="btn-danger-sm btn-icon-sm" onclick="removeCombinationRow(this)">✕</button>
@@ -1237,8 +1274,9 @@
                 const stockInput = row.querySelector('.variant-stock-input');
                 const initPriceInput = row.querySelector('.variant-init-price-input');
                 const priceInput = row.querySelector('.variant-price-input');
+                const lowStockInput = row.querySelector('.variant-lowstock-input');
 
-                if (value && bcInput && stockInput && initPriceInput && priceInput) {
+                if (value && bcInput && stockInput && initPriceInput && priceInput && lowStockInput) {
                     const productId = row.getAttribute('data-product-id') || null;
                     const state = variantStockState.get(row);
                     const reason = state && state.unlocked ? state.reason : null;
@@ -1250,6 +1288,7 @@
                         stock: parseInt(stockInput.value) || 0,
                         initialPrice: parseFloat(initPriceInput.value) || 0,
                         price: parseFloat(priceInput.value) || 0,
+                        lowStock: parseInt(lowStockInput.value) || 10,
                         stockAdjustReason: reason
                     });
                 }
@@ -1283,6 +1322,16 @@
             const basePrice = val('prodPrice') || 0;
             document.querySelectorAll('.variant-price-input').forEach(input => {
                 input.value = basePrice;
+            });
+            updatePreview();
+        }
+
+        function propagateBaseLowStock() {
+            const isVarEnabled = $('varModeMulti') && $('varModeMulti').checked;
+            if (!isVarEnabled) return;
+            const baseLow = val('prodLowStock') || 10;
+            document.querySelectorAll('.variant-lowstock-input').forEach(input => {
+                input.value = baseLow;
             });
             updatePreview();
         }
@@ -1347,8 +1396,8 @@
                         val('prodDescription', p.productDescription || '');
                         val('prodLowStock', p.lowStockThreshold !== undefined && p.lowStockThreshold !== null ? p.lowStockThreshold : 10);
 
-                        // Load threshold suggestion for variant group using first sibling's ID
-                        fetchThresholdSuggestion(siblings[0].productID);
+                        // Load threshold suggestion for variant group
+                        fetchThresholdSuggestionsForVariants(siblings);
 
                         // Use first sibling's price/stock as base hints
                         val('prodStock', siblings[0].stockQuantity || 0);
@@ -1387,6 +1436,7 @@
                                 sibling.stockQuantity,
                                 sibling.initialPrice || 0,
                                 sibling.price,
+                                sibling.lowStockThreshold !== undefined ? sibling.lowStockThreshold : 10,
                                 sibling.productID
                             );
                         });
@@ -1733,7 +1783,7 @@
                     initialPrice: row.initialPrice,
                     brand: brand,
                     productDescription: desc,
-                    lowStockThreshold: lowStock,
+                    lowStockThreshold: row.lowStock,
                     variantOptions: variantOptionsStr,
                     ...(row.stockAdjustReason ? { stockAdjustReason: row.stockAdjustReason } : {})
                 }));
