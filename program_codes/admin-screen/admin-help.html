@@ -26,21 +26,21 @@
                 
 <label class="filter-label filter-label-spaced">User Management</label>
 <div class="filter-options">
-    <span class="sub-text">Creating Users</span><br>
-    <span class="sub-text">Role Management</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Creating Users</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Role Management</span>
 </div>
 
 <label class="filter-label filter-label-spaced">System Maintenance</label>
 <div class="filter-options">
-    <span class="sub-text">Database Backups</span><br>
-    <span class="sub-text">Data Restoration</span><br>
-    <span class="sub-text">Archive Management</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Database Backups</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Data Restoration</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Archive Management</span>
 </div>
 
 <label class="filter-label filter-label-spaced">Security & Reporting</label>
 <div class="filter-options">
-    <span class="sub-text">Activity Logs</span><br>
-    <span class="sub-text">Sales Reports</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Activity Logs</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Sales Reports</span>
 </div>
 
             </div>
@@ -95,20 +95,30 @@
                 <div class="form-panel" style="margin-top: 20px;">
                     <h3>Frequently Asked Questions</h3>
                     
-<label>How do I change the automatic backup schedule?</label>
-<span class="sub-text">Navigate to the <strong>Maintenance > Backups</strong> tab and click the "Backup Settings" button. You can select the frequency for Full and Incremental Backups, then click Save. The system will automatically run backups in the background based on this schedule.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label>How do I change the automatic backup schedule?</label>
+    <span class="sub-text">Navigate to the <strong>Maintenance > Backups</strong> tab and click the "Backup Settings" button. You can select the frequency for Full and Incremental Backups, then click Save. The system will automatically run backups in the background based on this schedule.</span>
+</div>
 
-<label class="filter-label-spaced">What happens when I restore a database backup?</label>
-<span class="sub-text">Restoring a backup completely overwrites the current live database with the data from the selected backup file. Any changes (sales, new users, inventory updates) made after that backup date will be permanently lost. Proceed with caution and ensure no active sales are happening.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">What happens when I restore a database backup?</label>
+    <span class="sub-text">Restoring a backup completely overwrites the current live database with the data from the selected backup file. Any changes (sales, new users, inventory updates) made after that backup date will be permanently lost. Proceed with caution and ensure no active sales are happening.</span>
+</div>
 
-<label class="filter-label-spaced">How do I change a user's password if they forget it?</label>
-<span class="sub-text">Go to <strong>User Management</strong>, find the user in the active accounts list, and click Edit. Type a new temporary password in the password field, save the changes, and provide the new password to the user.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">How do I change a user's password if they forget it?</label>
+    <span class="sub-text">Go to <strong>User Management</strong>, find the user in the active accounts list, and click Edit. Type a new temporary password in the password field, save the changes, and provide the new password to the user.</span>
+</div>
 
-<label class="filter-label-spaced">What is the difference between Admin, Inventory, and Sales roles?</label>
-<span class="sub-text"><strong>Admin:</strong> Has full unrestricted access to all modules, including user management and system settings.<br><strong>Inventory:</strong> Can manage products, purchase orders, suppliers, and stock levels, but cannot access sales or user management.<br><strong>Sales:</strong> Focused purely on point-of-sale transactions, viewing sales history, and processing refunds.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">What is the difference between Admin, Inventory, and Sales roles?</label>
+    <span class="sub-text"><strong>Admin:</strong> Has full unrestricted access to all modules, including user management and system settings.<br><strong>Inventory:</strong> Can manage products, purchase orders, suppliers, and stock levels, but cannot access sales or user management.<br><strong>Sales:</strong> Focused purely on point-of-sale transactions, viewing sales history, and processing refunds.</span>
+</div>
 
-<label class="filter-label-spaced">Can I see what actions a specific user performed?</label>
-<span class="sub-text">Yes, navigating to the <strong>Reports > Activity Log</strong> section allows you to view a chronological history of all system events, including which user performed the action and when it occurred.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">Can I see what actions a specific user performed?</label>
+    <span class="sub-text">Yes, navigating to the <strong>Reports > Activity Log</strong> section allows you to view a chronological history of all system events, including which user performed the action and when it occurred.</span>
+</div>
 
                 </div>
             </div>
@@ -247,14 +257,40 @@
             const tableRows = document.querySelectorAll('.data-table tbody tr');
 
             function performSearch() {
-                const filter = searchInput.value.toLowerCase();
+                const query = searchInput.value.toLowerCase().trim();
+                const keywords = query.split(/\s+/).filter(k => k.length > 0);
 
                 tableRows.forEach(row => {
                     const rowText = row.textContent.toLowerCase();
-                    if (rowText.includes(filter)) {
+                    const btn = row.querySelector('.btn-view');
+                    let guideContent = "";
+                    if (btn) {
+                        const guideKey = btn.getAttribute('data-guide');
+                        if (guides[guideKey]) {
+                            guideContent = (guides[guideKey].title + " " + guides[guideKey].content).toLowerCase();
+                        }
+                    }
+
+                    const combinedText = rowText + " " + guideContent;
+                    
+                    const isMatch = keywords.every(kw => combinedText.includes(kw));
+
+                    if (keywords.length === 0 || isMatch) {
                         row.style.display = '';
                     } else {
                         row.style.display = 'none';
+                    }
+                });
+
+                const faqItems = document.querySelectorAll('.faq-item');
+                faqItems.forEach(faq => {
+                    const faqText = faq.textContent.toLowerCase();
+                    const isMatch = keywords.every(kw => faqText.includes(kw));
+                    
+                    if (keywords.length === 0 || isMatch) {
+                        faq.style.display = '';
+                    } else {
+                        faq.style.display = 'none';
                     }
                 });
             }
@@ -275,6 +311,16 @@
             document.getElementById('contact-support').addEventListener('click', () => {
                 const contact = guides['contact-support'];
                 openModal(contact.title, contact.content);
+            });
+
+            document.querySelectorAll('.topic-link').forEach(link => {
+                link.style.cursor = 'pointer';
+                link.addEventListener('mouseover', () => link.style.color = 'var(--accent-primary)');
+                link.addEventListener('mouseout', () => link.style.color = '');
+                link.addEventListener('click', () => {
+                    searchInput.value = link.textContent;
+                    performSearch();
+                });
             });
 
             searchInput.focus();

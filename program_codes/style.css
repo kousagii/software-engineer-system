@@ -4091,3 +4091,49 @@ input:checked+.slider:before {
 .records-tab-panel.active {
     display: block;
 }
+
+/* Custom Dropdown UI for Autocomplete */
+.custom-dropdown-container {
+    position: relative;
+    width: 100%;
+}
+.custom-autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    margin-top: 4px;
+}
+.custom-autocomplete-dropdown.show {
+    display: block;
+}
+.custom-autocomplete-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    color: var(--text-dark);
+    font-size: 14px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.custom-autocomplete-item:last-child {
+    border-bottom: none;
+}
+.custom-autocomplete-item:hover,
+.custom-autocomplete-item.active {
+    background: #f8fafc;
+    color: var(--green-light);
+    font-weight: 600;
+}
+.custom-autocomplete-item span.contact-preview {
+    display: block;
+    font-size: 11px;
+    color: #64748b;
+    font-weight: normal;
+}

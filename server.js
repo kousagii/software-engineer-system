@@ -1497,7 +1497,7 @@ app.get('/api/reports/sales-summary', (req, res) => {
             (SELECT SUM(totalAmount - COALESCE(cashReceived, 0) - COALESCE(digitalAmount, 0))
              FROM sales_transaction WHERE paymentStatus IN ('Unpaid', 'Partial') AND DATE(transDateTime) BETWEEN ? AND ?) AS totalReceivables,
             (SELECT COALESCE(SUM(cashAmount + digitalAmount), 0)
-             FROM payment_log WHERE status = 'Paid' AND DATE(paymentDate) BETWEEN ? AND ?) AS totalCollected
+             FROM payment_log WHERE status = 'Paid' AND paymentType IN ('Initial', 'Settlement', 'Installment') AND DATE(paymentDate) BETWEEN ? AND ?) AS totalCollected
     `;
 
     db.query(sql, [from, to, from, to, from, to, from, to, from, to, from, to, from, to], (err, results) => {
@@ -1833,7 +1833,8 @@ app.get('/api/reports/pay-later', (req, res) => {
             st.contactInfo,
             st.totalAmount,
             COALESCE(st.cashReceived, 0) + COALESCE(st.digitalAmount, 0) as paidAmount,
-            st.totalAmount - (COALESCE(st.cashReceived, 0) + COALESCE(st.digitalAmount, 0)) as balanceDue,
+            COALESCE(st.refundOffset, 0) as refundOffset,
+            st.totalAmount - (COALESCE(st.cashReceived, 0) + COALESCE(st.digitalAmount, 0) + COALESCE(st.refundOffset, 0)) as balanceDue,
             st.dueDate
         FROM sales_transaction st
         WHERE st.paymentStatus IN ('Unpaid', 'Partial')
@@ -1977,15 +1978,24 @@ app.get('/api/dashboard/top-products', (req, res) => {
     });
 });
 
-// GET today's collected payments (actual cash inflow)
+// GET collected payments (actual cash inflow) for a date range
 // Uses: Initial payments, settled pay later payments, and paid installments logged in payment_log
-app.get('/api/dashboard/collections-today', (req, res) => {
-    const sql = `
+app.get('/api/dashboard/collections', (req, res) => {
+    const { startDate, endDate } = req.query;
+    
+    let sql = `
         SELECT COALESCE(SUM(cashAmount + digitalAmount), 0) AS totalCollected
         FROM payment_log
-        WHERE DATE(paymentDate) = CURDATE() AND status = 'Paid'
+        WHERE status = 'Paid' AND paymentType IN ('Initial', 'Settlement', 'Installment')
     `;
-    db.query(sql, (err, results) => {
+    const params = [];
+
+    if (startDate && endDate) {
+        sql += ` AND DATE(paymentDate) BETWEEN ? AND ?`;
+        params.push(startDate, endDate);
+    }
+
+    db.query(sql, params, (err, results) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: 'Failed to fetch collections' });
@@ -1997,7 +2007,7 @@ app.get('/api/dashboard/collections-today', (req, res) => {
 // GET overall unpaid receivables
 app.get('/api/dashboard/overall-receivables', (req, res) => {
     const sql = `
-        SELECT SUM(totalAmount - COALESCE(cashReceived, 0) - COALESCE(digitalAmount, 0)) AS totalReceivables
+        SELECT SUM(totalAmount - COALESCE(cashReceived, 0) - COALESCE(digitalAmount, 0) - COALESCE(refundOffset, 0)) AS totalReceivables
         FROM sales_transaction
         WHERE paymentStatus IN ('Unpaid', 'Partial')
     `;
@@ -2022,6 +2032,7 @@ app.get('/api/dashboard/pay-later', (req, res) => {
             st.totalAmount,
             st.cashReceived,
             st.digitalAmount,
+            st.refundOffset,
             st.paymentStatus,
             st.dueDate,
             st.transDateTime,
@@ -2538,8 +2549,8 @@ app.post('/api/processAdjustment', async (req, res) => {
             // Treat the refund amount as a payment to the original invoice
             await db.promise().query(`
                 UPDATE sales_transaction 
-                SET cashReceived = cashReceived + ?,
-                    paymentStatus = CASE WHEN (cashReceived + digitalAmount + ?) >= (totalAmount - 0.01) THEN 'Paid' ELSE 'Partial' END
+                SET refundOffset = refundOffset + ?,
+                    paymentStatus = CASE WHEN (cashReceived + digitalAmount + refundOffset + ?) >= (totalAmount - 0.01) THEN 'Paid' ELSE 'Partial' END
                 WHERE transactionCode = ?
             `, [creditToPayLater, creditToPayLater, originalTxnCode]);
 
@@ -2594,6 +2605,14 @@ app.post('/api/processAdjustment', async (req, res) => {
         ]);
 
         const dbAutoId = txnResult.insertId;
+
+        // --- LOG ADJUSTMENT CASH FLOW TO PAYMENT LOG ---
+        if (cashReceived !== 0 || digitalAmount !== 0) {
+            await db.promise().query(`
+                INSERT INTO payment_log (transactionCode, cashAmount, digitalAmount, paymentDate, paymentMethod, referenceNumber, status, paymentType) 
+                VALUES (?, ?, ?, NOW(), ?, ?, 'Paid', 'Adjustment')
+            `, [generatedTransactionCode, cashReceived || 0, digitalAmount || 0, paymentMethod || 'Cash', referenceNumber || null]);
+        }
 
         // --- 1. HANDLE RETURNS ---
         for (const item of returns) {

@@ -26,15 +26,22 @@
                 
 <label class="filter-label filter-label-spaced">Transactions</label>
 <div class="filter-options">
-    <span class="sub-text">Ringing up Sales</span><br>
-    <span class="sub-text">Applying Discounts</span><br>
-    <span class="sub-text">Payment Methods</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Processing a Sale</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Applying Discounts</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Payment Methods</span>
 </div>
 
 <label class="filter-label filter-label-spaced">Customer Service</label>
 <div class="filter-options">
-    <span class="sub-text">Refunds & Exchanges</span><br>
-    <span class="sub-text">Receipt Printing</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Refunds & Exchanges</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Receipt Printing</span>
+</div>
+
+<label class="filter-label filter-label-spaced">Records Management</label>
+<div class="filter-options">
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Transaction History</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Pay Later Customers</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Customer Directory</span>
 </div>
 
             </div>
@@ -67,19 +74,39 @@
     <td><button class="btn-view" data-guide="sales-checkout">Read</button></td>
 </tr>
 <tr>
-    <td><span class="user-name">Refunds & Exchanges</span></td>
-    <td>How to process a return for a customer and issue store credit.</td>
-    <td><button class="btn-view" data-guide="sales-refund">Read</button></td>
+    <td><span class="user-name">Payment Methods</span></td>
+    <td>Information on handling Cash, E-wallet, Bank Transfer, and Pay Later options.</td>
+    <td><button class="btn-view" data-guide="sales-payments">Read</button></td>
 </tr>
 <tr>
     <td><span class="user-name">Applying Discounts</span></td>
-    <td>Adding item-specific discounts or order-wide discounts.</td>
+    <td>How to apply order-wide fixed or percentage discounts during checkout.</td>
     <td><button class="btn-view" data-guide="sales-discount">Read</button></td>
+</tr>
+<tr>
+    <td><span class="user-name">Refunds & Exchanges</span></td>
+    <td>How to process refunds, exchanges, and handle Pay Later credit adjustments.</td>
+    <td><button class="btn-view" data-guide="sales-refund">Read</button></td>
+</tr>
+<tr>
+    <td><span class="user-name">Receipt Printing</span></td>
+    <td>How to automatically or manually generate customer receipts.</td>
+    <td><button class="btn-view" data-guide="sales-receipts">Read</button></td>
 </tr>
 <tr>
     <td><span class="user-name">Viewing Transaction History</span></td>
     <td>Searching for past sales, re-printing receipts, and auditing.</td>
     <td><button class="btn-view" data-guide="sales-history">Read</button></td>
+</tr>
+<tr>
+    <td><span class="user-name">Managing Pay Later Customers</span></td>
+    <td>How to view outstanding balances, active installments, and settle debts.</td>
+    <td><button class="btn-view" data-guide="sales-pay-later">Read</button></td>
+</tr>
+<tr>
+    <td><span class="user-name">Customer Directory</span></td>
+    <td>Tracking top spenders and reviewing customer purchase history.</td>
+    <td><button class="btn-view" data-guide="sales-customers">Read</button></td>
 </tr>
 
                         </tbody>
@@ -89,20 +116,55 @@
                 <div class="form-panel" style="margin-top: 20px;">
                     <h3>Frequently Asked Questions</h3>
                     
-<label>How do I scan a barcode?</label>
-<span class="sub-text">Simply click anywhere on the blank screen (ensure no modal popups are open) and use your USB/Bluetooth barcode scanner. The scanner acts like a fast keyboard, and the item will automatically be detected and added to the cart!</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label>How do I scan a barcode?</label>
+    <span class="sub-text">Simply click anywhere on the blank screen (ensure no modal popups are open) and use your USB/Bluetooth barcode scanner. The scanner acts like a fast keyboard, and the item will automatically be detected and added to the cart!</span>
+</div>
 
-<label class="filter-label-spaced">Can I process a split payment?</label>
-<span class="sub-text">Currently, transactions must be completed using a single primary payment method (Cash, E-wallet, Card, Pay Later) per receipt to ensure accurate accounting.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">Can I process a split payment?</label>
+    <span class="sub-text">Currently, transactions must be completed using a single primary payment method (Cash, E-wallet, Card, Pay Later) per receipt to ensure accurate accounting.</span>
+</div>
 
-<label class="filter-label-spaced">How do I reprint a receipt?</label>
-<span class="sub-text">Go to the <strong>Transaction History</strong> page, find the specific sale record, click the "View" button, and then click the "Print Receipt" button in the modal.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">How do I reprint a receipt?</label>
+    <span class="sub-text">Go to the <strong>Transaction History</strong> page, find the specific sale record, click the "View" button, and then click the "Print Receipt" button in the modal.</span>
+</div>
 
-<label class="filter-label-spaced">What do I do if the receipt printer runs out of paper during a sale?</label>
-<span class="sub-text">Don't panic! Finish processing the sale as normal. Replace the thermal paper roll. Once the printer is ready, navigate to <strong>Transaction History</strong>, locate the sale you just completed, and click "View" -> "Print Receipt" to print it out.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">What do I do if the receipt printer runs out of paper during a sale?</label>
+    <span class="sub-text">Don't panic! Finish processing the sale as normal. Replace the thermal paper roll. Once the printer is ready, navigate to <strong>Transaction History</strong>, locate the sale you just completed, and click "View" -> "Print Receipt" to print it out.</span>
+</div>
 
-<label class="filter-label-spaced">Can I process multiple refunds in one transaction?</label>
-<span class="sub-text">Yes, when viewing an original transaction in the Refunds module, you can select multiple different items and quantities to refund simultaneously on a single refund receipt.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">Can I process multiple refunds in one transaction?</label>
+    <span class="sub-text">Yes, when viewing an original transaction in the Refunds module, you can select multiple different items and quantities to refund simultaneously on a single refund receipt.</span>
+</div>
+
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">How do I process a Pay Later transaction?</label>
+    <span class="sub-text">In the Point of Sale, check out the items as usual and select "Pay Later" as the payment method. You will be prompted to enter the customer's name, contact information, address, and an agreed-upon Due Date. You can optionally set up installment schedules (Monthly, Bi-Weekly, or Weekly) and accept a deposit upfront.</span>
+</div>
+
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">What happens to inventory when I process a refund?</label>
+    <span class="sub-text">When you mark returned items as <strong>"Resellable"</strong>, the stock quantity is automatically added back to the inventory. If you mark them as <strong>"Defective"</strong>, the stock is <strong>not</strong> returned to active inventory &mdash; it is tracked separately.</span>
+</div>
+
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">Can I add customer details to a regular Cash transaction?</label>
+    <span class="sub-text">Yes! During checkout, check the <strong>"Add Customer Details"</strong> checkbox. This will expand a form where you can enter the customer's name, TIN, business style, contact number, and address. These details will appear on the receipt and the customer will be saved to the Customer Directory.</span>
+</div>
+
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">What is the QR code on the receipt for?</label>
+    <span class="sub-text">The QR code on the receipt contains the transaction code. When a customer returns for a refund or exchange, the cashier can scan the QR code to instantly load the original transaction instead of typing the code manually.</span>
+</div>
+
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">How do I view the dashboard summary (Today's Sales, Payments Received, etc.)?</label>
+    <span class="sub-text">The dashboard summary cards are displayed at the top of the <strong>Transaction History</strong> tab on the Records page. They show Today's Transactions, Today's Sales, Payments Received, Overall Receivables, and Refunds/Exchanges.</span>
+</div>
 
                 </div>
             </div>
@@ -127,11 +189,22 @@
         <div style="line-height: 1.6;">
             <p><strong>Purpose:</strong> Ring up customers quickly and accurately at the Point of Sale.</p>
             <hr style="margin: 10px 0;">
-            <p><strong>Step 1 (Add Items):</strong> Scan the product barcode. Alternatively, use the search bar in the right panel to find the product manually and click it to add it to the cart.</p>
-            <p><strong>Step 2 (Adjust Cart):</strong> Use the <strong>+</strong> and <strong>-</strong> buttons next to the item in the cart to change the quantity. You can also click the trash icon to remove an item entirely.</p>
-            <p><strong>Step 3 (Checkout):</strong> Review the subtotal and click the green <strong>"Pay"</strong> button at the bottom right.</p>
-            <p><strong>Step 4 (Payment):</strong> Select the customer's payment method (Cash, E-wallet, etc.). Enter the cash amount received from the customer so the system can calculate change.</p>
-            <p><strong>Step 5 (Complete):</strong> Click <strong>"Confirm Payment"</strong> to finalize the sale, adjust inventory, and trigger the receipt printer!</p>
+            <p><strong>Step 1 (Add Items):</strong> Scan the product barcode, OR use the search bar in the left panel to find the product manually and hit <strong>Enter</strong> or the Add button.</p>
+            <p><strong>Step 2 (Adjust Cart):</strong> Use the <strong>+</strong> and <strong>-</strong> buttons next to the item in the cart to change the quantity. Click the red 'X' icon to remove an item entirely.</p>
+            <p><strong>Step 3 (Checkout):</strong> Review the subtotal, apply any order-wide discounts, and click the <strong>"Proceed to Payment"</strong> button at the bottom right.</p>
+            <p><strong>Step 4 (Payment):</strong> Select the customer's payment method (Cash, E-wallet, Bank Transfer, or Pay Later). Enter the cash amount received from the customer so the system can calculate exact change.</p>
+            <p><strong>Step 5 (Complete):</strong> Click <strong>"Confirm Payment"</strong> to finalize the sale, automatically adjust inventory, and trigger the receipt printer!</p>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #f8fafc; border-left: 3px solid #0284c7; border-radius: 4px;">
+                <strong>⚡ Keyboard Shortcuts (When Search is focused):</strong><br>
+                <ul style="margin: 5px 0 0 20px; font-size: 13px;">
+                    <li><strong>↑/↓</strong> : Navigate the product list</li>
+                    <li><strong>Enter</strong> : Add selected product to cart</li>
+                    <li><strong>Alt + ←/→</strong> : Change Product Category</li>
+                    <li><strong>Alt + ↑/↓</strong> : Change Sorting (Name, Price, Stock)</li>
+                    <li><strong>Escape</strong> : Clear search</li>
+                </ul>
+            </div>
         </div>
     `
 },
@@ -139,17 +212,21 @@
     title: 'Refunds & Exchanges',
     content: `
         <div style="line-height: 1.6;">
-            <p><strong>Purpose:</strong> Process customer returns gracefully while keeping inventory and accounting records accurate.</p>
+            <p><strong>Purpose:</strong> Process customer returns gracefully while keeping inventory and accounting records completely accurate.</p>
             <hr style="margin: 10px 0;">
             <p><strong>Step 1:</strong> Go to the <strong>Refunds / Exchanges</strong> page via the sidebar.</p>
-            <p><strong>Step 2:</strong> Ask the customer for their receipt. Enter the <strong>Transaction ID</strong> from the receipt into the search bar.</p>
-            <p><strong>Step 3:</strong> The original sale details will appear. Select the specific items the customer wants to return and specify the quantity being returned.</p>
-            <p><strong>Step 4:</strong> Choose the Action type:</p>
+            <p><strong>Step 2 (Locate):</strong> Ask the customer for their receipt. Enter the <strong>Transaction Code</strong> (or scan the receipt QR code) in the search bar.</p>
+            <p><strong>Step 3 (Return):</strong> Check the boxes next to the items the customer is returning. Crucially, set the condition to either <strong>Resellable</strong> (returns to active stock) or <strong>Defective</strong> (removed from active stock).</p>
+            <p><strong>Step 4 (Action Mode):</strong></p>
             <ul style="margin-left: 20px;">
                 <li><strong>Refund:</strong> You are giving the customer their money back.</li>
-                <li><strong>Exchange:</strong> The customer is swapping the item for something else (store credit).</li>
+                <li><strong>Exchange:</strong> Click "+ Add Replacement Item" to add new items they want instead. The system will automatically calculate the net difference (whether you owe them a partial refund, or they owe you extra cash).</li>
             </ul>
-            <p><strong>Step 5:</strong> Enter the reason for the return, process the transaction, and provide the customer with their refund receipt. The inventory stock will automatically be returned to the shelf.</p>
+            <p><strong>Step 5 (Complete):</strong> Enter the reason for the return (e.g. "Wrong size") and click <strong>"Process Transaction"</strong>.</p>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #fffbeb; border-left: 3px solid #d97706; border-radius: 4px; font-size: 13px;">
+                <strong>Note on Pay Later Returns:</strong> If the original transaction was a "Pay Later" order that hasn't been fully paid off, the refund value will automatically be applied as a credit against their outstanding balance instead of a cash payout!
+            </div>
         </div>
     `
 },
@@ -157,13 +234,24 @@
     title: 'Applying Discounts',
     content: `
         <div style="line-height: 1.6;">
-            <p><strong>Purpose:</strong> Apply promotional pricing or mandatory senior citizen discounts.</p>
+            <p><strong>Purpose:</strong> Apply promotional pricing, bulk order discounts, or mandatory senior citizen discounts.</p>
             <hr style="margin: 10px 0;">
-            <p><strong>Option A: Single Item Discount</strong></p>
-            <p>If you only want to discount one specific item, click the small <strong>% tag icon</strong> next to the item's name in the cart. You can apply a flat rate (₱) or percentage (%) discount just to that row.</p>
-            <p><strong>Option B: Cart-wide Discount</strong></p>
-            <p>If you want to apply a discount to the entire order subtotal, click the <strong>"Discount"</strong> button located near the bottom of the cart panel before clicking Pay.</p>
-            <p><em>Note: All applied discounts will be clearly itemized on the final printed receipt.</em></p>
+            <p><strong>Applying an Order-Wide Discount:</strong></p>
+            <p>You can apply a discount to the entire order subtotal before finalizing the checkout.</p>
+            <p><strong>Step 1:</strong> On the POS screen, locate the <strong>Discount</strong> section in the Order Summary panel on the right side (below the Subtotal).</p>
+            <p><strong>Step 2:</strong> Use the dropdown to choose your discount type:</p>
+            <ul style="margin-left: 20px;">
+                <li><strong>Fixed (₱)</strong> — Deducts a specific peso amount (e.g. ₱50 off).</li>
+                <li><strong>Percent (%)</strong> — Deducts a percentage of the subtotal (e.g. 10% off). Maximum is 100%.</li>
+            </ul>
+            <p><strong>Step 3:</strong> Enter the discount value in the input box. The <strong>Total Due</strong> and <strong>VAT</strong> amounts will automatically recalculate in real time.</p>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #f0fdf4; border-left: 3px solid #16a34a; border-radius: 4px; font-size: 13px;">
+                <strong>Receipt Impact:</strong> The applied discount is clearly shown on the printed receipt as a separate line so the customer can see the original subtotal and the deduction.
+            </div>
+            <div style="margin-top: 10px; padding: 10px; background: #f8fafc; border-left: 3px solid #64748b; border-radius: 4px; font-size: 13px;">
+                <strong>Important:</strong> Discounts are applied to the <em>entire cart</em>, not individual items. There is no per-item discount feature at this time.
+            </div>
         </div>
     `
 },
@@ -173,14 +261,91 @@
         <div style="line-height: 1.6;">
             <p><strong>Purpose:</strong> Audit past sales, verify payments, or reprint lost receipts.</p>
             <hr style="margin: 10px 0;">
-            <p><strong>Step 1:</strong> Navigate to the <strong>Transaction History</strong> page.</p>
-            <p><strong>Step 2:</strong> Use the search bar to find a specific Transaction ID, or filter the list by Payment Method (e.g., showing only E-wallet transactions for the day) using the <strong>"Method"</strong> dropdown filter. You can also filter by status (Paid, Unpaid, Refunded, etc.) and date range.</p>
-            <p><strong>Step 3:</strong> Click the <strong>"View"</strong> button on any row to open a detailed modal showing exactly what was sold, the cashier on duty, and the exact timestamp.</p>
-            <p><strong>Step 4:</strong> Click <strong>"Print Receipt"</strong> from within the modal to generate a duplicate copy for the customer.</p>
+            <p><strong>Step 1:</strong> Navigate to the <strong>Transaction History</strong> tab in the Records page.</p>
+            <p><strong>Step 2 (Filter & Search):</strong> Use the toolbar to narrow down records. You can search by specific Transaction Code, or filter by a specific Date Range, Payment Method (e.g. only Pay Later), or Status (Paid, Partial, Refunded).</p>
+            <p><strong>Step 3 (View Detail):</strong> Click the <strong>"View"</strong> button on any row to open a detailed modal showing exactly what was sold, the subtotal, applied discounts, VAT breakdown, and the exact timestamp.</p>
+            <p><strong>Step 4:</strong> Click <strong>"Print Receipt"</strong> from within the modal to generate a duplicate copy for the customer or for your own records.</p>
         </div>
     `
-}
-,
+},
+'sales-pay-later': {
+    title: 'Managing Pay Later Customers',
+    content: `
+        <div style="line-height: 1.6;">
+            <p><strong>Purpose:</strong> Track and settle customer debts and installments.</p>
+            <hr style="margin: 10px 0;">
+            <p><strong>Step 1:</strong> Go to the <strong>Records</strong> page and select the <strong>Pay Later Customers</strong> tab.</p>
+            <p><strong>Step 2:</strong> You will see a list of active accounts with outstanding balances. You can sort the table by <em>Due Date</em> (to see who is overdue) or by <em>Balance</em> (to see your biggest debtors).</p>
+            <p><strong>Step 3:</strong> To accept a payment, click the <strong>"Settle"</strong> button on the corresponding row.</p>
+            <p><strong>Step 4:</strong> In the Settle modal, you will see their scheduled installments. Enter the amount they are paying (either Cash or Digital with a reference number) and click Confirm.</p>
+            <p><strong>Step 5:</strong> A specialized "Payment Settlement" receipt will be automatically generated and their outstanding balance will drop!</p>
+        </div>
+    `
+},
+'sales-customers': {
+    title: 'Customer Directory',
+    content: `
+        <div style="line-height: 1.6;">
+            <p><strong>Purpose:</strong> View all registered customers, track top spenders, and review purchase history at a glance.</p>
+            <hr style="margin: 10px 0;">
+            <p><strong>Step 1:</strong> Go to the <strong>Records</strong> page and click the <strong>"Customers"</strong> tab at the top.</p>
+            <p><strong>Step 2:</strong> The dashboard summary cards at the top show:</p>
+            <ul style="margin-left: 20px;">
+                <li><strong>Total Customers</strong> — The total number of registered customers.</li>
+                <li><strong>Top Spender</strong> — The customer with the highest total amount spent.</li>
+                <li><strong>Active Customers (30 Days)</strong> — How many customers made at least one transaction in the last 30 days.</li>
+            </ul>
+            <p><strong>Step 3:</strong> Use the <strong>Search</strong> bar to find a customer by name, contact number, or address.</p>
+            <p><strong>Step 4:</strong> Use the <strong>Sort</strong> dropdown to sort the table by:</p>
+            <ul style="margin-left: 20px;">
+                <li>Name: A → Z / Z → A</li>
+                <li>Most Transactions</li>
+                <li>Highest Total Spent</li>
+            </ul>
+            <p><strong>Step 5:</strong> The table displays each customer's <em>Name, Contact Info, Address, Total Transactions, Total Spent, Outstanding Balance</em>, and <em>Last Transaction Date</em>.</p>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #f8fafc; border-left: 3px solid #0284c7; border-radius: 4px; font-size: 13px;">
+                <strong>Tip:</strong> Customers are automatically registered when their details are entered during checkout (e.g. Pay Later orders or when "Add Customer Details" is checked). You do not need to manually add them.
+            </div>
+        </div>
+    `
+},
+'sales-payments': {
+    title: 'Payment Methods',
+    content: `
+        <div style="line-height: 1.6;">
+            <p><strong>Purpose:</strong> Understand how to handle different forms of payment at checkout.</p>
+            <hr style="margin: 10px 0;">
+            <ul style="margin-left: 20px; padding: 0;">
+                <li style="margin-bottom: 8px;"><strong>Cash:</strong> The standard payment method. Enter the exact cash received in the input box, and the system calculates the exact change due on the screen.</li>
+                <li style="margin-bottom: 8px;"><strong>E-wallet (GCash, Maya):</strong> You must enter the exact transferred amount and the <em>Reference / Trace number</em> for accounting audits.</li>
+                <li style="margin-bottom: 8px;"><strong>Bank Transfer:</strong> Similar to E-wallet, requires a reference number to match against official bank statements.</li>
+                <li style="margin-bottom: 8px;"><strong>Pay Later:</strong> Allows the customer to take the items now and pay later. This opens a detailed form requiring the Customer's Name, Contact Number, Address, and a promised Due Date. You can also configure specific installment schedules (e.g., Weekly, Monthly) and take an optional downpayment upfront.</li>
+            </ul>
+        </div>
+    `
+},
+'sales-receipts': {
+    title: 'Receipt Printing',
+    content: `
+        <div style="line-height: 1.6;">
+            <p><strong>Purpose:</strong> Provide customers with a physical record of their transaction.</p>
+            <hr style="margin: 10px 0;">
+            <p><strong>Automatic Printing:</strong> When you complete a checkout (click "Confirm Payment"), the system automatically opens the browser's print dialog. If a thermal receipt printer is connected, it will print immediately.</p>
+            <p><strong>Manual Re-printing:</strong> If the printer jams, runs out of paper, or you need a duplicate:</p>
+            <ol style="margin-left: 20px;">
+                <li>Go to the <strong>Records</strong> page → <strong>Transaction History</strong> tab.</li>
+                <li>Find the transaction row and click <strong>"View Receipt"</strong>.</li>
+                <li>Click the <strong>"Print Receipt"</strong> button at the bottom of the receipt modal.</li>
+            </ol>
+            <p><strong>Settlement Receipts:</strong> When a Pay Later customer pays off their debt (via the "Settle" button), a specialized <strong>Payment Settlement</strong> receipt is automatically generated showing the amount paid and remaining balance.</p>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #f8fafc; border-left: 3px solid #0284c7; border-radius: 4px; font-size: 13px;">
+                <strong>Receipt Contents:</strong> Every receipt includes the store header (UDICON TRADING, OPC), transaction code, cashier name, date/time, itemized products with quantities, subtotal, discount (if any), VATables Sales, VAT Amount (12%), Total Due, payment details, customer details (if provided), and a QR code for future refund/exchange use.
+            </div>
+        </div>
+    `
+},
             'contact-support': {
                 title: 'Contact System Support',
                 content: `
@@ -208,17 +373,54 @@
             const tableRows = document.querySelectorAll('.data-table tbody tr');
 
             function performSearch() {
-                const filter = searchInput.value.toLowerCase();
+                const query = searchInput.value.toLowerCase().trim();
+                const keywords = query.split(/\s+/).filter(k => k.length > 0);
 
                 tableRows.forEach(row => {
                     const rowText = row.textContent.toLowerCase();
-                    if (rowText.includes(filter)) {
+                    const btn = row.querySelector('.btn-view');
+                    let guideContent = "";
+                    if (btn) {
+                        const guideKey = btn.getAttribute('data-guide');
+                        if (guides[guideKey]) {
+                            guideContent = (guides[guideKey].title + " " + guides[guideKey].content).toLowerCase();
+                        }
+                    }
+
+                    const combinedText = rowText + " " + guideContent;
+                    
+                    // Smart search: Check if ALL keywords exist in the combined text
+                    const isMatch = keywords.every(kw => combinedText.includes(kw));
+
+                    if (keywords.length === 0 || isMatch) {
                         row.style.display = '';
                     } else {
                         row.style.display = 'none';
                     }
                 });
+
+                const faqItems = document.querySelectorAll('.faq-item');
+                faqItems.forEach(faq => {
+                    const faqText = faq.textContent.toLowerCase();
+                    // Smart search: Check if ALL keywords exist in the FAQ
+                    const isMatch = keywords.every(kw => faqText.includes(kw));
+                    
+                    if (keywords.length === 0 || isMatch) {
+                        faq.style.display = '';
+                    } else {
+                        faq.style.display = 'none';
+                    }
+                });
             }
+
+            document.querySelectorAll('.topic-link').forEach(link => {
+                link.addEventListener('mouseover', () => link.style.color = 'var(--accent-primary)');
+                link.addEventListener('mouseout', () => link.style.color = '');
+                link.addEventListener('click', () => {
+                    searchInput.value = link.textContent;
+                    performSearch();
+                });
+            });
 
             searchInput.addEventListener('input', performSearch);
             searchBtn.addEventListener('click', performSearch);
