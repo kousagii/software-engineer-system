@@ -613,6 +613,30 @@ app.get('/api/products/:id/suggest-threshold', async (req, res) => {
 // ARCHIVE MANAGEMENT
 
 
+// GET archived (soft-deleted) users
+app.get('/api/archive/users', (req, res) => {
+    const sql = `SELECT userID, username, firstName, lastName, role, contactInfo FROM users WHERE isActive = 0 ORDER BY userID DESC`;
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json({ error: "Failed to fetch archived users" });
+        res.json(results);
+    });
+});
+
+// Restore an archived user
+app.put('/api/archive/users/:id/restore', (req, res) => {
+    const { id } = req.params;
+    const sql = `UPDATE users SET isActive = 1 WHERE userID = ?`;
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Failed to restore user" });
+        const sessionUserID = req.session?.user?.id;
+        if (sessionUserID) {
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Restore User', ?)`,
+                [sessionUserID, `Restored user ID: ${id}`]);
+        }
+        res.status(200).json({ message: "User restored!" });
+    });
+});
+
 // GET archived (soft-deleted) products
 app.get('/api/archive/products', (req, res) => {
     const sql = `SELECT * FROM product WHERE isActive = 0 ORDER BY productID DESC`;
@@ -1357,7 +1381,7 @@ app.post('/api/auto-reorder', async (req, res) => {
 
 // GET route to fetch all users (excluding passwords for security)
 app.get('/api/users', (req, res) => {
-    const sql = `SELECT userID, username, firstName, lastName, role, contactInfo FROM users ORDER BY userID DESC`;
+    const sql = `SELECT userID, username, firstName, lastName, role, contactInfo FROM users WHERE isActive = 1 OR isActive IS NULL ORDER BY userID DESC`;
 
     db.query(sql, (err, results) => {
         if (err) {
@@ -1424,23 +1448,23 @@ app.put('/api/users/:id', async (req, res) => {
     }
 });
 
-// DELETE route to REMOVE a user
+// DELETE route to REMOVE a user (soft delete)
 app.delete('/api/users/:id', (req, res) => {
     const { id } = req.params;
 
-    const sql = `DELETE FROM users WHERE userID = ?`;
+    const sql = `UPDATE users SET isActive = 0 WHERE userID = ?`;
 
     db.query(sql, [id], (err, result) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: "Failed to delete user" });
+            return res.status(500).json({ error: "Failed to archive user" });
         }
         const sessionUserID = req.session?.user?.id;
         if (sessionUserID) {
-            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Delete User', ?)`,
-                [sessionUserID, `Deleted user ID: ${id}`]);
+            db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Archive User', ?)`,
+                [sessionUserID, `Archived user ID: ${id}`]);
         }
-        res.status(200).json({ message: "User deleted successfully!" });
+        res.status(200).json({ message: "User archived successfully!" });
     });
 });
 

@@ -268,6 +268,9 @@
                 <button class="maint-sub-tab-btn" id="arc-tab-orders" onclick="switchArchiveTab('orders')">
                     Purchase Orders &nbsp; <span class="tab-count" id="arc-order-count">0</span>
                 </button>
+                <button class="maint-sub-tab-btn" id="arc-tab-users" onclick="switchArchiveTab('users')">
+                    Users &nbsp; <span class="tab-count" id="arc-user-count">0</span>
+                </button>
             </div>
 
             <div class="maint-toolbar">
@@ -369,6 +372,31 @@
                     <button id="arc-ord-btn-prev" onclick="changeArcOrderPage(-1)">Previous</button>
                     <span id="arc-ord-page-info">Page 1 of 1</span>
                     <button id="arc-ord-btn-next" onclick="changeArcOrderPage(1)">Next</button>
+                </div>
+            </div>
+
+            <!-- Archive Users Table -->
+            <div class="table-container hidden" id="arc-users-table-section">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Full Name</th>
+                            <th>Role</th>
+                            <th>Contact</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="arc-users-table-body">
+                        <tr>
+                            <td colspan="5" class="center-text">Loading archived users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div id="arc-usr-pagination-controls" class="pagination-container hidden">
+                    <button id="arc-usr-btn-prev" onclick="changeArcUserPage(-1)">Previous</button>
+                    <span id="arc-usr-page-info">Page 1 of 1</span>
+                    <button id="arc-usr-btn-next" onclick="changeArcUserPage(1)">Next</button>
                 </div>
             </div>
         </div>
@@ -758,22 +786,27 @@
         let archivedProducts = [];
         let archivedSuppliers = [];
         let archivedOrders = [];
+        let archivedUsers = [];
         let arcCurrentTab = 'products';
         let arcCurrentPage = 1;
         let arcSupplierPage = 1;
         let arcOrderPage = 1;
+        let arcUserPage = 1;
 
         function switchArchiveTab(tab) {
             arcCurrentTab = tab;
             $('arc-tab-products').classList.toggle('active-sub-tab', tab === 'products');
             $('arc-tab-suppliers').classList.toggle('active-sub-tab', tab === 'suppliers');
             $('arc-tab-orders').classList.toggle('active-sub-tab', tab === 'orders');
+            $('arc-tab-users').classList.toggle('active-sub-tab', tab === 'users');
             $('arc-products-table-section').classList.toggle('hidden', tab !== 'products');
             $('arc-suppliers-table-section').classList.toggle('hidden', tab !== 'suppliers');
             $('arc-orders-table-section').classList.toggle('hidden', tab !== 'orders');
+            $('arc-users-table-section').classList.toggle('hidden', tab !== 'users');
             arcCurrentPage = 1;
             arcSupplierPage = 1;
             arcOrderPage = 1;
+            arcUserPage = 1;
             processArchiveData();
         }
 
@@ -781,6 +814,7 @@
             if (arcCurrentTab === 'products') processArcProducts();
             else if (arcCurrentTab === 'suppliers') processArcSuppliers();
             else if (arcCurrentTab === 'orders') processArcOrders();
+            else if (arcCurrentTab === 'users') processArcUsers();
         }
 
         function processArcProducts() {
@@ -880,6 +914,40 @@
             renderArcOrdersTable(paginatedData);
         }
 
+        function processArcUsers() {
+            let data = [...archivedUsers];
+            const query = val('arcSearchInput').toLowerCase();
+            const sort = val('arcSortMode');
+            const limitVal = val('arcShowLimit');
+
+            if (query) {
+                data = data.filter(u =>
+                    (u.username || '').toLowerCase().includes(query) ||
+                    (u.firstName || '').toLowerCase().includes(query) ||
+                    (u.lastName || '').toLowerCase().includes(query) ||
+                    (u.role || '').toLowerCase().includes(query)
+                );
+            }
+
+            if (sort === 'asc') data.sort((a, b) => (a.username || '').localeCompare(b.username || ''));
+            else if (sort === 'desc') data.sort((a, b) => (b.username || '').localeCompare(a.username || ''));
+
+            let paginatedData;
+            if (limitVal === 'all') {
+                paginatedData = data;
+                updatePaginationUI('arc-usr-pagination-controls', 'arc-usr-page-info', 'arc-usr-btn-prev', 'arc-usr-btn-next', data.length, data.length, arcUserPage);
+            } else {
+                const limit = parseInt(limitVal);
+                const totalPages = Math.ceil(data.length / limit);
+                if (arcUserPage > totalPages && totalPages > 0) arcUserPage = totalPages;
+                const start = (arcUserPage - 1) * limit;
+                paginatedData = data.slice(start, start + limit);
+                updatePaginationUI('arc-usr-pagination-controls', 'arc-usr-page-info', 'arc-usr-btn-prev', 'arc-usr-btn-next', data.length, limit, arcUserPage);
+            }
+
+            renderArcUsersTable(paginatedData);
+        }
+
         function updatePaginationUI(containerId, infoId, prevId, nextId, totalItems, limit, page) {
             const container = $(containerId);
             if (limit === 'all' || limit >= totalItems || totalItems === 0) {
@@ -900,6 +968,7 @@
         function changeArcPage(dir) { arcCurrentPage += dir; processArcProducts(); }
         function changeArcSupplierPage(dir) { arcSupplierPage += dir; processArcSuppliers(); }
         function changeArcOrderPage(dir) { arcOrderPage += dir; processArcOrders(); }
+        function changeArcUserPage(dir) { arcUserPage += dir; processArcUsers(); }
 
         function renderArcProductsTable(data) {
             if (data.length === 0) {
@@ -1012,6 +1081,32 @@
             }).join('');
         }
 
+        function renderArcUsersTable(data) {
+            if (data.length === 0) {
+                $('arc-users-table-body').innerHTML = `
+                <tr><td colspan="5">
+                    <div class="maint-empty-state">
+                        <div class="empty-icon">👤</div>
+                        <p>No archived users found.</p>
+                    </div>
+                </td></tr>`;
+                return;
+            }
+
+            $('arc-users-table-body').innerHTML = data.map(u => {
+                return `
+                <tr>
+                    <td><strong>${u.username}</strong></td>
+                    <td>${u.firstName} ${u.lastName}</td>
+                    <td><span class="sub-text">${(u.role || '').replace(/Staff/g, '').replace(/,/g, ', ')}</span></td>
+                    <td>${u.contactInfo}</td>
+                    <td>
+                        <button class="btn-restore" onclick="restoreUser(${u.userID}, '${(u.username || '').replace(/'/g, "\\'")}')">Restore</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
         async function loadArchivedProducts() {
             try {
                 const res = await fetch('/api/archive/products');
@@ -1044,8 +1139,19 @@
             }
         }
 
+        async function loadArchivedUsers() {
+            try {
+                const res = await fetch('/api/archive/users');
+                archivedUsers = await res.json();
+                $('arc-user-count').textContent = archivedUsers.length;
+            } catch {
+                archivedUsers = [];
+                $('arc-user-count').textContent = '0';
+            }
+        }
+
         async function loadArchiveData() {
-            await Promise.all([loadArchivedProducts(), loadArchivedSuppliers(), loadArchivedOrders()]);
+            await Promise.all([loadArchivedProducts(), loadArchivedSuppliers(), loadArchivedOrders(), loadArchivedUsers()]);
         }
 
         function restoreProduct(id, name) {
@@ -1076,6 +1182,24 @@
                         await loadArchiveData();
                         processArchiveData();
                         loadSuppliers(); // refresh supplier tab
+                    } else {
+                        const result = await res.json();
+                        showToast('Error: ' + result.error, true);
+                    }
+                } catch {
+                    showToast('Failed to connect to the server.', true);
+                }
+            });
+        }
+
+        function restoreUser(id, username) {
+            showAlert(`Restore user <strong>${username}</strong> back to active users?`, true, async () => {
+                try {
+                    const res = await fetch(`/api/archive/users/${id}/restore`, { method: 'PUT' });
+                    if (res.ok) {
+                        showToast(`User "${username}" has been restored!`);
+                        await loadArchiveData();
+                        processArchiveData();
                     } else {
                         const result = await res.json();
                         showToast('Error: ' + result.error, true);

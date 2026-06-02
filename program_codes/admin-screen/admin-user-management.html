@@ -96,6 +96,11 @@
                 <button class="modal-btn btn-cancel" onclick="closeUserModal()">Cancel</button>
                 <button class="modal-btn btn-ok" onclick="saveUser()">Save</button>
             </div>
+
+            <div id="delete-zone" style="display:none; margin-top:18px; border-top:1px solid #eee; padding-top:14px;">
+                <p class="sub-text" style="margin:0 0 8px 0; color: #888;">⚠ Danger Zone</p>
+                <button class="btn-delete" style="width: 100%; margin: 0;" onclick="deleteCurrentUser()">Archive This User</button>
+            </div>
         </div>
     </div>
 
@@ -128,7 +133,6 @@
                         <td>${user.contactInfo}</td>
                         <td>
                             <button class="btn-edit" onclick="openEditModal('${userDataStr}')">Edit</button>
-                            <button class="btn-delete" onclick="confirmDelete(${user.userID}, '${user.username}')">Delete</button>
                         </td>
                     `;
                     tableBody.appendChild(row);
@@ -148,6 +152,7 @@
             document.getElementById('form-lastname').value = "";
             document.getElementById('form-contact').value = "";
             document.querySelectorAll('.role-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('delete-zone').style.display = "none";
             document.getElementById('user-form-modal').style.display = "flex";
         }
 
@@ -171,6 +176,7 @@
                 cb.checked = roles.includes(cb.value);
             });
 
+            document.getElementById('delete-zone').style.display = "block";
             document.getElementById('user-form-modal').style.display = "flex";
         }
 
@@ -257,11 +263,19 @@
             }
         }
 
+        function deleteCurrentUser() {
+            const id = document.getElementById('form-userid').value;
+            const username = document.getElementById('form-username').value;
+            if (id) {
+                confirmDelete(id, username);
+            }
+        }
+
         function confirmDelete(id, username) {
-            document.getElementById('alert-message').innerText = `Are you sure you want to delete user '${username}'?`;
+            document.getElementById('alert-message').innerText = `Are you sure you want to archive user '${username}'?`;
             document.getElementById('alert-actions').innerHTML = `
                 <button class="modal-btn btn-cancel" onclick="closeAlert()">Cancel</button>
-                <button class="modal-btn btn-danger" onclick="deleteUser(${id})">Delete</button>
+                <button class="modal-btn btn-danger" onclick="deleteUser(${id})">Archive</button>
             `;
             document.getElementById('alert-modal').style.display = 'flex';
         }
@@ -271,6 +285,7 @@
                 const response = await fetch(`/api/users/${id}`, { method: 'DELETE' });
                 if (response.ok) {
                     closeAlert();
+                    closeUserModal();
                     fetchUsers();
                 } else {
                     const result = await response.json();
