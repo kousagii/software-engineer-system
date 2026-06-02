@@ -25,187 +25,398 @@
             </div>
         </header>
 
-        <!-- SUMMARY STAT CARDS -->
-        <div class="split dash-cards-row">
-            <div class="form-panel dash-stat-card">
-                <div class="dash-stat-icon dash-icon-blue">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="8" r="4" stroke="#356ac3" stroke-width="1.8" />
-                        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#356ac3" stroke-width="1.8"
-                            stroke-linecap="round" />
-                    </svg>
+        <!-- TAB NAVIGATION -->
+        <div class="records-tab-nav" id="recordsTabNav">
+            <button class="records-tab-btn active" onclick="switchRecordsTab('history')" id="tab-history">
+                Transaction History <span class="tab-badge" id="tabBadgeHistory">0</span>
+            </button>
+            <button class="records-tab-btn" onclick="switchRecordsTab('payLater')" id="tab-payLater">
+                Pay Later Customers <span class="tab-badge" id="tabBadgePayLater">0</span>
+            </button>
+            <button class="records-tab-btn" onclick="switchRecordsTab('customers')" id="tab-customers">
+                Customers <span class="tab-badge" id="tabBadgeCustomers">0</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: PAY LATER CUSTOMERS -->
+        <div class="records-tab-panel" id="panel-payLater">
+
+            <!-- SUMMARY STAT CARDS: PAY LATER -->
+            <div class="split dash-cards-row">
+                <div class="form-panel dash-stat-card">
+                    <div class="dash-stat-icon dash-icon-blue">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z"
+                                stroke="#356ac3" stroke-width="1.8" />
+                            <path d="M12 14C8.13401 14 5 17.134 5 21H19C19 17.134 15.866 14 12 14Z" stroke="#356ac3"
+                                stroke-width="1.8" />
+                        </svg>
+                    </div>
+                    <div class="dash-stat-info">
+                        <div class="sub-text">Total Active Accounts</div>
+                        <h3 class="mt-0" id="pl-stat-accounts">—</h3>
+                    </div>
                 </div>
-                <div class="dash-stat-info">
-                    <div class="sub-text">Total Transactions</div>
-                    <h3 class="mt-0" id="stat-count">—</h3>
+
+                <div class="form-panel dash-stat-card">
+                    <div class="dash-stat-icon dash-icon-green">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#2b8a4e"
+                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                    <div class="dash-stat-info">
+                        <div class="sub-text">Total Outstanding Debt</div>
+                        <h3 class="mt-0" id="pl-stat-debt" style="color:#2b8a4e;">—</h3>
+                    </div>
+                </div>
+
+                <div class="form-panel dash-stat-card">
+                    <div class="dash-stat-icon" style="background:#fde2e2;">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="9" stroke="#c63939" stroke-width="1.8" />
+                            <path d="M12 7v5l3 3" stroke="#c63939" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                    <div class="dash-stat-info">
+                        <div class="sub-text">Overdue Accounts</div>
+                        <h3 class="mt-0" id="pl-stat-overdue" style="color:var(--red-main);">—</h3>
+                    </div>
                 </div>
             </div>
 
-            <div class="form-panel dash-stat-card">
-                <div class="dash-stat-icon dash-icon-dark">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="9" stroke="#264027" stroke-width="1.8" />
-                        <path d="M12 7v5l3 3" stroke="#264027" stroke-width="1.8" stroke-linecap="round"
-                            stroke-linejoin="round" />
-                        <path d="M8.5 15.5c.8 1.2 2 2 3.5 2s2.7-.8 3.5-2" stroke="#264027" stroke-width="1.5"
-                            stroke-linecap="round" />
-                    </svg>
+            <div class="table-container mb-20" id="activePayLaterContainer" style="margin-bottom: 20px;">
+                <div class="toolbar"
+                    style="padding-bottom: 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; color: var(--text-dark);" id="activePayLaterTitle">Active Pay Later Accounts
+                    </h3>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-view" onclick="printActivePayLater()"
+                            style="margin: 0; font-size: 14px; padding: 8px 20px;">Print</button>
+                    </div>
                 </div>
-                <div class="dash-stat-info">
-                    <div class="sub-text">Today's Sales</div>
-                    <h3 class="mt-0" id="stat-sales">—</h3>
+                <div class="toolbar" style="margin-bottom: 15px; border-bottom: none;">
+                    <div class="toolbar-left search-bar-extended" style="align-items:center;">
+                        <label for="plSearchInput"
+                            style="margin:0; font-size:13px; font-weight:600; white-space:nowrap;">Search:</label>
+                        <input type="text" id="plSearchInput" placeholder="Search customer or code..."
+                            class="search-input" style="margin:0; max-width:280px;" oninput="applyPayLaterFilters()">
+                    </div>
+                    <div class="toolbar-right" style="display: flex; gap: 10px; align-items: center;">
+                        <div class="toolbar-group">
+                            <label for="plSortSelect"
+                                style="margin:0; font-size:13px; white-space:nowrap;">Sort:</label>
+                            <select id="plSortSelect" onchange="applyPayLaterFilters()" style="margin:0; width:auto;">
+                                <option value="due-asc">Due Date: Soonest First</option>
+                                <option value="due-desc">Due Date: Farthest First</option>
+                                <option value="balance-desc">Balance: High → Low</option>
+                                <option value="balance-asc">Balance: Low → High</option>
+                                <option value="name-asc">Customer: A → Z</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <div class="form-panel dash-stat-card">
-                <div class="dash-stat-icon dash-icon-green">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="2" y="6" width="20" height="13" rx="2" stroke="#2b8a4e" stroke-width="1.8" />
-                        <path d="M2 10h20" stroke="#2b8a4e" stroke-width="1.8" />
-                        <path d="M6 15h4" stroke="#2b8a4e" stroke-width="1.8" stroke-linecap="round" />
-                    </svg>
-                </div>
-                <div class="dash-stat-info">
-                    <div class="sub-text">Payments Received </div>
-                    <h3 class="mt-0" id="stat-collected" style="color:#2b8a4e;">—</h3>
-                </div>
-            </div>
-
-            <div class="form-panel dash-stat-card">
-                <div class="dash-stat-icon" style="background:#e0e7ff;">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#4f46e5"
-                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                </div>
-                <div class="dash-stat-info">
-                    <div class="sub-text">Overall Receivables</div>
-                    <h3 class="mt-0" id="stat-receivables" style="color:#4f46e5;">—</h3>
-                </div>
-            </div>
-
-            <div class="form-panel dash-stat-card">
-                <div class="dash-stat-icon" style="background:#fde2e2;">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3 10h18M3 14h18" stroke="#c63939" stroke-width="1.8" stroke-linecap="round" />
-                        <rect x="5" y="6" width="14" height="12" rx="2" stroke="#c63939" stroke-width="1.8" />
-                    </svg>
-                </div>
-                <div class="dash-stat-info">
-                    <div class="sub-text">Refunds / Exchanges</div>
-                    <h3 class="mt-0" id="stat-refunds" style="color:var(--red-main);">—</h3>
+                <table class="data-table" id="activePayLaterTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Transaction Code</th>
+                            <th>Customer</th>
+                            <th class="center-text">Total Amount</th>
+                            <th class="center-text">Paid Amount</th>
+                            <th class="center-text">Balance Due</th>
+                            <th>Due Date</th>
+                            <th class="center-text">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activePayLaterBody">
+                        <tr>
+                            <td colspan="8" class="center-text">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="pagination-container" id="activePayLaterPagination"
+                    style="display: none; justify-content: flex-end; margin-top: 15px;">
+                    <button id="plShowAllBtn" onclick="toggleShowAllPayLater()" style="margin-right: auto;">Show
+                        All</button>
+                    <button id="plPrevBtn" onclick="changePayLaterPage(-1)" disabled>← Prev</button>
+                    <span id="pl-page-info" style="margin: 0 15px; align-self: center; font-weight: bold;">Page 1</span>
+                    <button id="plNextBtn" onclick="changePayLaterPage(1)">Next →</button>
                 </div>
             </div>
         </div>
 
-        <!-- ACTIVE PAY LATER -->
-        <div class="table-container mb-20" id="activePayLaterContainer" style="margin-bottom: 20px;">
-            <div class="toolbar"
-                style="padding-bottom: 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; color: var(--text-dark);" id="activePayLaterTitle">Active Pay Later Accounts</h3>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn-cancel-large" id="togglePayLaterBtn" onclick="toggleActivePayLater()"
-                        style="margin: 0; font-size: 12px; padding: 6px 14px;">Hide</button>
-                    <button class="btn-view" onclick="printActivePayLater()"
-                        style="margin: 0; font-size: 12px; padding: 6px 14px;">Print All</button>
+        <!-- TAB 2: TRANSACTION HISTORY -->
+        <div class="records-tab-panel active" id="panel-history">
+            <!-- SUMMARY STAT CARDS -->
+            <div class="split dash-cards-row">
+                <div class="form-panel dash-stat-card">
+                    <div class="dash-stat-icon dash-icon-blue">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="8" r="4" stroke="#356ac3" stroke-width="1.8" />
+                            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#356ac3" stroke-width="1.8"
+                                stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <div class="dash-stat-info">
+                        <div class="sub-text">Total Transactions</div>
+                        <h3 class="mt-0" id="stat-count">—</h3>
+                    </div>
+                </div>
+
+                <div class="form-panel dash-stat-card">
+                    <div class="dash-stat-icon dash-icon-dark">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="9" stroke="#264027" stroke-width="1.8" />
+                            <path d="M12 7v5l3 3" stroke="#264027" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="M8.5 15.5c.8 1.2 2 2 3.5 2s2.7-.8 3.5-2" stroke="#264027" stroke-width="1.5"
+                                stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <div class="dash-stat-info">
+                        <div class="sub-text">Today's Sales</div>
+                        <h3 class="mt-0" id="stat-sales">—</h3>
+                    </div>
+                </div>
+
+                <div class="form-panel dash-stat-card">
+                    <div class="dash-stat-icon dash-icon-green">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="6" width="20" height="13" rx="2" stroke="#2b8a4e" stroke-width="1.8" />
+                            <path d="M2 10h20" stroke="#2b8a4e" stroke-width="1.8" />
+                            <path d="M6 15h4" stroke="#2b8a4e" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <div class="dash-stat-info">
+                        <div class="sub-text">Payments Received </div>
+                        <h3 class="mt-0" id="stat-collected" style="color:#2b8a4e;">—</h3>
+                    </div>
+                </div>
+
+                <div class="form-panel dash-stat-card">
+                    <div class="dash-stat-icon" style="background:#e0e7ff;">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#4f46e5"
+                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                    <div class="dash-stat-info">
+                        <div class="sub-text">Overall Receivables</div>
+                        <h3 class="mt-0" id="stat-receivables" style="color:#4f46e5;">—</h3>
+                    </div>
+                </div>
+
+                <div class="form-panel dash-stat-card">
+                    <div class="dash-stat-icon" style="background:#fde2e2;">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 10h18M3 14h18" stroke="#c63939" stroke-width="1.8" stroke-linecap="round" />
+                            <rect x="5" y="6" width="14" height="12" rx="2" stroke="#c63939" stroke-width="1.8" />
+                        </svg>
+                    </div>
+                    <div class="dash-stat-info">
+                        <div class="sub-text">Refunds / Exchanges</div>
+                        <h3 class="mt-0" id="stat-refunds" style="color:var(--red-main);">—</h3>
+                    </div>
                 </div>
             </div>
-            <table class="data-table" id="activePayLaterTable">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Transaction Code</th>
-                        <th>Customer</th>
-                        <th class="center-text">Total Amount</th>
-                        <th class="center-text">Paid Amount</th>
-                        <th class="center-text">Balance Due</th>
-                        <th>Due Date</th>
-                        <th class="center-text">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="activePayLaterBody">
-                    <tr>
-                        <td colspan="8" class="center-text">Loading...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="table-container">
-            <div class="toolbar">
-                <div class="toolbar-left search-bar-extended" style="align-items:center;">
-                    <label for="searchInput"
-                        style="margin:0; font-size:13px; font-weight:600; white-space:nowrap;">Search:</label>
-                    <input type="text" id="searchInput" placeholder="Search transaction code..." class="search-input"
-                        style="margin:0; max-width:280px;" oninput="performSearch()">
+            <div class="table-container">
+                <div class="toolbar">
+                    <div class="toolbar-left search-bar-extended" style="align-items:center;">
+                        <label for="searchInput"
+                            style="margin:0; font-size:13px; font-weight:600; white-space:nowrap;">Search:</label>
+                        <input type="text" id="searchInput" placeholder="Search transaction code." class="search-input"
+                            style="margin:0; max-width:280px;" oninput="performSearch()">
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="toolbar-group">
+                            <label for="filterDateFrom"
+                                style="margin:0; font-size:13px; white-space:nowrap;">From:</label>
+                            <input type="date" id="filterDateFrom" onchange="applyFilters()"
+                                style="margin:0; width:auto;">
+                            <label for="filterDateTo"
+                                style="margin:0; font-size:13px; white-space:nowrap; margin-left:10px;">To:</label>
+                            <input type="date" id="filterDateTo" onchange="applyFilters()"
+                                style="margin:0; width:auto;">
+                            <button class="btn-create" onclick="clearDateFilter()" style="margin:0;">Clear</button>
+                        </div>
+                        <div class="toolbar-group">
+                            <label for="filterStatus" style="margin:0; font-size:13px; white-space:nowrap;">Payment
+                                Status:</label>
+                            <select id="filterStatus" onchange="applyFilters()" style="margin:0; width:auto;">
+                                <option value="all">All Statuses</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Unpaid">Unpaid</option>
+                                <option value="Partial">Partial Payment</option>
+                                <option value="Refunded">Refunded</option>
+                                <option value="Exchanged">Exchanged</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-group">
+                            <label for="filterPaymentMethod"
+                                style="margin:0; font-size:13px; white-space:nowrap;">Payment Method:</label>
+                            <select id="filterPaymentMethod" onchange="applyFilters()" style="margin:0; width:auto;">
+                                <option value="all">All Methods</option>
+                                <option value="Cash">Cash</option>
+                                <option value="E-wallet">E-Wallet</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Pay Later">Pay Later</option>
+                            </select>
+                        </div>
+
+                        <div class="toolbar-group">
+                            <label for="sortAmount" style="margin:0; font-size:13px; white-space:nowrap;">Sort
+                                By:</label>
+                            <select id="sortAmount" onchange="applyFilters()" style="margin:0; width:auto;">
+                                <option value="date-desc">Newest First</option>
+                                <option value="date-asc">Oldest First</option>
+                                <option value="amount-desc">Amount: High → Low</option>
+                                <option value="amount-asc">Amount: Low → High</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <div class="toolbar-right">
-                    <div class="toolbar-group">
-                        <label for="filterStatus" style="margin:0; font-size:13px; white-space:nowrap;">Filter
-                            By:</label>
-                        <select id="filterStatus" onchange="applyFilters()" style="margin:0; width:auto;">
-                            <option value="all">All</option>
-                            <option value="Paid">Paid</option>
-                            <option value="Unpaid">Unpaid</option>
-                            <option value="Partial">Partial Payment</option>
-                            <option value="Refunded">Refunded</option>
-                            <option value="Exchanged">Exchanged</option>
-                        </select>
+
+                <table class="data-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Transaction Code</th>
+                            <th>Date & Time</th>
+                            <th class="center-text">Total Amount</th>
+                            <th class="center-text">Payment Method</th>
+                            <th class="center-text">Payment Status</th>
+                            <th class="center-text">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr>
+                            <td colspan="6" class="empty-cart-msg">Loading transactions...</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="pagination-container" style="justify-content: flex-end;">
+                    <button id="txnShowAllBtn" onclick="toggleShowAllTransactions()" style="margin-right: auto;">Show
+                        All</button>
+                    <button id="prevBtn" onclick="changePage(-1)" disabled>← Prev</button>
+                    <span id="page-info">Page 1</span>
+                    <button id="nextBtn" onclick="changePage(1)">Next →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: CUSTOMERS -->
+        <div class="records-tab-panel" id="panel-customers">
+
+            <!-- SUMMARY STAT CARDS: CUSTOMERS -->
+            <div class="split dash-cards-row">
+                <div class="form-panel dash-stat-card">
+                    <div class="dash-stat-icon dash-icon-blue">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#356ac3" stroke-width="1.8"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <circle cx="9" cy="7" r="4" stroke="#356ac3" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="#356ac3" stroke-width="1.8"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#356ac3" stroke-width="1.8"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
                     </div>
-                    <div class="toolbar-group">
-                        <label for="filterPaymentMethod"
-                            style="margin:0; font-size:13px; white-space:nowrap;">Method:</label>
-                        <select id="filterPaymentMethod" onchange="applyFilters()" style="margin:0; width:auto;">
-                            <option value="all">All</option>
-                            <option value="Cash">Cash</option>
-                            <option value="E-wallet">E-wallet</option>
-                            <option value="Bank Transfer">Bank Transfer</option>
-                            <option value="Pay Later">Pay Later</option>
-                        </select>
+                    <div class="dash-stat-info">
+                        <div class="sub-text">Total Customers</div>
+                        <h3 class="mt-0" id="cust-stat-count">—</h3>
                     </div>
-                    <div class="toolbar-group">
-                        <label for="filterDateFrom" style="margin:0; font-size:13px; white-space:nowrap;">From:</label>
-                        <input type="date" id="filterDateFrom" onchange="applyFilters()" style="margin:0; width:auto;">
-                        <label for="filterDateTo"
-                            style="margin:0; font-size:13px; white-space:nowrap; margin-left:10px;">To:</label>
-                        <input type="date" id="filterDateTo" onchange="applyFilters()" style="margin:0; width:auto;">
-                        <button class="btn-create" onclick="clearDateFilter()" style="margin:0;">All</button>
+                </div>
+
+                <div class="form-panel dash-stat-card">
+                    <div class="dash-stat-icon dash-icon-dark">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+                                stroke="#264027" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
                     </div>
-                    <div class="toolbar-group">
-                        <label for="sortAmount" style="margin:0; font-size:13px; white-space:nowrap;">Sort:</label>
-                        <select id="sortAmount" onchange="applyFilters()" style="margin:0; width:auto;">
-                            <option value="date-desc">Newest First</option>
-                            <option value="date-asc">Oldest First</option>
-                            <option value="amount-desc">Amount: High → Low</option>
-                            <option value="amount-asc">Amount: Low → High</option>
-                        </select>
+                    <div class="dash-stat-info">
+                        <div class="sub-text">Top Spender</div>
+                        <h3 class="mt-0" id="cust-stat-top" style="font-size: 16px;">—</h3>
+                    </div>
+                </div>
+
+                <div class="form-panel dash-stat-card">
+                    <div class="dash-stat-icon dash-icon-green">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 3v18h18" stroke="#2b8a4e" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="M19 9l-5 5-4-4-3 3" stroke="#2b8a4e" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                    <div class="dash-stat-info">
+                        <div class="sub-text">Active Customers (30 Days)</div>
+                        <h3 class="mt-0" id="cust-stat-active" style="color:#2b8a4e;">—</h3>
                     </div>
                 </div>
             </div>
 
-            <table class="data-table" id="historyTable">
-                <thead>
-                    <tr>
-                        <th>Transaction Code</th>
-                        <th>Date & Time</th>
-                        <th class="center-text">Amount</th>
-                        <th class="center-text">Method</th>
-                        <th class="center-text">Status</th>
-                        <th class="center-text">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="historyBody">
-                    <tr>
-                        <td colspan="6" class="empty-cart-msg">Loading transactions...</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="pagination-container">
-                <button id="prevBtn" onclick="changePage(-1)" disabled>← Prev</button>
-                <span id="page-info">Page 1</span>
-                <button id="nextBtn" onclick="changePage(1)">Next →</button>
+            <div class="table-container">
+                <div class="toolbar"
+                    style="padding-bottom: 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; color: var(--text-dark);" id="customersTitle">Customer Directory</h3>
+                </div>
+                <div class="toolbar" style="margin-bottom: 15px; border-bottom: none;">
+                    <div class="toolbar-left search-bar-extended" style="align-items:center;">
+                        <label for="custSearchInput"
+                            style="margin:0; font-size:13px; font-weight:600; white-space:nowrap;">Search:</label>
+                        <input type="text" id="custSearchInput"
+                            placeholder="Search customer name, contact, or address..." class="search-input"
+                            style="margin:0; max-width:320px;" oninput="applyCustomerFilters()">
+                    </div>
+                    <div class="toolbar-right" style="display: flex; gap: 10px; align-items: center;">
+                        <div class="toolbar-group">
+                            <label for="custSortSelect"
+                                style="margin:0; font-size:13px; white-space:nowrap;">Sort:</label>
+                            <select id="custSortSelect" onchange="applyCustomerFilters()" style="margin:0; width:auto;">
+                                <option value="name-asc">Name: A → Z</option>
+                                <option value="name-desc">Name: Z → A</option>
+                                <option value="txn-desc">Most Transactions</option>
+                                <option value="total-desc">Highest Total Spent</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <table class="data-table" id="customersTable">
+                    <thead>
+                        <tr>
+                            <th>Customer Name</th>
+                            <th>Contact Info</th>
+                            <th>Address</th>
+                            <th class="center-text">Transactions</th>
+                            <th class="center-text">Total Spent</th>
+                            <th class="center-text">Outstanding</th>
+                            <th>Last Transaction</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customersBody">
+                        <tr>
+                            <td colspan="7" class="center-text">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="pagination-container" id="customersPagination"
+                    style="display: none; justify-content: flex-end; margin-top: 15px;">
+                    <button id="custShowAllBtn" onclick="toggleShowAllCustomers()" style="margin-right: auto;">Show
+                        All</button>
+                    <button id="custPrevBtn" onclick="changeCustomerPage(-1)" disabled>← Prev</button>
+                    <span id="cust-page-info" style="margin: 0 15px; align-self: center; font-weight: bold;">Page
+                        1</span>
+                    <button id="custNextBtn" onclick="changeCustomerPage(1)">Next →</button>
+                </div>
             </div>
         </div>
+
     </main>
 
     <!-- Hidden Receipt for Printing / Viewing -->
@@ -570,11 +781,27 @@
         let allTransactions = [];
         let filteredTransactions = [];
         let activePayLaterData = [];
+        let filteredPayLaterData = [];
+        let payLaterCurrentPage = 1;
+        let showAllPayLater = false;
+        const payLaterItemsPerPage = 8;
         let currentPage = 1;
+        let showAllTransactions = false;
         const perPage = 15;
 
+        let customersData = [];
+        let filteredCustomersData = [];
+        let customersCurrentPage = 1;
+        let showAllCustomers = false;
+        const custItemsPerPage = 15;
 
+        function switchRecordsTab(tabId) {
+            document.querySelectorAll('.records-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.records-tab-panel').forEach(panel => panel.classList.remove('active'));
 
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.getElementById('panel-' + tabId).classList.add('active');
+        }
         async function loadTransactions() {
             try {
                 const res = await fetch('/api/transactions?limit=500');
@@ -587,24 +814,205 @@
             }
         }
 
+        async function fetchCustomers() {
+            try {
+                const res = await fetch('/api/customers');
+                if (!res.ok) throw new Error('Failed to fetch customers');
+                customersData = await res.json();
+                if (el("tabBadgeCustomers")) {
+                    el("tabBadgeCustomers").textContent = customersData.length;
+                }
+                applyCustomerFilters();
+            } catch (err) {
+                console.error(err);
+                el("customersBody").innerHTML = `<tr><td colspan="7" class="center-text">Failed to load customers.</td></tr>`;
+            }
+        }
+
+        function applyCustomerFilters() {
+            const searchTerm = (el("custSearchInput")?.value || "").toLowerCase().trim();
+            const sortVal = el("custSortSelect")?.value || "name-asc";
+
+            if (searchTerm) {
+                filteredCustomersData = customersData.filter(c => {
+                    const nameMatch = (c.customerName || "").toLowerCase().includes(searchTerm);
+                    const contactMatch = (c.contactInfo || "").toLowerCase().includes(searchTerm);
+                    const addrMatch = (c.address || "").toLowerCase().includes(searchTerm);
+                    return nameMatch || contactMatch || addrMatch;
+                });
+            } else {
+                filteredCustomersData = [...customersData];
+            }
+
+            filteredCustomersData.sort((a, b) => {
+                if (sortVal === "name-asc") return (a.customerName || "").localeCompare(b.customerName || "");
+                if (sortVal === "name-desc") return (b.customerName || "").localeCompare(a.customerName || "");
+                if (sortVal === "txn-desc") return (b.totalTransactions || 0) - (a.totalTransactions || 0);
+                if (sortVal === "total-desc") return (parseFloat(b.totalSpent) || 0) - (parseFloat(a.totalSpent) || 0);
+                return 0;
+            });
+
+            // Update Customers Stats
+            const totalCustomers = filteredCustomersData.length;
+            el("cust-stat-count").textContent = totalCustomers;
+
+            if (totalCustomers > 0) {
+                // Find top spender among filtered
+                const topSpender = [...filteredCustomersData].sort((a, b) => parseFloat(b.totalSpent || 0) - parseFloat(a.totalSpent || 0))[0];
+                el("cust-stat-top").textContent = topSpender.customerName || 'Unknown';
+
+                // Calculate Active Customers (30 Days)
+                const now = new Date();
+                const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+
+                const activeCustCount = filteredCustomersData.filter(c => {
+                    if (!c.lastTransactionDate) return false;
+                    const lastTxn = new Date(c.lastTransactionDate);
+                    return lastTxn >= thirtyDaysAgo;
+                }).length;
+
+                el("cust-stat-active").textContent = activeCustCount;
+            } else {
+                el("cust-stat-top").textContent = "—";
+                el("cust-stat-active").textContent = "—";
+            }
+
+            customersCurrentPage = 1;
+            renderCustomers();
+        }
+
+        function renderCustomers() {
+            const tbody = el("customersBody");
+
+            if (filteredCustomersData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="center-text">No customers match your search.</td></tr>';
+                el("customersPagination").style.display = "none";
+                return;
+            }
+
+            const formatDate = (dateStr) => {
+                if (!dateStr) return 'N/A';
+                return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            };
+
+            const totalPages = Math.ceil(filteredCustomersData.length / custItemsPerPage);
+            if (customersCurrentPage > totalPages && totalPages > 0) customersCurrentPage = totalPages;
+
+            const startIdx = (customersCurrentPage - 1) * custItemsPerPage;
+            const endIdx = startIdx + custItemsPerPage;
+            const paginatedData = showAllCustomers ? filteredCustomersData : filteredCustomersData.slice(startIdx, endIdx);
+
+            tbody.innerHTML = paginatedData.map(c => {
+                const totalSpent = parseFloat(c.totalSpent || 0);
+                const outstanding = parseFloat(c.outstandingBalance || 0);
+
+                return `
+                    <tr>
+                        <td style="font-weight: 600;">${c.customerName || 'N/A'}</td>
+                        <td>${c.contactInfo || 'N/A'}</td>
+                        <td>${c.address || 'N/A'}</td>
+                        <td class="center-text">${c.totalTransactions || 0}</td>
+                        <td class="center-text" style="color: var(--blue-hover); font-weight: 600;">₱${totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td class="center-text" style="${outstanding > 0 ? 'color: #b91c1c; font-weight: 600;' : ''}">${outstanding > 0 ? '₱' + outstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'None'}</td>
+                        <td>${formatDate(c.lastTransactionDate)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const pagContainer = el("customersPagination");
+            if (totalPages > 1) {
+                pagContainer.style.display = "flex";
+                el("cust-page-info").textContent = showAllCustomers ? `All ${filteredCustomersData.length} shown` : `Page ${customersCurrentPage} of ${totalPages}`;
+                el("custPrevBtn").disabled = showAllCustomers || customersCurrentPage === 1;
+                el("custNextBtn").disabled = showAllCustomers || customersCurrentPage === totalPages;
+                el("custPrevBtn").style.display = showAllCustomers ? "none" : "";
+                el("custNextBtn").style.display = showAllCustomers ? "none" : "";
+                el("custShowAllBtn").textContent = showAllCustomers ? "Paginate" : "Show All";
+            } else {
+                pagContainer.style.display = "none";
+            }
+        }
+
+        function changeCustomerPage(direction) {
+            customersCurrentPage += direction;
+            renderCustomers();
+        }
+
+        function toggleShowAllCustomers() {
+            showAllCustomers = !showAllCustomers;
+            customersCurrentPage = 1;
+            renderCustomers();
+        }
+
         async function fetchActivePayLater() {
             try {
                 const res = await fetch('/api/dashboard/pay-later');
                 if (!res.ok) throw new Error('Failed to fetch active pay later accounts');
                 activePayLaterData = await res.json();
-                renderActivePayLater();
+                if (el("tabBadgePayLater")) el("tabBadgePayLater").textContent = activePayLaterData.length;
+                applyPayLaterFilters();
             } catch (err) {
                 console.error(err);
                 el("activePayLaterBody").innerHTML = `<tr><td colspan="8" class="empty-cart-msg">Failed to load active pay later accounts.</td></tr>`;
             }
         }
 
+        function applyPayLaterFilters() {
+            const searchTerm = (el("plSearchInput")?.value || "").toLowerCase().trim();
+            const sortVal = el("plSortSelect")?.value || "due-asc";
+
+            if (searchTerm) {
+                filteredPayLaterData = activePayLaterData.filter(r => {
+                    const custMatch = (r.customerName || "").toLowerCase().includes(searchTerm);
+                    const codeMatch = (r.transactionCode || "").toLowerCase().includes(searchTerm);
+                    return custMatch || codeMatch;
+                });
+            } else {
+                filteredPayLaterData = [...activePayLaterData];
+            }
+
+            filteredPayLaterData.sort((a, b) => {
+                const getDue = (item) => item.nextInstallmentDue ? new Date(item.nextInstallmentDue).getTime() : (item.dueDate ? new Date(item.dueDate).getTime() : 8640000000000000);
+                const balA = (parseFloat(a.totalAmount || 0)) - (parseFloat(a.cashReceived || 0) + parseFloat(a.digitalAmount || 0));
+                const balB = (parseFloat(b.totalAmount || 0)) - (parseFloat(b.cashReceived || 0) + parseFloat(b.digitalAmount || 0));
+
+                if (sortVal === "due-asc") return getDue(a) - getDue(b);
+                if (sortVal === "due-desc") return getDue(b) - getDue(a);
+                if (sortVal === "balance-desc") return balB - balA;
+                if (sortVal === "balance-asc") return balA - balB;
+                if (sortVal === "name-asc") return (a.customerName || "").localeCompare(b.customerName || "");
+                return 0;
+            });
+
+            // Update Pay Later Stats
+            el("pl-stat-accounts").textContent = filteredPayLaterData.length;
+
+            const totalDebt = filteredPayLaterData.reduce((sum, item) => sum + ((parseFloat(item.totalAmount || 0)) - (parseFloat(item.cashReceived || 0) + parseFloat(item.digitalAmount || 0))), 0);
+            el("pl-stat-debt").textContent = fmtPeso(totalDebt);
+
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            const overdueCount = filteredPayLaterData.filter(item => {
+                const dueStr = item.nextInstallmentDue || item.dueDate;
+                if (!dueStr) return false;
+                const dueDate = new Date(dueStr);
+                const bal = (parseFloat(item.totalAmount || 0)) - (parseFloat(item.cashReceived || 0) + parseFloat(item.digitalAmount || 0));
+                return dueDate < now && bal > 0;
+            }).length;
+
+            el("pl-stat-overdue").textContent = overdueCount;
+
+            payLaterCurrentPage = 1;
+            renderActivePayLater();
+        }
+
         function renderActivePayLater() {
             const tbody = el("activePayLaterBody");
             const titleEl = el("activePayLaterTitle");
-            if (activePayLaterData.length === 0) {
-                if (titleEl) titleEl.textContent = 'Active Pay Later Accounts (0)';
-                tbody.innerHTML = '<tr><td colspan="8" class="center-text">No active pay later accounts found.</td></tr>';
+            if (filteredPayLaterData.length === 0) {
+                if (titleEl) titleEl.textContent = `Active Pay Later Accounts (${activePayLaterData.length})`;
+                tbody.innerHTML = '<tr><td colspan="8" class="center-text">No active pay later accounts match your search.</td></tr>';
+                el("activePayLaterPagination").style.display = "none";
                 return;
             }
             if (titleEl) titleEl.textContent = `Active Pay Later Accounts (${activePayLaterData.length})`;
@@ -614,13 +1022,14 @@
                 return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
             };
 
-            // Sort by due date ascending
-            activePayLaterData.sort((a, b) => {
-                const getDue = (item) => item.nextInstallmentDue ? new Date(item.nextInstallmentDue).getTime() : (item.dueDate ? new Date(item.dueDate).getTime() : 8640000000000000);
-                return getDue(a) - getDue(b);
-            });
+            const totalPages = Math.ceil(filteredPayLaterData.length / payLaterItemsPerPage);
+            if (payLaterCurrentPage > totalPages && totalPages > 0) payLaterCurrentPage = totalPages;
 
-            tbody.innerHTML = activePayLaterData.map(r => {
+            const startIdx = (payLaterCurrentPage - 1) * payLaterItemsPerPage;
+            const endIdx = startIdx + payLaterItemsPerPage;
+            const paginatedData = showAllPayLater ? filteredPayLaterData : filteredPayLaterData.slice(startIdx, endIdx);
+
+            tbody.innerHTML = paginatedData.map(r => {
                 const totalAmt = parseFloat(r.totalAmount || 0);
                 const cashAmt = parseFloat(r.cashReceived || 0);
                 const digitalAmt = parseFloat(r.digitalAmount || 0);
@@ -677,6 +1086,30 @@
                     </tr>
                 `;
             }).join('');
+
+            const pagContainer = el("activePayLaterPagination");
+            if (totalPages > 1) {
+                pagContainer.style.display = "flex";
+                el("pl-page-info").textContent = showAllPayLater ? `All ${filteredPayLaterData.length} shown` : `Page ${payLaterCurrentPage} of ${totalPages}`;
+                el("plPrevBtn").disabled = showAllPayLater || payLaterCurrentPage === 1;
+                el("plNextBtn").disabled = showAllPayLater || payLaterCurrentPage === totalPages;
+                el("plPrevBtn").style.display = showAllPayLater ? "none" : "";
+                el("plNextBtn").style.display = showAllPayLater ? "none" : "";
+                el("plShowAllBtn").textContent = showAllPayLater ? "Paginate" : "Show All";
+            } else {
+                pagContainer.style.display = "none";
+            }
+        }
+
+        function changePayLaterPage(direction) {
+            payLaterCurrentPage += direction;
+            renderActivePayLater();
+        }
+
+        function toggleShowAllPayLater() {
+            showAllPayLater = !showAllPayLater;
+            payLaterCurrentPage = 1;
+            renderActivePayLater();
         }
 
         function printActivePayLater() {
@@ -781,7 +1214,9 @@
             const methodFilter = el("filterPaymentMethod").value;
             const dateFrom = el("filterDateFrom").value;
             const dateTo = el("filterDateTo").value;
-            const searchTerm = el("searchInput").value.trim().toLowerCase();
+            const searchTerm = el("searchInput") ? el("searchInput").value.trim().toLowerCase() : "";
+
+            if (el("tabBadgeHistory")) el("tabBadgeHistory").textContent = allTransactions.length;
 
             filteredTransactions = allTransactions.filter(txn => {
                 // Status filter
@@ -858,13 +1293,17 @@
 
             // Dynamic page title based on selected date
             const salesLabel = document.querySelector('#stat-sales').closest('.dash-stat-info').querySelector('.sub-text');
+            const txnsLabel = document.querySelector('#stat-count').closest('.dash-stat-info').querySelector('.sub-text');
 
             if (dateFrom === todayStr && dateTo === todayStr) {
                 salesLabel.textContent = "Today's Sales";
+                txnsLabel.textContent = "Today's Transactions";
             } else if (dateFrom || dateTo) {
                 salesLabel.textContent = 'Filtered Sales';
+                txnsLabel.textContent = 'Filtered Transactions';
             } else {
                 salesLabel.textContent = 'All Sales';
+                txnsLabel.textContent = 'All-Time Transactions';
             }
             el("stat-count").textContent = totalCount;
             el("stat-sales").textContent = fmtPeso(dateSales);
@@ -910,7 +1349,7 @@
         function renderTable() {
             const tbody = el("historyBody");
             const start = (currentPage - 1) * perPage;
-            const pageData = filteredTransactions.slice(start, start + perPage);
+            const pageData = showAllTransactions ? filteredTransactions : filteredTransactions.slice(start, start + perPage);
             const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / perPage));
 
             if (pageData.length === 0) {
@@ -968,9 +1407,12 @@
                 }).join('');
             }
 
-            el("page-info").textContent = `Page ${currentPage} of ${totalPages}`;
-            el("prevBtn").disabled = currentPage <= 1;
-            el("nextBtn").disabled = currentPage >= totalPages;
+            el("page-info").textContent = showAllTransactions ? `All ${filteredTransactions.length} shown` : `Page ${currentPage} of ${totalPages}`;
+            el("prevBtn").disabled = showAllTransactions || currentPage <= 1;
+            el("nextBtn").disabled = showAllTransactions || currentPage >= totalPages;
+            el("prevBtn").style.display = showAllTransactions ? "none" : "";
+            el("nextBtn").style.display = showAllTransactions ? "none" : "";
+            el("txnShowAllBtn").textContent = showAllTransactions ? "Paginate" : "Show All";
         }
 
         function changePage(delta) {
@@ -980,6 +1422,12 @@
                 currentPage = newPage;
                 renderTable();
             }
+        }
+
+        function toggleShowAllTransactions() {
+            showAllTransactions = !showAllTransactions;
+            currentPage = 1;
+            renderTable();
         }
 
         // Keyboard shortcuts
@@ -1584,6 +2032,7 @@
 
             loadTransactions();
             fetchActivePayLater();
+            fetchCustomers();
             el("searchInput").focus();
         });
 

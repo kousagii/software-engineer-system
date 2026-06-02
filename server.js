@@ -1899,6 +1899,31 @@ app.get('/api/searchProducts', (req, res) => {
     });
 });
 
+// GET aggregated customer records based on sales_transaction
+app.get('/api/customers', (req, res) => {
+    const sql = `
+        SELECT 
+            customerName,
+            MAX(contactInfo) as contactInfo,
+            MAX(address) as address,
+            COUNT(transactionID) as totalTransactions,
+            SUM(totalAmount) as totalSpent,
+            SUM(totalAmount - (COALESCE(cashReceived, 0) + COALESCE(digitalAmount, 0))) as outstandingBalance,
+            MAX(transDateTime) as lastTransactionDate
+        FROM sales_transaction
+        WHERE customerName IS NOT NULL AND TRIM(customerName) != ''
+        GROUP BY customerName
+        ORDER BY customerName ASC
+    `;
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error("Customers Error:", err);
+            return res.status(500).json({ error: "Failed to load customers" });
+        }
+        res.json(results);
+    });
+});
+
 // GET recent sales transactions (for dashboard)
 app.get('/api/transactions', (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
@@ -2393,13 +2418,15 @@ app.get('/api/getTransactionForRefund', (req, res) => {
     const originalSql = `
         SELECT 
             i.productID, p.productName, p.price, i.quantity,
-            t.transactionID
+            t.transactionID, t.paymentMethod, t.paymentStatus, 
+            t.totalAmount, t.cashReceived, t.digitalAmount,
+            t.customerName, t.contactInfo, t.address, t.dueDate
         FROM sales_transaction t
         JOIN sales_item i ON t.transactionID = i.transactionID
         JOIN product p ON i.productID = p.productID
-        WHERE t.transactionCode = ? AND i.quantity > 0`;
+        WHERE t.transactionCode LIKE ? AND i.quantity > 0`;
 
-    db.query(originalSql, [txnCode], (err, origItems) => {
+    db.query(originalSql, [txnCode + '%'], (err, origItems) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: "Database error" });
@@ -2407,6 +2434,8 @@ app.get('/api/getTransactionForRefund', (req, res) => {
         if (origItems.length === 0) {
             return res.status(404).json({ error: "No transaction found with that code." });
         }
+
+        const txnData = origItems[0]; // Header info is the same for all items
 
         // Step 2: Check how many of each product have already been refunded/exchanged
         // by looking at refund transactions (UTR/UTE) that reference the same original transaction
@@ -2429,18 +2458,32 @@ app.get('/api/getTransactionForRefund', (req, res) => {
             }
 
             // Build a map of already-refunded quantities
-            const refundMap = {};
-            refundedItems.forEach(r => { refundMap[r.productID] = r.refundedQty; });
+            const refundedMap = {};
+            refundedItems.forEach(r => refundedMap[r.productID] = r.refundedQty);
 
-            // Calculate remaining returnable qty per item
-            const remaining = origItems
-                .map(item => ({
-                    productID: item.productID,
-                    productName: item.productName,
-                    price: item.price,
-                    quantity: item.quantity - (refundMap[item.productID] || 0)
-                }))
-                .filter(item => item.quantity > 0);
+            // Filter out items that are fully refunded
+            const remaining = origItems.map(i => {
+                const refunded = refundedMap[i.productID] || 0;
+                return {
+                    productID: i.productID,
+                    productName: i.productName,
+                    price: parseFloat(i.price),
+                    originalQty: i.quantity,
+                    refundedQty: refunded,
+                    availableQty: i.quantity - refunded,
+                    
+                    // Transaction details
+                    paymentMethod: txnData.paymentMethod,
+                    paymentStatus: txnData.paymentStatus,
+                    totalAmount: parseFloat(txnData.totalAmount),
+                    cashReceived: parseFloat(txnData.cashReceived || 0),
+                    digitalAmount: parseFloat(txnData.digitalAmount || 0),
+                    customerName: txnData.customerName,
+                    contactInfo: txnData.contactInfo,
+                    address: txnData.address,
+                    dueDate: txnData.dueDate
+                };
+            }).filter(i => i.availableQty > 0);
 
             if (remaining.length === 0) {
                 return res.status(400).json({ error: "All items in this transaction have already been refunded or exchanged." });
@@ -2463,7 +2506,9 @@ app.post('/api/processAdjustment', async (req, res) => {
         cashReceived,
         digitalAmount,
         referenceNumber,
-        netBalance
+        netBalance,
+        creditToPayLater,
+        payLaterDetails
     } = req.body;
 
     const sessionUserID = req.session?.user?.id || null;
@@ -2472,7 +2517,7 @@ app.post('/api/processAdjustment', async (req, res) => {
     try {
         await db.promise().beginTransaction();
 
-        const finalStatus = (mode === 'exchange') ? 'Exchanged' : 'Refunded';
+        let finalStatus = (mode === 'exchange') ? 'Exchanged' : 'Refunded';
 
         let basePrefix = (mode === 'exchange') ? 'UTE' : 'UTR';
         let origMatch = transactionCode ? transactionCode.match(/\(Orig:\s*(.+?)\)/) : null;
@@ -2489,6 +2534,39 @@ app.post('/api/processAdjustment', async (req, res) => {
         const nextSeq = String(countRes[0].count + 1).padStart(4, '0');
         const generatedTransactionCode = `${basePrefix}-${datePart}-${nextSeq}${origSuffix}`;
 
+        // Handle Pay Later offsets (Refund offsetting debt)
+        if (creditToPayLater && creditToPayLater > 0) {
+            // Treat the refund amount as a payment to the original invoice
+            await db.promise().query(`
+                UPDATE sales_transaction 
+                SET cashReceived = cashReceived + ?,
+                    paymentStatus = CASE WHEN (cashReceived + digitalAmount + ?) >= (totalAmount - 0.01) THEN 'Paid' ELSE 'Partial' END
+                WHERE transactionCode = ?
+            `, [creditToPayLater, creditToPayLater, originalTxnCode]);
+
+            // Insert into payment log for auditing
+            await db.promise().query(`
+                INSERT INTO payment_log (transactionCode, cashAmount, paymentDate, paymentMethod, status, paymentType)
+                VALUES (?, ?, NOW(), 'Refund Credit', 'Paid', 'Refund Offset')
+            `, [originalTxnCode, creditToPayLater]);
+        }
+
+        // Handle Exchange Upcharge added to Pay Later
+        let insertCustomerName = null;
+        let insertContactInfo = null;
+        let insertAddress = null;
+        let insertDueDate = null;
+
+        if (paymentMethod === 'Pay Later' && netBalance < -0.01) {
+            finalStatus = 'Unpaid';
+            if (payLaterDetails) {
+                insertCustomerName = payLaterDetails.customerName;
+                insertContactInfo = payLaterDetails.contactInfo;
+                insertAddress = payLaterDetails.address;
+                insertDueDate = payLaterDetails.dueDate;
+            }
+        }
+
         /**
          * INSERT INTO HEADER TABLE
          * Note: totalAmount is stored as -netBalance. 
@@ -2497,8 +2575,8 @@ app.post('/api/processAdjustment', async (req, res) => {
          */
         const logSql = `
             INSERT INTO sales_transaction 
-            (transactionCode, userID, transDateTime, totalAmount, paymentMethod, paymentStatus, referenceNumber, cashReceived, digitalAmount) 
-            VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?)
+            (transactionCode, userID, transDateTime, totalAmount, paymentMethod, paymentStatus, referenceNumber, cashReceived, digitalAmount, customerName, contactInfo, address, dueDate) 
+            VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const [txnResult] = await db.promise().query(logSql, [
@@ -2509,7 +2587,11 @@ app.post('/api/processAdjustment', async (req, res) => {
             finalStatus,
             referenceNumber || null,
             cashReceived || 0,
-            digitalAmount || 0
+            digitalAmount || 0,
+            insertCustomerName,
+            insertContactInfo,
+            insertAddress,
+            insertDueDate
         ]);
 
         const dbAutoId = txnResult.insertId;
