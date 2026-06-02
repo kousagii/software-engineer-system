@@ -616,9 +616,14 @@
                 return;
             }
 
+            const isScannerInput = timeSinceLastKey < SCAN_CHAR_INTERVAL;
+
             if (e.key === "Enter") {
                 e.preventDefault();
                 clearTimeout(searchTimeout);
+
+                const value = el("barcodeInput").value.trim();
+                if (!value) return;
 
                 if (posSelectedIndex >= 0 && posSelectedIndex < posRenderedData.length) {
                     const selected = posRenderedData[posSelectedIndex];
@@ -627,15 +632,38 @@
                         el("barcodeInput").value = "";
                         posSelectedIndex = -1;
                         renderPosGrid();
+                    } else {
+                        showToast("This product is out of stock.", true);
                     }
                     return;
                 }
 
-                const value = el("barcodeInput").value.trim();
-                if (value) {
+                // If this is a rapid input from a physical scanner, skip the grid completely
+                if (isScannerInput) {
                     queueScan(value);
                     el("barcodeInput").value = "";
-                    renderPosGrid(); // reset grid
+                    renderPosGrid();
+                    return;
+                }
+
+                // Manual type fallback
+                if (posRenderedData.length > 0) {
+                    // Find exact match first, else fallback to the top item
+                    let match = posRenderedData.find(p => p.barcode === value || p.productName.toLowerCase() === value.toLowerCase());
+                    if (!match) match = posRenderedData[0];
+
+                    if (match.stockQuantity > 0) {
+                        addProduct(match.barcode, 1);
+                        el("barcodeInput").value = "";
+                        posSelectedIndex = -1;
+                        renderPosGrid();
+                    } else {
+                        showToast("This product is out of stock.", true);
+                    }
+                } else {
+                    queueScan(value);
+                    el("barcodeInput").value = "";
+                    renderPosGrid();
                 }
                 return;
             }
@@ -646,8 +674,6 @@
                 renderPosGrid();
                 return;
             }
-
-            const isScannerInput = timeSinceLastKey < SCAN_CHAR_INTERVAL;
 
             if (!isScannerInput && (e.key.length === 1 || e.key === "Backspace" || e.key === "Delete")) {
                 clearTimeout(searchTimeout);
@@ -703,13 +729,22 @@
 
                 const actualBarcode = String(product.barcode || product.Barcode || searchBarcode);
                 const actualName = product.productName || product.name || "Unknown Item";
-                const actualStock = parseInt(product.stockQuantity || product.stock || 999);
+                
+                // Fix JS falsy bug: if stockQuantity is 0, 0 || 999 evaluates to 999.
+                let stockVal = product.stockQuantity !== undefined ? product.stockQuantity : product.stock;
+                const actualStock = (stockVal !== undefined && stockVal !== null) ? parseInt(stockVal) : 999;
+                
                 const actualPrice = parseFloat(product.price || product.Price || 0);
 
                 let existingItem = cart.find(p => String(p.barcode) === actualBarcode);
 
                 let currentQtyInCart = existingItem ? existingItem.qty : 0;
                 let newTotalQty = currentQtyInCart + qtyToAdd;
+
+                if (actualStock <= 0) {
+                    showToast(`❌ "${actualName}" is out of stock.`, true);
+                    return;
+                }
 
                 if (actualStock < newTotalQty) {
                     showToast(`Stock Limit! Available: ${actualStock}`, true);
