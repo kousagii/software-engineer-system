@@ -189,138 +189,176 @@
             <div class="page-header">
                 <button class="btn-back m-0" onclick="toggleView('product-list-view')">← Back to List</button>
             </div>
-
             <div class="split">
                 <div class="form-panel" style="flex: 2;">
-                    <h3 id="form-title">Create Product</h3>
+                    <h3 id="form-title" style="margin-bottom: 20px;">Create Product</h3>
 
-                    <label>Name</label>
-                    <input type="text" id="prodName" placeholder="e.g. Pliers"
-                        oninput="autoCapitalize(this); updatePreview()">
+                    <!-- ═══════ SECTION: Basic Info ═══════ -->
+                    <div class="prod-section">
+                        <div class="prod-section-header">Basic Information</div>
+                        <div class="prod-section-body">
+                            <label>Product Name</label>
+                            <input type="text" id="prodName" placeholder="e.g. Pliers"
+                                oninput="autoCapitalize(this); updatePreview()">
 
-                    <div class="split">
-                        <div>
-                            <label>Category</label>
-                            <select id="prodCategory" onchange="updatePreview()">
-                                <option value="Tools">Tools</option>
-                                <option value="Cement">Cement</option>
-                                <option value="Wood">Wood</option>
-                                <option value="Roofing">Roofing</option>
-                                <option value="Bricks">Bricks</option>
-                                <option value="Paints">Paints</option>
-                                <option value="Electrical">Electrical</option>
-                                <option value="Plumbing">Plumbing</option>
-                                <option value="Steel">Steel</option>
-                                <option value="Safety & PPE">Safety & PPE</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label>Brand</label>
-                            <input type="text" id="prodBrand" placeholder="e.g. Stanley" oninput="updatePreview()">
-                        </div>
-                    </div>
-
-                    <div class="split">
-                        <div>
-                            <label>Stock Quantity</label>
-                            <div class="qty-control" id="stock-qty-control">
-                                <button class="qty-btn" id="btn-stock-minus" onclick="changeStock(-1)">-</button>
-                                <input type="number" id="prodStock" value="25" class="center-text m-0" min="0"
-                                    oninput="updatePreview(); propagateBaseStock()" readonly>
-                                <button class="qty-btn" id="btn-stock-plus" onclick="changeStock(1)">+</button>
+                            <div class="split">
+                                <div>
+                                    <label>Category</label>
+                                    <select id="prodCategory" onchange="updatePreview()">
+                                        <option value="Tools">Tools</option>
+                                        <option value="Cement">Cement</option>
+                                        <option value="Wood">Wood</option>
+                                        <option value="Roofing">Roofing</option>
+                                        <option value="Bricks">Bricks</option>
+                                        <option value="Paints">Paints</option>
+                                        <option value="Electrical">Electrical</option>
+                                        <option value="Plumbing">Plumbing</option>
+                                        <option value="Steel">Steel</option>
+                                        <option value="Safety & PPE">Safety & PPE</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label>Brand</label>
+                                    <input type="text" id="prodBrand" placeholder="e.g. Stanley" oninput="updatePreview()">
+                                </div>
                             </div>
-                            <button type="button" id="btn-adjust-stock" class="btn-back"
-                                style="margin-top:6px; width:100%; font-size:0.78rem; display:none;"
-                                onclick="openStockReasonModal()">
-                                Adjust Stock
-                            </button>
-                        </div>
-                        <div>
-                            <label>Purchase Price (₱)</label>
-                            <input type="number" id="prodInitialPrice" placeholder="120" min="0" step="0.01"
-                                oninput="updatePreview(); propagateBaseInitialPrice()">
+
+                            <label>Description</label>
+                            <textarea id="prodDescription" rows="3" placeholder="Short product description..."
+                                oninput="updatePreview()"></textarea>
                         </div>
                     </div>
 
-                    <div class="split">
-                        <div>
-                            <label>Selling Price (₱)</label>
-                            <input type="number" id="prodPrice" placeholder="180" min="0" step="0.01"
-                                oninput="updatePreview(); propagateBasePrice()">
-                        </div>
-                        <div>
-                            <label>Low Stock Threshold</label>
-                            <input type="number" id="prodLowStock" placeholder="10" value="10" min="0"
-                                oninput="updatePreview(); propagateBaseLowStock()">
-                            <p id="threshold-hint"
-                                style="display:none; margin:4px 0 0; font-size:0.78rem; color:#6b7280; line-height:1.4;">
-                            </p>
-                        </div>
-                    </div>
-
-                    <label>Description</label>
-                    <textarea id="prodDescription" rows="4" placeholder="Description"
-                        oninput="updatePreview()"></textarea>
-
-                    <!-- Product Variations Switcher -->
-                    <div class="form-panel" id="variations-toggle-wrapper">
-                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
-                            <div style="display: flex; align-items: center; gap: 15px;">
-                                <strong style="margin: 0; white-space: nowrap;">Add Variations</strong>
-                                <span class="sub-text" style="margin: 0;">Enable if this product comes in different
-                                    colors, sizes, etc.</span>
+                    <!-- ═══════ SECTION: Pricing ═══════ -->
+                    <div class="prod-section">
+                        <div class="prod-section-header">Pricing</div>
+                        <div class="prod-section-body">
+                            <div class="split">
+                                <div>
+                                    <label>Purchase Price (₱)</label>
+                                    <input type="number" id="prodInitialPrice" placeholder="e.g. 120" min="0" step="0.01"
+                                        oninput="updatePreview(); propagateBaseInitialPrice()">
+                                </div>
+                                <div>
+                                    <label>Selling Price (₱)</label>
+                                    <input type="number" id="prodPrice" placeholder="e.g. 180" min="0" step="0.01"
+                                        oninput="updatePreview(); propagateBasePrice()">
+                                </div>
                             </div>
-                            <label class="switch" style="margin: 0; flex-shrink: 0;">
-                                <input type="checkbox" id="varModeMulti" onchange="handleVariationsToggle()">
-                                <span class="slider"></span>
-                            </label>
                         </div>
                     </div>
 
-                    <!-- Product Variations Builder Panel -->
-                    <div class="form-panel" id="variations-panel">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h4 style="margin:0;">Product Options</h4>
-                            <button type="button" class="btn-create" style="width: auto; margin: 0;"
-                                onclick="addVariationOptionRow()">+ Add Option</button>
-                        </div>
-                        <div class="flex-col-gap-10" id="variation-options-list">
-                        </div>
-
-                        <div class="form-panel" id="combinations-container" style="max-width: 700px;">
-                            <h4 style="margin-top:0;">Generated Variants</h4>
-                            <div class="table-container">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Variant</th>
-                                            <th>Stock</th>
-                                            <th>Purchase (₱)</th>
-                                            <th>Selling (₱)</th>
-                                            <th>Low Stock</th>
-                                            <th class="center-text">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="combinations-tbody"></tbody>
-                                </table>
+                    <!-- ═══════ SECTION: Inventory ═══════ -->
+                    <div class="prod-section">
+                        <div class="prod-section-header">Inventory</div>
+                        <div class="prod-section-body">
+                            <div class="split">
+                                <div>
+                                    <label>Stock Quantity</label>
+                                    <div class="qty-control" id="stock-qty-control">
+                                        <button class="qty-btn" id="btn-stock-minus" onclick="changeStock(-1)">-</button>
+                                        <input type="number" id="prodStock" value="25" class="center-text m-0" min="0"
+                                            oninput="updatePreview(); propagateBaseStock()" readonly>
+                                        <button class="qty-btn" id="btn-stock-plus" onclick="changeStock(1)">+</button>
+                                    </div>
+                                    <button type="button" id="btn-adjust-stock" class="btn-back"
+                                        style="margin-top:8px; width:100%; font-size:0.78rem; display:none;"
+                                        onclick="openStockReasonModal()">
+                                        Adjust Stock
+                                    </button>
+                                </div>
+                                <div>
+                                    <label>Low Stock Alert</label>
+                                    <input type="number" id="prodLowStock" placeholder="10" value="10" min="0"
+                                        oninput="updatePreview(); propagateBaseLowStock()">
+                                    <p id="threshold-hint"
+                                        style="display:none; margin:4px 0 0; font-size:0.78rem; color:#6b7280; line-height:1.4;">
+                                    </p>
+                                </div>
                             </div>
-                            <button type="button" class="btn-back" onclick="addCustomCombinationRow()">+ Add Custom
-                                Variant</button>
                         </div>
                     </div>
 
-                    <label>Upload image</label>
-                    <div class="image-upload-box">
-                        <img id="img-preview"
-                            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"
-                            alt="Preview" onerror="this.onerror=null; this.src=placeholderImg;" class="w-full">
+                    <!-- ═══════ SECTION: Variations ═══════ -->
+                    <div class="prod-section">
+                        <div class="prod-section-header">Product Variations</div>
+                        <div class="prod-section-body">
+
+                            <!-- Toggle -->
+                            <div class="prod-variation-toggle" id="variations-toggle-wrapper">
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:20px;">
+                                    <div>
+                                        <strong style="margin:0; display:block;">Enable Variations</strong>
+                                        <span class="sub-text" style="margin:0; font-size:0.8rem;">Turn on if this product has different sizes, colors, or types. Each variation can have its own price and stock.</span>
+                                    </div>
+                                    <label class="switch" style="margin:0; flex-shrink:0;">
+                                        <input type="checkbox" id="varModeMulti" onchange="handleVariationsToggle()">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Variations Builder -->
+                            <div id="variations-panel" style="display:none;">
+
+                                <!-- Step 1 -->
+                                <div class="prod-step-card">
+                                    <div class="prod-step-badge">Step 1</div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                        <div>
+                                            <strong style="margin:0; display:block;">Define Variation Types</strong>
+                                            <span class="sub-text" style="margin:0; font-size:0.78rem;">Add option types like Size or Color, then enter the possible values.</span>
+                                        </div>
+                                        <button type="button" class="btn-create" style="width:auto; margin:0; font-size:0.82rem; padding:8px 16px;"
+                                            onclick="addVariationOptionRow()">+ Add Type</button>
+                                    </div>
+                                    <div class="flex-col-gap-10" id="variation-options-list">
+                                    </div>
+                                </div>
+
+                                <!-- Step 2 -->
+                                <div class="prod-step-card" id="combinations-container" style="display:none;">
+                                    <div class="prod-step-badge">Step 2</div>
+                                    <div style="margin-bottom:12px;">
+                                        <strong style="margin:0; display:block;">Set Price & Stock per Variant</strong>
+                                        <span class="sub-text" style="margin:0; font-size:0.78rem;">Combinations are auto-generated. Adjust individually or add custom entries below.</span>
+                                    </div>
+                                    <div class="table-container" style="padding:0; box-shadow:none;">
+                                        <table class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Variant</th>
+                                                    <th style="width:100px;">Stock</th>
+                                                    <th style="width:130px;">Purchase (₱)</th>
+                                                    <th style="width:130px;">Selling (₱)</th>
+                                                    <th style="width:100px;">Low Stock</th>
+                                                    <th class="center-text" style="width:70px;">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="combinations-tbody"></tbody>
+                                        </table>
+                                    </div>
+                                    <button type="button" class="btn-back" style="margin-top:10px;" onclick="addCustomCombinationRow()">+ Add Custom Variant</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="input-row">
-                        <input type="file" id="prodImage" accept="image/*" onchange="previewSelectedImage(event)"
-                            class="input-barcode">
+                    <!-- ═══════ SECTION: Image ═══════ -->
+                    <div class="prod-section">
+                        <div class="prod-section-header">Product Image</div>
+                        <div class="prod-section-body">
+                            <div class="image-upload-box">
+                                <img id="img-preview"
+                                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"
+                                    alt="Preview" onerror="this.onerror=null; this.src=placeholderImg;" class="w-full">
+                            </div>
+                            <div class="input-row">
+                                <input type="file" id="prodImage" accept="image/*" onchange="previewSelectedImage(event)"
+                                    class="input-barcode">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -952,24 +990,21 @@
             rowDiv.className = 'variant-option-row';
             rowDiv.id = `option-row-${index}`;
             rowDiv.innerHTML = `
-                <div class="variant-option-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <strong>Option ${index + 1}</strong>
-                    <button type="button" class="btn-cancel btn-icon-sm variant-btn-remove" style="width: auto;" onclick="removeVariationOptionRow(${index})">Remove</button>
-                </div>
-                <div class="variant-split" style="display: flex; gap: 15px; width: 60%; min-width: 450px;">
-                    <div class="flex-1">
-                        <label class="font-sm-label">Option Name</label>
-                        <input type="text" id="opt-name-${index}" value="${name}" placeholder="e.g. Color or Size" class="font-sm-input" oninput="handleOptionUpdate(${index})">
+                <button type="button" class="variant-remove-btn" onclick="removeVariationOptionRow(${index})" title="Remove">×</button>
+                <div style="display:flex; gap:20px; padding-right:30px;">
+                    <div style="flex:1; min-width:160px; max-width:220px;">
+                        <label class="font-sm-label" style="font-weight:600; margin-top:0;">Variation Type</label>
+                        <input type="text" id="opt-name-${index}" value="${name}" placeholder="e.g. Size, Color" class="font-sm-input" oninput="handleOptionUpdate(${index})">
                     </div>
-                    <div class="flex-2">
-                        <label class="font-sm-label">Values</label>
-                        <div class="variant-tag-input-group" style="display: flex; gap: 8px;">
-                            <input type="text" id="opt-val-input-${index}" placeholder="Type value and press Enter" class="font-sm-input" onkeydown="handleTagKeydown(event, ${index})">
-                            <button type="button" class="btn-back font-sm-btn" style="width: auto;" onclick="addTagFromInput(${index})">Add</button>
+                    <div style="flex:2;">
+                        <label class="font-sm-label" style="font-weight:600; margin-top:0;">Possible Values</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="opt-val-input-${index}" placeholder="Type a value and press Enter" class="font-sm-input" onkeydown="handleTagKeydown(event, ${index})">
+                            <button type="button" class="btn-proceed font-sm-btn" style="margin:0; padding:0 15px;" onclick="addTagFromInput(${index})">Add</button>
                         </div>
+                        <div class="variant-tag-container" id="opt-tags-${index}" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;"></div>
                     </div>
                 </div>
-                <div class="variant-tag-container" id="opt-tags-${index}" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px;"></div>
             `;
 
             $('variation-options-list').appendChild(rowDiv);
@@ -1150,19 +1185,19 @@
                         <input type="hidden" class="variant-bc-input" value="${rowBarcode}">
                     </td>
                     <td>
-                        <input type="number" class="variant-stock-input w-70" value="${baseStock}" min="0" oninput="updatePreview()">
+                        <input type="number" class="variant-stock-input w-full" value="${baseStock}" min="0" oninput="updatePreview()" style="margin:0;">
                     </td>
                     <td>
-                        <input type="number" class="variant-init-price-input w-90" value="${baseInitialPrice}" min="0" step="0.01" oninput="updatePreview()">
+                        <input type="number" class="variant-init-price-input w-full" value="${baseInitialPrice}" min="0" step="0.01" oninput="updatePreview()" style="margin:0;">
                     </td>
                     <td>
-                        <input type="number" class="variant-price-input w-90" value="${basePrice}" min="0" step="0.01" oninput="updatePreview()">
+                        <input type="number" class="variant-price-input w-full" value="${basePrice}" min="0" step="0.01" oninput="updatePreview()" style="margin:0;">
                     </td>
                     <td>
-                        <input type="number" class="variant-lowstock-input w-70" value="${baseLowStock}" min="0" oninput="updatePreview()">
+                        <input type="number" class="variant-lowstock-input w-full" value="${baseLowStock}" min="0" oninput="updatePreview()" style="margin:0;">
                     </td>
                     <td class="center-text">
-                        <button type="button" class="btn-danger-sm btn-icon-sm" onclick="removeCombinationRow(this)" title="Archive Variant">✕</button>
+                        <button type="button" class="btn-danger-sm btn-icon-sm" onclick="removeCombinationRow(this)" title="Archive Variant" style="margin:0;">✕</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -1195,24 +1230,24 @@
 
             row.innerHTML = `
                 <td>
-                    <input type="text" class="variant-custom-val w-130" value="${variantValue}" placeholder="e.g. Extra Large" oninput="updatePreview()">
+                    <input type="text" class="variant-custom-val w-full" value="${variantValue}" placeholder="e.g. Extra Large" oninput="updatePreview()" style="margin:0;">
                     <input type="hidden" class="variant-bc-input" value="${barcode}">
                 </td>
                 <td>
-                    <input type="number" class="variant-stock-input w-70" value="${baseStock}" min="0" oninput="updatePreview()" ${stockReadonly}>
+                    <input type="number" class="variant-stock-input w-full" value="${baseStock}" min="0" oninput="updatePreview()" ${stockReadonly} style="margin:0;">
                     ${adjustBtn}
                 </td>
                 <td>
-                    <input type="number" class="variant-init-price-input w-90" value="${baseInitialPrice}" min="0" step="0.01" oninput="updatePreview()">
+                    <input type="number" class="variant-init-price-input w-full" value="${baseInitialPrice}" min="0" step="0.01" oninput="updatePreview()" style="margin:0;">
                 </td>
                 <td>
-                    <input type="number" class="variant-price-input w-90" value="${basePrice}" min="0" step="0.01" oninput="updatePreview()">
+                    <input type="number" class="variant-price-input w-full" value="${basePrice}" min="0" step="0.01" oninput="updatePreview()" style="margin:0;">
                 </td>
                 <td>
-                    <input type="number" class="variant-lowstock-input w-70" value="${baseLowStock}" min="0" oninput="updatePreview()">
+                    <input type="number" class="variant-lowstock-input w-full" value="${baseLowStock}" min="0" oninput="updatePreview()" style="margin:0;">
                 </td>
                 <td class="center-text">
-                    <button type="button" class="btn-danger-sm btn-icon-sm" onclick="removeCombinationRow(this)">✕</button>
+                    <button type="button" class="btn-danger-sm btn-icon-sm" onclick="removeCombinationRow(this)" style="margin:0;">✕</button>
                 </td>
             `;
 
