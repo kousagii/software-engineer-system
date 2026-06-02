@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -117,7 +117,6 @@
                 <div class="pos-cart-header">
                     <h3>Order Summary</h3>
                     <div class="pos-cart-info">
-                        <span id="posTxnId"></span>
                         <span id="posDateTime"></span>
                     </div>
                 </div>
@@ -956,11 +955,6 @@
             el('custContact').value = '';
             el('custAddress').value = '';
 
-            // Set transaction ID in payment modal if there isn't one
-            if (el("posTxnId") && !el("posTxnId").innerText.includes("UT-")) {
-                el("posTxnId").innerText = "Txn ID: " + generateTransactionID("UT");
-            }
-
             el("referenceNumber").value = "";
             el("digitalAmount").value = "";
             el("cashInput").value = "";
@@ -1288,9 +1282,6 @@
                     el("discountType").value = "fixed";
                     renderCart();
 
-                    // Generate and display a new Txn ID for the next transaction
-                    if (el("posTxnId")) el("posTxnId").innerText = "Txn ID: " + generateTransactionID("UT");
-
                     setTimeout(() => el("barcodeInput").focus(), 500);
 
                 } else {
@@ -1597,10 +1588,6 @@
             loadPendingItems();
             el("barcodeInput").focus();
 
-            // Set initial TXN ID
-            if (el("posTxnId")) {
-                el("posTxnId").innerText = "Txn ID: " + generateTransactionID("UT");
-            }
         });
 
         document.addEventListener('keydown', function (e) {
@@ -1616,21 +1603,26 @@
 
             if (e.key === 'Enter') {
                 const receiptModal = el('receiptModal');
-                if (receiptModal && receiptModal.style.display !== 'none') {
+                if (receiptModal && receiptModal.style.display === 'flex') {
                     e.preventDefault();
                     printReceipt();
                     return;
                 }
                 const clearModal = el('clearCartModal');
-                if (clearModal && clearModal.style.display !== 'none') {
+                if (clearModal && clearModal.style.display === 'flex') {
                     e.preventDefault();
                     executeClearCart();
                     return;
                 }
                 const payModal = el('paymentModal');
-                if (payModal && payModal.style.display !== 'none') {
+                if (payModal && payModal.style.display === 'flex') {
                     e.preventDefault();
                     confirmPayment();
+                    return;
+                }
+
+                const activeTag = document.activeElement.tagName.toLowerCase();
+                if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
                     return;
                 }
             }

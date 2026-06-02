@@ -38,7 +38,8 @@
                             <h3 class="summary-title mt-0">2. Search Receipt</h3>
                             <div class="flex flex-gap-10 mt-5" style="align-items: center;">
                                 <input id="txnInput" type="text" placeholder="Enter Transaction Code/ Scan QR"
-                                    class="w-full" style="margin-top: 0;" onfocus="this.select()" autocomplete="off">
+                                    class="w-full" style="margin-top: 0;" onfocus="this.select()" autocomplete="off"
+                                    onkeydown="if(event.key==='Enter'){event.preventDefault(); loadTransaction()}">
                                 <button class="btn-create"
                                     style="margin-top: 0; width: auto; white-space: nowrap; flex-shrink: 0;"
                                     onclick="loadTransaction()">Search</button>
@@ -98,31 +99,68 @@
 
             <aside class="right-col summary-panel">
                 <div>
-                    <h3 id="summaryTitle" class="summary-title mt-0">Refund Summary</h3>
+                    <h3 id="summaryTitle" class="summary-title mt-0" style="margin-bottom: 0;">Refund Summary</h3>
 
-                    <div class="receipt-row mt-15">
-                        <span class="sub-text">Total Return Amount:</span>
-                        <strong id="refundTotalDisplay">₱0.00</strong>
+                    <!-- Transaction Info Banner -->
+                    <div id="txnInfoBanner" style="display: none; margin-top: 12px; padding: 10px 14px; background: var(--bg-main); border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Original Transaction</span>
+                            <span id="txnInfoCode" style="font-size: 12px; font-weight: 600; color: var(--bg-dark);"></span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 11px; color: #888;">Payment Method</span>
+                            <span id="txnInfoMethod" style="font-size: 12px; font-weight: 500;"></span>
+                        </div>
+                        <div id="txnInfoPayLaterRow" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-color);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-size: 11px; color: #888;">Customer</span>
+                                <span id="txnInfoCustomer" style="font-size: 12px; font-weight: 500; max-width: 160px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-size: 11px; color: #888;">Status</span>
+                                <span id="txnInfoStatus" style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px;"></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 11px; color: #888;">Outstanding Balance</span>
+                                <span id="txnInfoBalance" style="font-size: 12px; font-weight: 600; color: var(--red-main);"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div id="exchangeLine" class="receipt-row hidden">
-                        <span class="sub-text">Total Exchange Amount:</span>
-                        <strong id="exchangeTotalDisplay">₱0.00</strong>
+
+                    <!-- Breakdown Lines -->
+                    <div style="margin-top: 16px; padding: 0;">
+                        <div class="receipt-row" style="padding: 6px 0; border-bottom: 1px solid var(--border-light);">
+                            <span style="font-size: 13px; color: #666;">Return Value</span>
+                            <strong id="refundTotalDisplay" style="font-size: 13px; color: var(--text-dark);">₱0.00</strong>
+                        </div>
+                        <div id="exchangeLine" class="receipt-row hidden" style="padding: 6px 0; border-bottom: 1px solid var(--border-light);">
+                            <span style="font-size: 13px; color: #666;">Exchange Value</span>
+                            <strong id="exchangeTotalDisplay" style="font-size: 13px; color: var(--text-dark);">₱0.00</strong>
+                        </div>
+                        <div id="payLaterCreditLine" style="display: none; padding: 6px 0; border-bottom: 1px solid var(--border-light);">
+                            <div class="receipt-row">
+                                <span style="font-size: 13px; color: var(--bg-dark);">Pay Later Credit</span>
+                                <strong id="payLaterCreditDisplay" style="font-size: 13px; color: var(--bg-dark);">₱0.00</strong>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="receipt-total">
-                        <span id="balanceLabel" class="label-bold">Refund Amount:</span>
-                        <span class="total-val">₱<span id="balanceTotal">0.00</span></span>
+                    <!-- Net Total Box -->
+                    <div style="margin-top: 12px; padding: 14px 16px; background: var(--bg-main); border-radius: 8px; border: 2px solid var(--bg-dark);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span id="balanceLabel" style="font-size: 13px; font-weight: 600; color: var(--text-dark);">Refund Amount</span>
+                            <span style="font-size: 20px; font-weight: 700; color: var(--bg-dark);">₱<span id="balanceTotal">0.00</span></span>
+                        </div>
                     </div>
 
-
-
-                    <div class="mt-15">
-                        <label class="label-bold label-sm">Return / Exchange Reason</label>
+                    <div style="margin-top: 16px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 12px; color: var(--text-dark);">Reason for Return / Exchange</label>
                         <textarea id="reason" rows="3" class="w-full"
-                            placeholder="Enter reason for adjustment (e.g., defective item, wrong size)"></textarea>
+                            placeholder="e.g., Defective item, wrong size, customer preference"
+                            style="font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; resize: vertical;"></textarea>
                     </div>
 
-                    <button class="btn-proceed-large mt-15" onclick="initiateProcess()">
+                    <button class="btn-proceed-large" style="margin-top: 14px; width: 100%;" onclick="initiateProcess()">
                         Process Transaction
                     </button>
                 </div>
@@ -132,10 +170,10 @@
 
     <div class="modal-overlay" id="paymentModal">
         <div class="modal-box modal-accent">
-            <h3 class="m-0">Payment Collection</h3>
+            <h3 class="m-0" id="paymentModalTitle">Payment Collection</h3>
 
             <div class="dashed-total-box mt-15 text-center">
-                <p class="m-0">Outstanding Balance</p>
+                <p class="m-0" id="paymentModalSubtitle">Outstanding Balance</p>
                 <strong class="f-24">₱ <span id="modalTotal">0.00</span></strong>
             </div>
 
@@ -304,21 +342,27 @@
 
             if (e.key === 'Enter') {
                 const receiptModal = ui('receiptModal');
-                if (receiptModal && receiptModal.style.display !== 'none') {
+                if (receiptModal && receiptModal.style.display === 'flex') {
                     e.preventDefault();
                     printReceipt();
                     return;
                 }
                 const clearModal = ui('clearCartModal');
-                if (clearModal && clearModal.style.display !== 'none') {
+                if (clearModal && clearModal.style.display === 'flex') {
                     e.preventDefault();
                     executeClearCart();
                     return;
                 }
                 const payModal = ui('paymentModal');
-                if (payModal && payModal.style.display !== 'none') {
+                if (payModal && payModal.style.display === 'flex') {
                     e.preventDefault();
-                    confirmPayment();
+                    processFinalTransaction();
+                    return;
+                }
+
+                // Don't intercept Enter when typing in inputs/textareas
+                const activeTag = document.activeElement.tagName.toLowerCase();
+                if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
                     return;
                 }
             }
@@ -455,17 +499,70 @@
             }
 
             const data = await res.json();
+
+            // Store transaction-level info for Pay Later logic
+            if (data.length > 0) {
+                window.currentTransactionInfo = {
+                    paymentMethod: data[0].paymentMethod,
+                    paymentStatus: data[0].paymentStatus,
+                    totalAmount: data[0].totalAmount,
+                    cashReceived: data[0].cashReceived,
+                    digitalAmount: data[0].digitalAmount,
+                    customerName: data[0].customerName,
+                    contactInfo: data[0].contactInfo,
+                    address: data[0].address,
+                    dueDate: data[0].dueDate
+                };
+                populateTxnInfoBanner(code);
+            }
+
             returnList = data.map(i => ({
                 productID: i.productID,
-                name: i.productName,
+                name: i.productName || i.name,
                 price: parseFloat(i.price),
-                qty: i.quantity,
-                originalQty: i.quantity,
+                qty: i.availableQty,
+                originalQty: i.availableQty,
                 selected: false
             }));
 
             renderAll();
             saveCurrentState();
+        }
+
+        function populateTxnInfoBanner(txnCode) {
+            const info = window.currentTransactionInfo;
+            if (!info) return;
+
+            const banner = ui("txnInfoBanner");
+            banner.style.display = "block";
+
+            ui("txnInfoCode").innerText = txnCode;
+            ui("txnInfoMethod").innerText = info.paymentMethod;
+
+            const payLaterRow = ui("txnInfoPayLaterRow");
+            if (info.paymentMethod === 'Pay Later') {
+                payLaterRow.style.display = "block";
+                ui("txnInfoCustomer").innerText = info.customerName || 'N/A';
+
+                const statusEl = ui("txnInfoStatus");
+                statusEl.innerText = info.paymentStatus;
+                if (info.paymentStatus === 'Unpaid') {
+                    statusEl.style.background = "#fef2f2";
+                    statusEl.style.color = "#dc2626";
+                } else if (info.paymentStatus === 'Partial') {
+                    statusEl.style.background = "#fffbeb";
+                    statusEl.style.color = "#d97706";
+                } else {
+                    statusEl.style.background = "#f0fdf4";
+                    statusEl.style.color = "#16a34a";
+                }
+
+                const outstanding = parseFloat(info.totalAmount) - parseFloat(info.cashReceived) - parseFloat(info.digitalAmount);
+                ui("txnInfoBalance").innerText = outstanding > 0.01 ? `₱${outstanding.toFixed(2)}` : '₱0.00 (Settled)';
+                if (outstanding <= 0.01) ui("txnInfoBalance").style.color = "#16a34a";
+            } else {
+                payLaterRow.style.display = "none";
+            }
         }
 
         function renderAll() {
@@ -573,8 +670,31 @@
 
             ui("refundTotalDisplay").innerText = `₱${ret.toFixed(2)}`;
             ui("exchangeTotalDisplay").innerText = `₱${exc.toFixed(2)}`;
-            ui("balanceLabel").innerText = net >= 0 ? "Refund Amount:" : "Collect Payment:";
-            ui("balanceTotal").innerText = Math.abs(net).toFixed(2);
+
+            // Pay Later credit preview
+            const creditLine = ui("payLaterCreditLine");
+            let displayNet = net;
+
+            if (net > 0 && window.currentTransactionInfo &&
+                window.currentTransactionInfo.paymentMethod === 'Pay Later' &&
+                ['Unpaid', 'Partial'].includes(window.currentTransactionInfo.paymentStatus)) {
+                const outstanding = parseFloat(window.currentTransactionInfo.totalAmount) -
+                    parseFloat(window.currentTransactionInfo.cashReceived) -
+                    parseFloat(window.currentTransactionInfo.digitalAmount);
+                if (outstanding > 0.01) {
+                    const credit = Math.min(net, outstanding);
+                    displayNet = net - credit;
+                    creditLine.style.display = "block";
+                    ui("payLaterCreditDisplay").innerText = `-₱${credit.toFixed(2)}`;
+                } else {
+                    creditLine.style.display = "none";
+                }
+            } else {
+                creditLine.style.display = "none";
+            }
+
+            ui("balanceLabel").innerText = displayNet >= 0 ? "Refund Amount" : "Collect Payment";
+            ui("balanceTotal").innerText = Math.abs(displayNet).toFixed(2);
         }
 
         function toggleReturnItem(index) {
@@ -615,21 +735,40 @@
             const totalToCollect = parseFloat(ui("modalTotal").innerText) || 0;
             const digitalPanel = ui("digitalPaymentDetails");
             const optionalBadge = ui("cashOptionalBadge");
+            const cashSection = ui("cashInput").parentElement;
+            const changeBox = ui("changeBox");
 
-            if (mode !== "Cash") {
+            if (mode === "Pay Later") {
+                digitalPanel.classList.add("hidden");
+                optionalBadge.classList.add("hidden");
+                cashSection.style.display = 'block';
+                ui("digitalAmount").value = 0;
+                ui("cashInput").value = 0;
+                ui("cashInput").disabled = true;
+            } else if (mode !== "Cash") {
                 digitalPanel.classList.remove("hidden");
                 optionalBadge.classList.remove("hidden");
+                cashSection.style.display = 'block';
                 ui("digitalAmount").value = totalToCollect.toFixed(2);
                 ui("cashInput").value = "";
+                ui("cashInput").disabled = window.isRefundPayout;
                 setTimeout(() => ui("referenceNumber").focus(), 100);
             } else {
                 digitalPanel.classList.add("hidden");
                 optionalBadge.classList.add("hidden");
+                cashSection.style.display = window.isRefundPayout ? 'none' : 'block';
                 ui("digitalAmount").value = 0;
                 ui("cashInput").value = "";
-                ui("cashInput").focus();
+                ui("cashInput").disabled = false;
+                if (!window.isRefundPayout) ui("cashInput").focus();
             }
-            calculateChange();
+
+            if (window.isRefundPayout) {
+                changeBox.style.display = 'none';
+            } else {
+                changeBox.style.display = 'block';
+                calculateChange();
+            }
         }
 
         function calculateChange() {
@@ -638,6 +777,14 @@
             const cashReceived = parseFloat(ui("cashInput").value) || 0;
             const totalReceived = digitalPaid + cashReceived;
             const change = totalReceived - payable;
+            
+            const mode = ui("paymentMode").value;
+            if (mode === "Pay Later") {
+                ui("changeAmount").innerText = "0.00";
+                ui("changeBox").style.background = "#e7f3e8";
+                return;
+            }
+
             ui("changeAmount").innerText = (change > 0) ? change.toFixed(2) : "0.00";
             ui("changeBox").style.background = (totalReceived < (payable - 0.01)) ? "#fee2e2" : "#e7f3e8";
         }
@@ -650,67 +797,162 @@
             const excVal = exchangeList.reduce((s, i) => s + (i.price * i.qty), 0);
             const net = retVal - excVal;
 
-            if (net < -0.01) {
+            // Handle Pay Later offsets
+            let isPayLater = false;
+            let outstandingBalance = 0;
+            let creditToPayLater = 0;
+
+            if (window.currentTransactionInfo && 
+                window.currentTransactionInfo.paymentMethod === 'Pay Later' && 
+                ['Unpaid', 'Partial'].includes(window.currentTransactionInfo.paymentStatus)) {
+                isPayLater = true;
+                outstandingBalance = parseFloat(window.currentTransactionInfo.totalAmount) - 
+                                     parseFloat(window.currentTransactionInfo.cashReceived) - 
+                                     parseFloat(window.currentTransactionInfo.digitalAmount);
+            }
+
+            const paymentSelect = ui("paymentMode");
+            
+            // Clear previous Pay Later option if any
+            for (let i = 0; i < paymentSelect.options.length; i++) {
+                if (paymentSelect.options[i].value === "Pay Later") {
+                    paymentSelect.remove(i);
+                    break;
+                }
+            }
+
+            if (net > 0) {
+                // Refund (Store owes customer)
+                if (isPayLater && outstandingBalance > 0) {
+                    creditToPayLater = Math.min(net, outstandingBalance);
+                    const remainingPayout = net - creditToPayLater;
+                    
+                    if (remainingPayout <= 0.01) {
+                        // Fully credited to balance, no cash required
+                        if (confirm(`This transaction has an outstanding balance of ₱${outstandingBalance.toFixed(2)}.\n\nThe refund amount (₱${net.toFixed(2)}) will be fully credited to the customer's Pay Later balance. Proceed?`)) {
+                            window.creditToPayLater = creditToPayLater;
+                            processFinalTransaction(true); // Skip modal
+                        }
+                        return;
+                    } else {
+                        // Partially credited, need payout for remainder
+                        alert(`This transaction has an outstanding balance of ₱${outstandingBalance.toFixed(2)}.\n\n₱${creditToPayLater.toFixed(2)} will be credited to the balance.\nThe remaining ₱${remainingPayout.toFixed(2)} must be refunded via Cash/Digital.`);
+                        window.creditToPayLater = creditToPayLater;
+                        ui("modalTotal").innerText = remainingPayout.toFixed(2);
+                        openModal("paymentModal");
+                        handlePaymentMode();
+                        return;
+                    }
+                } else {
+                    window.creditToPayLater = 0;
+                    window.isRefundPayout = true;
+                    ui("paymentModalTitle").innerText = "Refund Payout";
+                    ui("paymentModalSubtitle").innerText = "Amount to Refund";
+                    ui("modalTotal").innerText = net.toFixed(2);
+                    openModal("paymentModal");
+                    handlePaymentMode();
+                }
+            } else if (net < -0.01) {
+                // Exchange Upcharge (Customer owes store)
+                window.creditToPayLater = 0;
+                window.isRefundPayout = false;
+                ui("paymentModalTitle").innerText = "Payment Collection";
+                ui("paymentModalSubtitle").innerText = "Amount to Collect";
                 ui("modalTotal").innerText = Math.abs(net).toFixed(2);
+                
+                if (window.currentTransactionInfo && window.currentTransactionInfo.paymentMethod === 'Pay Later') {
+                    // Add Pay Later option for upcharge
+                    const option = document.createElement("option");
+                    option.value = "Pay Later";
+                    option.text = "Add to Pay Later Balance";
+                    paymentSelect.add(option);
+                }
+
                 openModal("paymentModal");
                 handlePaymentMode();
             } else {
+                // Exact exchange (net == 0)
+                window.creditToPayLater = 0;
                 processFinalTransaction();
             }
         }
 
-        async function processFinalTransaction() {
+        async function processFinalTransaction(skipValidation = false) {
             const activeReturns = returnList.filter(i => i.selected !== false);
             const retVal = activeReturns.reduce((s, i) => s + (i.price * i.qty), 0);
             const excVal = exchangeList.reduce((s, i) => s + (i.price * i.qty), 0);
             const net = retVal - excVal;
 
-            const mode = ui("paymentMode").value;
-            const inputedRef = ui("referenceNumber").value.trim();
-            const originalCode = ui("txnInput").value.trim();
-
-            if (net < 0 && mode !== "Cash" && !inputedRef) return showToast("Reference number is required.", true);
+            let mode = "Cash";
+            let inputedRef = "";
+            let originalCode = ui("txnInput").value.trim();
+            
+            if (!skipValidation && net !== 0) {
+                mode = ui("paymentMode").value;
+                inputedRef = ui("referenceNumber").value.trim();
+                if (net < 0 && mode !== "Cash" && mode !== "Pay Later" && !inputedRef) {
+                    return showToast("Reference number is required.", true);
+                }
+            }
 
             const prefix = currentMode === "exchange" ? "UTE" : "UTR";
             const shortCode = generateAdjCode(prefix);
             const displayCode = buildDisplayCode(shortCode, originalCode);
-
             const payload = {
                 mode: currentMode,
                 transactionCode: displayCode,
                 originalTxnCode: originalCode,
+                creditToPayLater: window.creditToPayLater || 0,
                 returns: activeReturns.map(i => ({ ...i, condition: i.condition || 'Resellable' })),
                 exchanges: exchangeList,
                 reason: ui("reason").value,
-                paymentMethod: net < 0 ? mode : "Adjustment",
-                cashReceived: parseFloat(ui("cashInput").value) || 0,
-                digitalAmount: parseFloat(ui("digitalAmount").value) || 0,
+                paymentMethod: mode,
+                netBalance: net, // Send the raw net calculated (can be positive or negative)
+                cashReceived: (mode === 'Cash') ? (window.isRefundPayout ? -Math.abs(net) : (parseFloat(ui("cashInput").value) || 0)) : 0,
+                digitalAmount: (mode !== 'Cash' && mode !== 'Pay Later') ? (window.isRefundPayout ? -Math.abs(net) : (parseFloat(ui("digitalAmount").value) || 0)) : 0,
                 referenceNumber: inputedRef,
-                netBalance: net
+                
+                // Pass original Pay Later customer details if it's an exchange upcharge using Pay Later
+                payLaterDetails: (mode === 'Pay Later' && window.currentTransactionInfo) ? {
+                    customerName: window.currentTransactionInfo.customerName,
+                    contactInfo: window.currentTransactionInfo.contactInfo,
+                    address: window.currentTransactionInfo.address,
+                    dueDate: window.currentTransactionInfo.dueDate
+                } : null
             };
 
-            const res = await fetch('/api/processAdjustment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            const btn = ui("paymentModal").querySelector(".btn-confirm");
+            if (btn) btn.disabled = true;
 
-            if (res.ok) {
-                const resData = await res.json();
-                closeModal('paymentModal');
-                localStorage.removeItem("pendingAdjustment");
+            try {
+                const res = await fetch('/api/processAdjustment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-                showToast(
-                    currentMode === "exchange"
-                        ? "Exchange transaction completed successfully!"
-                        : "Refund transaction completed successfully!"
-                );
+                if (res.ok) {
+                    const resData = await res.json();
+                    closeModal('paymentModal');
+                    localStorage.removeItem("pendingAdjustment");
 
-                const finalCode = resData.transactionCode || displayCode;
-                showFinalReceipt(finalCode, finalCode.split(' ')[0], payload);
-            } else {
-                const errData = await res.json().catch(() => ({}));
-                showToast(errData.error || "Process failed. Check database connection.", true);
+                    showToast(
+                        currentMode === "exchange"
+                            ? "Exchange transaction completed successfully!"
+                            : "Refund transaction completed successfully!"
+                    );
+
+                    const finalCode = resData.transactionCode || displayCode;
+                    showFinalReceipt(finalCode, finalCode.split(' ')[0], payload);
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    showToast(errData.error || "Process failed. Check database connection.", true);
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Network error. Please try again.", true);
+            } finally {
+                if (btn) btn.disabled = false;
             }
         }
 
@@ -740,13 +982,38 @@
             ui("receipt-total").innerText = `₱${Math.abs(data.netBalance).toFixed(2)}`;
 
             if (data.netBalance < 0) {
-                const totalPaid = data.cashReceived + data.digitalAmount;
-                const change = totalPaid - Math.abs(data.netBalance);
-                ui("receipt-payment-section").innerHTML = `
-                <div><span>Received:</span> <span>₱${totalPaid.toFixed(2)}</span></div>
-                <div><span>Change:</span> <span>₱${Math.max(0, change).toFixed(2)}</span></div>
-                ${data.referenceNumber ? '<div class="mt-5"><span>Ref:</span> <span>' + data.referenceNumber + '</span></div>' : ''}
-            `;
+                // Exchange Upcharge
+                if (data.paymentMethod === 'Pay Later') {
+                     ui("receipt-payment-section").innerHTML = `
+                         <div><span>Customer:</span> <span style="text-align: right;">${data.payLaterDetails ? data.payLaterDetails.customerName : 'N/A'}</span></div>
+                         <div><span>Due Date:</span> <span>${data.payLaterDetails ? new Date(data.payLaterDetails.dueDate).toLocaleDateString('en-PH') : 'N/A'}</span></div>
+                         <div style="font-weight: bold; margin-top: 5px;"><span>Added to Balance:</span> <span>₱${Math.abs(data.netBalance).toFixed(2)}</span></div>
+                     `;
+                } else {
+                    const totalPaid = Math.abs(data.cashReceived) + Math.abs(data.digitalAmount);
+                    const change = totalPaid - Math.abs(data.netBalance);
+                    ui("receipt-payment-section").innerHTML = `
+                    <div><span>Received:</span> <span>₱${totalPaid.toFixed(2)}</span></div>
+                    <div><span>Change:</span> <span>₱${Math.max(0, change).toFixed(2)}</span></div>
+                    ${data.referenceNumber ? '<div class="mt-5"><span>Ref:</span> <span>' + data.referenceNumber + '</span></div>' : ''}
+                    `;
+                }
+            } else if (data.netBalance > 0) {
+                // Refund
+                let html = '';
+                if (data.creditToPayLater > 0) {
+                     const cashRefunded = data.netBalance - data.creditToPayLater;
+                     html += `<div><span>Credited to Balance:</span> <span>₱${data.creditToPayLater.toFixed(2)}</span></div>`;
+                     if (cashRefunded > 0.01) {
+                         html += `<div><span>Payout (${data.paymentMethod}):</span> <span>₱${cashRefunded.toFixed(2)}</span></div>`;
+                     }
+                }
+                if (data.referenceNumber) {
+                     html += `<div class="mt-5"><span>Ref:</span> <span>${data.referenceNumber}</span></div>`;
+                }
+                ui("receipt-payment-section").innerHTML = html;
+            } else {
+                ui("receipt-payment-section").innerHTML = '';
             }
 
             const qrCanvas = ui("qrcode-canvas");
