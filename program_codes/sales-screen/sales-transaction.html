@@ -209,10 +209,13 @@
                     <div class="digital-panel-blue" style="background-color: #f0f9ff; border-color: #bae6fd;">
                         <div style="font-weight: 600; font-size: 13px; color: #0369a1; margin-bottom: 10px;">👤 Customer
                             Details</div>
-                        <div class="mb-10">
+                        <div class="mb-10 custom-dropdown-container">
                             <label for="custName" class="digital-label-blue" style="color: #0c4a6e;">Customer
                                 Name</label>
-                            <input type="text" id="custName" placeholder="Enter customer name" class="digital-input">
+                            <input type="text" id="custName" placeholder="Search or enter name" class="digital-input"
+                                autocomplete="off" oninput="handleCustomerSearch('standard')"
+                                onfocus="handleCustomerSearch('standard')">
+                            <div id="custDropdown" class="custom-autocomplete-dropdown"></div>
                         </div>
                         <div class="mb-10">
                             <label for="custTin" class="digital-label-blue" style="color: #0c4a6e;">TIN</label>
@@ -257,10 +260,13 @@
                             style="background-color: #fff3cd; border-color: #ffe69c;">
                             <div style="font-weight: 600; font-size: 14px; color: #92400e; margin-bottom: 10px;">📋
                                 Customer & Payment Details</div>
-                            <div class="mb-10">
+                            <div class="mb-10 custom-dropdown-container">
                                 <label for="plCustomerName" class="digital-label-blue" style="color: #664d03;">Customer
                                     Name *</label>
-                                <input type="text" id="plCustomerName" placeholder="Enter name" class="digital-input">
+                                <input type="text" id="plCustomerName" placeholder="Search or enter name"
+                                    class="digital-input" autocomplete="off" oninput="handleCustomerSearch('paylater')"
+                                    onfocus="handleCustomerSearch('paylater')">
+                                <div id="plCustomerDropdown" class="custom-autocomplete-dropdown"></div>
                             </div>
                             <div class="mb-10">
                                 <label for="plContactInfo" class="digital-label-blue" style="color: #664d03;">Contact
@@ -1587,7 +1593,90 @@
             loadProductCache();
             loadPendingItems();
             el("barcodeInput").focus();
+            fetchCustomerList();
+        });
 
+        let allCustomersList = [];
+
+        async function fetchCustomerList() {
+            try {
+                const response = await fetch('/api/customers');
+                if (!response.ok) throw new Error('Failed to fetch customers');
+                allCustomersList = await response.json();
+            } catch (err) {
+                console.error('Error fetching customers:', err);
+            }
+        }
+
+        function handleCustomerSearch(type) {
+            const inputId = type === 'paylater' ? 'plCustomerName' : 'custName';
+            const dropdownId = type === 'paylater' ? 'plCustomerDropdown' : 'custDropdown';
+
+            const inputVal = el(inputId).value.toLowerCase();
+            const dropdown = el(dropdownId);
+
+            let matches = allCustomersList;
+
+            if (inputVal.trim()) {
+                matches = allCustomersList.filter(c => c.customerName.toLowerCase().includes(inputVal));
+            }
+
+            if (matches.length === 0) {
+                dropdown.classList.remove('show');
+                return;
+            }
+
+            // Limit to top 50 to prevent UI lag
+            const displayMatches = matches.slice(0, 50);
+
+            dropdown.innerHTML = displayMatches.map(c => {
+                const escapedName = c.customerName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                return `
+                <div class="custom-autocomplete-item" onclick="selectCustomer('${escapedName}', '${type}')">
+                    ${c.customerName}
+                    <span class="contact-preview">${c.contactInfo || 'No contact info'}</span>
+                </div>
+                `;
+            }).join('');
+
+            dropdown.classList.add('show');
+        }
+
+        function selectCustomer(name, type) {
+            const matchedCustomer = allCustomersList.find(c => c.customerName === name);
+            if (matchedCustomer) {
+                if (type === 'paylater') {
+                    el('plCustomerName').value = matchedCustomer.customerName;
+                    if (matchedCustomer.contactInfo) el('plContactInfo').value = matchedCustomer.contactInfo;
+                    if (matchedCustomer.address) el('plAddress').value = matchedCustomer.address;
+                    if (matchedCustomer.tin) el('plTin').value = matchedCustomer.tin;
+                    if (matchedCustomer.businessStyle) el('plBusinessStyle').value = matchedCustomer.businessStyle;
+                    el('plCustomerDropdown').classList.remove('show');
+                } else {
+                    el('custName').value = matchedCustomer.customerName;
+                    if (matchedCustomer.contactInfo) el('custContact').value = matchedCustomer.contactInfo;
+                    if (matchedCustomer.address) el('custAddress').value = matchedCustomer.address;
+                    if (matchedCustomer.tin) el('custTin').value = matchedCustomer.tin;
+                    if (matchedCustomer.businessStyle) el('custBusinessStyle').value = matchedCustomer.businessStyle;
+                    el('custDropdown').classList.remove('show');
+                }
+            }
+        }
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            const containers = document.querySelectorAll('.custom-dropdown-container');
+            let clickedInside = false;
+            containers.forEach(container => {
+                if (container.contains(e.target)) clickedInside = true;
+            });
+
+            if (!clickedInside) {
+                const plDrop = el('plCustomerDropdown');
+                const custDrop = el('custDropdown');
+                if (plDrop) plDrop.classList.remove('show');
+                if (custDrop) custDrop.classList.remove('show');
+            }
         });
 
         document.addEventListener('keydown', function (e) {

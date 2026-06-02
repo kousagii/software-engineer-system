@@ -102,27 +102,38 @@
                     <h3 id="summaryTitle" class="summary-title mt-0" style="margin-bottom: 0;">Refund Summary</h3>
 
                     <!-- Transaction Info Banner -->
-                    <div id="txnInfoBanner" style="display: none; margin-top: 12px; padding: 10px 14px; background: var(--bg-main); border-radius: 8px; border: 1px solid var(--border-color);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <span style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Original Transaction</span>
-                            <span id="txnInfoCode" style="font-size: 12px; font-weight: 600; color: var(--bg-dark);"></span>
+                    <div id="txnInfoBanner"
+                        style="display: none; margin-top: 12px; padding: 10px 14px; background: var(--bg-main); border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span
+                                style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Original
+                                Transaction</span>
+                            <span id="txnInfoCode"
+                                style="font-size: 12px; font-weight: 600; color: var(--bg-dark);"></span>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-size: 11px; color: #888;">Payment Method</span>
                             <span id="txnInfoMethod" style="font-size: 12px; font-weight: 500;"></span>
                         </div>
-                        <div id="txnInfoPayLaterRow" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-color);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <div id="txnInfoPayLaterRow"
+                            style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-color);">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                 <span style="font-size: 11px; color: #888;">Customer</span>
-                                <span id="txnInfoCustomer" style="font-size: 12px; font-weight: 500; max-width: 160px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+                                <span id="txnInfoCustomer"
+                                    style="font-size: 12px; font-weight: 500; max-width: 160px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                 <span style="font-size: 11px; color: #888;">Status</span>
-                                <span id="txnInfoStatus" style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px;"></span>
+                                <span id="txnInfoStatus"
+                                    style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px;"></span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-size: 11px; color: #888;">Outstanding Balance</span>
-                                <span id="txnInfoBalance" style="font-size: 12px; font-weight: 600; color: var(--red-main);"></span>
+                                <span id="txnInfoBalance"
+                                    style="font-size: 12px; font-weight: 600; color: var(--red-main);"></span>
                             </div>
                         </div>
                     </div>
@@ -131,42 +142,68 @@
                     <div style="margin-top: 16px; padding: 0;">
                         <div class="receipt-row" style="padding: 6px 0; border-bottom: 1px solid var(--border-light);">
                             <span style="font-size: 13px; color: #666;">Return Value</span>
-                            <strong id="refundTotalDisplay" style="font-size: 13px; color: var(--text-dark);">₱0.00</strong>
+                            <strong id="refundTotalDisplay"
+                                style="font-size: 13px; color: var(--text-dark);">₱0.00</strong>
                         </div>
-                        <div id="exchangeLine" class="receipt-row hidden" style="padding: 6px 0; border-bottom: 1px solid var(--border-light);">
+                        <div id="exchangeLine" class="receipt-row hidden"
+                            style="padding: 6px 0; border-bottom: 1px solid var(--border-light);">
                             <span style="font-size: 13px; color: #666;">Exchange Value</span>
-                            <strong id="exchangeTotalDisplay" style="font-size: 13px; color: var(--text-dark);">₱0.00</strong>
+                            <strong id="exchangeTotalDisplay"
+                                style="font-size: 13px; color: var(--text-dark);">₱0.00</strong>
                         </div>
-                        <div id="payLaterCreditLine" style="display: none; padding: 6px 0; border-bottom: 1px solid var(--border-light);">
+                        <div id="payLaterCreditLine"
+                            style="display: none; padding: 6px 0; border-bottom: 1px solid var(--border-light);">
                             <div class="receipt-row">
                                 <span style="font-size: 13px; color: var(--bg-dark);">Pay Later Credit</span>
-                                <strong id="payLaterCreditDisplay" style="font-size: 13px; color: var(--bg-dark);">₱0.00</strong>
+                                <strong id="payLaterCreditDisplay"
+                                    style="font-size: 13px; color: var(--bg-dark);">₱0.00</strong>
                             </div>
                         </div>
                     </div>
 
                     <!-- Net Total Box -->
-                    <div style="margin-top: 12px; padding: 14px 16px; background: var(--bg-main); border-radius: 8px; border: 2px solid var(--bg-dark);">
+                    <div
+                        style="margin-top: 12px; padding: 14px 16px; background: var(--bg-main); border-radius: 8px; border: 2px solid var(--bg-dark);">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span id="balanceLabel" style="font-size: 13px; font-weight: 600; color: var(--text-dark);">Refund Amount</span>
-                            <span style="font-size: 20px; font-weight: 700; color: var(--bg-dark);">₱<span id="balanceTotal">0.00</span></span>
+                            <span id="balanceLabel"
+                                style="font-size: 13px; font-weight: 600; color: var(--text-dark);">Refund Amount</span>
+                            <span style="font-size: 20px; font-weight: 700; color: var(--bg-dark);">₱<span
+                                    id="balanceTotal">0.00</span></span>
                         </div>
                     </div>
 
                     <div style="margin-top: 16px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 12px; color: var(--text-dark);">Reason for Return / Exchange</label>
+                        <label
+                            style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 12px; color: var(--text-dark);">Reason
+                            for Return / Exchange</label>
                         <textarea id="reason" rows="3" class="w-full"
                             placeholder="e.g., Defective item, wrong size, customer preference"
                             style="font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; resize: vertical;"></textarea>
                     </div>
 
-                    <button class="btn-proceed-large" style="margin-top: 14px; width: 100%;" onclick="initiateProcess()">
+                    <button class="btn-proceed-large" style="margin-top: 14px; width: 100%;"
+                        onclick="initiateProcess()">
                         Process Transaction
                     </button>
                 </div>
             </aside>
         </div>
     </main>
+
+    <!-- Pay Later Confirm Modal -->
+    <div class="modal-overlay" id="payLaterConfirmModal">
+        <div class="modal-box modal-accent" style="max-width: 420px; text-align: center;">
+            <div style="font-size: 40px; margin-bottom: 15px; line-height: 1;">💰</div>
+            <h3 class="m-0" id="payLaterModalTitle" style="margin-bottom: 15px; color: var(--text-dark);">Pay Later Credit</h3>
+            <p id="payLaterConfirmText" style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 25px;">
+                <!-- Content injected via JS -->
+            </p>
+            <div class="flex-gap-10" style="justify-content: center;">
+                <button class="btn-cancel" onclick="closeModal('payLaterConfirmModal')" style="flex: 1;">Cancel</button>
+                <button class="btn-create" id="payLaterProceedBtn" style="flex: 1;">Proceed</button>
+            </div>
+        </div>
+    </div>
 
     <div class="modal-overlay" id="paymentModal">
         <div class="modal-box modal-accent">
@@ -298,12 +335,10 @@
                 <div id="qrcode-canvas" class="qr-canvas-box"></div>
                 <div class="qr-text-col">
                     <span class="qr-scan-label">Scan for Refund/Exchange</span>
+                    <p style="margin: 0; font-size: 6px; text-align: left; font-style: italic;">Returns and exchanges
+                        accepted within 7 days. Original receipt required. Items must be in original condition.</p><br>
                     <p class="qr-thank-you">Thank you for purchasing at Udicon Trading!</p>
                 </div>
-            </div>
-            
-            <div style="margin-top: 6px; text-align: center; border-top: 1px dashed #000; padding-top: 4px; font-size: 8px;">
-                <p style="margin: 0; font-style: italic; color: #333;">Returns and exchanges accepted within 7 days. Original receipt required. Items must be in original condition.</p>
             </div>
 
             <div class="no-print flex-col-gap-10 mt-15">
@@ -777,7 +812,7 @@
             const cashReceived = parseFloat(ui("cashInput").value) || 0;
             const totalReceived = digitalPaid + cashReceived;
             const change = totalReceived - payable;
-            
+
             const mode = ui("paymentMode").value;
             if (mode === "Pay Later") {
                 ui("changeAmount").innerText = "0.00";
@@ -802,17 +837,18 @@
             let outstandingBalance = 0;
             let creditToPayLater = 0;
 
-            if (window.currentTransactionInfo && 
-                window.currentTransactionInfo.paymentMethod === 'Pay Later' && 
+            if (window.currentTransactionInfo &&
+                window.currentTransactionInfo.paymentMethod === 'Pay Later' &&
                 ['Unpaid', 'Partial'].includes(window.currentTransactionInfo.paymentStatus)) {
                 isPayLater = true;
-                outstandingBalance = parseFloat(window.currentTransactionInfo.totalAmount) - 
-                                     parseFloat(window.currentTransactionInfo.cashReceived) - 
-                                     parseFloat(window.currentTransactionInfo.digitalAmount);
+                outstandingBalance = parseFloat(window.currentTransactionInfo.totalAmount) -
+                    parseFloat(window.currentTransactionInfo.cashReceived) -
+                    parseFloat(window.currentTransactionInfo.digitalAmount) -
+                    parseFloat(window.currentTransactionInfo.refundOffset || 0);
             }
 
             const paymentSelect = ui("paymentMode");
-            
+
             // Clear previous Pay Later option if any
             for (let i = 0; i < paymentSelect.options.length; i++) {
                 if (paymentSelect.options[i].value === "Pay Later") {
@@ -826,21 +862,30 @@
                 if (isPayLater && outstandingBalance > 0) {
                     creditToPayLater = Math.min(net, outstandingBalance);
                     const remainingPayout = net - creditToPayLater;
-                    
+
                     if (remainingPayout <= 0.01) {
                         // Fully credited to balance, no cash required
-                        if (confirm(`This transaction has an outstanding balance of ₱${outstandingBalance.toFixed(2)}.\n\nThe refund amount (₱${net.toFixed(2)}) will be fully credited to the customer's Pay Later balance. Proceed?`)) {
+                        ui("payLaterModalTitle").innerText = "Pay Later Credit";
+                        ui("payLaterConfirmText").innerHTML = `This transaction has an outstanding balance of <b>₱${outstandingBalance.toFixed(2)}</b>.<br><br>The refund amount (<b>₱${net.toFixed(2)}</b>) will be fully credited to the customer's Pay Later balance. Proceed?`;
+                        ui("payLaterProceedBtn").onclick = () => {
+                            closeModal('payLaterConfirmModal');
                             window.creditToPayLater = creditToPayLater;
-                            processFinalTransaction(true); // Skip modal
-                        }
+                            processFinalTransaction(true); // Skip payment modal
+                        };
+                        openModal('payLaterConfirmModal');
                         return;
                     } else {
                         // Partially credited, need payout for remainder
-                        alert(`This transaction has an outstanding balance of ₱${outstandingBalance.toFixed(2)}.\n\n₱${creditToPayLater.toFixed(2)} will be credited to the balance.\nThe remaining ₱${remainingPayout.toFixed(2)} must be refunded via Cash/Digital.`);
-                        window.creditToPayLater = creditToPayLater;
-                        ui("modalTotal").innerText = remainingPayout.toFixed(2);
-                        openModal("paymentModal");
-                        handlePaymentMode();
+                        ui("payLaterModalTitle").innerText = "Partial Credit & Refund";
+                        ui("payLaterConfirmText").innerHTML = `This transaction has an outstanding balance of <b>₱${outstandingBalance.toFixed(2)}</b>.<br><br><b>₱${creditToPayLater.toFixed(2)}</b> will be credited to the balance.<br>The remaining <b>₱${remainingPayout.toFixed(2)}</b> must be refunded via Cash/Digital.`;
+                        ui("payLaterProceedBtn").onclick = () => {
+                            closeModal('payLaterConfirmModal');
+                            window.creditToPayLater = creditToPayLater;
+                            ui("modalTotal").innerText = remainingPayout.toFixed(2);
+                            openModal("paymentModal");
+                            handlePaymentMode();
+                        };
+                        openModal('payLaterConfirmModal');
                         return;
                     }
                 } else {
@@ -859,7 +904,7 @@
                 ui("paymentModalTitle").innerText = "Payment Collection";
                 ui("paymentModalSubtitle").innerText = "Amount to Collect";
                 ui("modalTotal").innerText = Math.abs(net).toFixed(2);
-                
+
                 if (window.currentTransactionInfo && window.currentTransactionInfo.paymentMethod === 'Pay Later') {
                     // Add Pay Later option for upcharge
                     const option = document.createElement("option");
@@ -886,7 +931,7 @@
             let mode = "Cash";
             let inputedRef = "";
             let originalCode = ui("txnInput").value.trim();
-            
+
             if (!skipValidation && net !== 0) {
                 mode = ui("paymentMode").value;
                 inputedRef = ui("referenceNumber").value.trim();
@@ -911,7 +956,7 @@
                 cashReceived: (mode === 'Cash') ? (window.isRefundPayout ? -Math.abs(net) : (parseFloat(ui("cashInput").value) || 0)) : 0,
                 digitalAmount: (mode !== 'Cash' && mode !== 'Pay Later') ? (window.isRefundPayout ? -Math.abs(net) : (parseFloat(ui("digitalAmount").value) || 0)) : 0,
                 referenceNumber: inputedRef,
-                
+
                 // Pass original Pay Later customer details if it's an exchange upcharge using Pay Later
                 payLaterDetails: (mode === 'Pay Later' && window.currentTransactionInfo) ? {
                     customerName: window.currentTransactionInfo.customerName,
@@ -984,7 +1029,7 @@
             if (data.netBalance < 0) {
                 // Exchange Upcharge
                 if (data.paymentMethod === 'Pay Later') {
-                     ui("receipt-payment-section").innerHTML = `
+                    ui("receipt-payment-section").innerHTML = `
                          <div><span>Customer:</span> <span style="text-align: right;">${data.payLaterDetails ? data.payLaterDetails.customerName : 'N/A'}</span></div>
                          <div><span>Due Date:</span> <span>${data.payLaterDetails ? new Date(data.payLaterDetails.dueDate).toLocaleDateString('en-PH') : 'N/A'}</span></div>
                          <div style="font-weight: bold; margin-top: 5px;"><span>Added to Balance:</span> <span>₱${Math.abs(data.netBalance).toFixed(2)}</span></div>
@@ -1002,14 +1047,14 @@
                 // Refund
                 let html = '';
                 if (data.creditToPayLater > 0) {
-                     const cashRefunded = data.netBalance - data.creditToPayLater;
-                     html += `<div><span>Credited to Balance:</span> <span>₱${data.creditToPayLater.toFixed(2)}</span></div>`;
-                     if (cashRefunded > 0.01) {
-                         html += `<div><span>Payout (${data.paymentMethod}):</span> <span>₱${cashRefunded.toFixed(2)}</span></div>`;
-                     }
+                    const cashRefunded = data.netBalance - data.creditToPayLater;
+                    html += `<div><span>Credited to Balance:</span> <span>₱${data.creditToPayLater.toFixed(2)}</span></div>`;
+                    if (cashRefunded > 0.01) {
+                        html += `<div><span>Payout (${data.paymentMethod}):</span> <span>₱${cashRefunded.toFixed(2)}</span></div>`;
+                    }
                 }
                 if (data.referenceNumber) {
-                     html += `<div class="mt-5"><span>Ref:</span> <span>${data.referenceNumber}</span></div>`;
+                    html += `<div class="mt-5"><span>Ref:</span> <span>${data.referenceNumber}</span></div>`;
                 }
                 ui("receipt-payment-section").innerHTML = html;
             } else {

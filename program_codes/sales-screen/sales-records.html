@@ -54,8 +54,8 @@
                         </svg>
                     </div>
                     <div class="dash-stat-info">
-                        <div class="sub-text">Total Active Accounts</div>
-                        <h3 class="mt-0" id="pl-stat-accounts">—</h3>
+                        <div class="sub-text">Total Collected</div>
+                        <h3 class="mt-0" id="pl-stat-collected" style="color:#356ac3;">—</h3>
                     </div>
                 </div>
 
@@ -243,8 +243,8 @@
                             <button class="btn-create" onclick="clearDateFilter()" style="margin:0;">Clear</button>
                         </div>
                         <div class="toolbar-group">
-                            <label for="filterStatus" style="margin:0; font-size:13px; white-space:nowrap;">Payment
-                                Status:</label>
+                            <label for="filterStatus"
+                                style="margin:0; font-size:13px; white-space:nowrap;">Status:</label>
                             <select id="filterStatus" onchange="applyFilters()" style="margin:0; width:auto;">
                                 <option value="all">All Statuses</option>
                                 <option value="Paid">Paid</option>
@@ -256,7 +256,7 @@
                         </div>
                         <div class="toolbar-group">
                             <label for="filterPaymentMethod"
-                                style="margin:0; font-size:13px; white-space:nowrap;">Payment Method:</label>
+                                style="margin:0; font-size:13px; white-space:nowrap;">Method:</label>
                             <select id="filterPaymentMethod" onchange="applyFilters()" style="margin:0; width:auto;">
                                 <option value="all">All Methods</option>
                                 <option value="Cash">Cash</option>
@@ -533,6 +533,7 @@
             <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px;">
                 <p class="m-0" style="margin-bottom: 5px;">Customer: <strong id="sr-customer">---</strong></p>
                 <p class="m-0" style="margin-bottom: 5px;">Method: <strong id="sr-method">---</strong></p>
+                <p class="m-0" id="sr-term-row" style="display:none; margin-bottom: 5px;">Term: <strong id="sr-term">---</strong></p>
                 <p class="m-0" id="sr-ref-row" style="display:none; margin-bottom: 5px;">Ref: <span id="sr-ref"></span>
                 </p>
             </div>
@@ -985,9 +986,10 @@
             });
 
             // Update Pay Later Stats
-            el("pl-stat-accounts").textContent = filteredPayLaterData.length;
+            const totalCollected = filteredPayLaterData.reduce((sum, item) => sum + (parseFloat(item.cashReceived || 0) + parseFloat(item.digitalAmount || 0)), 0);
+            el("pl-stat-collected").textContent = fmtPeso(totalCollected);
 
-            const totalDebt = filteredPayLaterData.reduce((sum, item) => sum + ((parseFloat(item.totalAmount || 0)) - (parseFloat(item.cashReceived || 0) + parseFloat(item.digitalAmount || 0))), 0);
+            const totalDebt = filteredPayLaterData.reduce((sum, item) => sum + ((parseFloat(item.totalAmount || 0)) - (parseFloat(item.cashReceived || 0) + parseFloat(item.digitalAmount || 0) + parseFloat(item.refundOffset || 0))), 0);
             el("pl-stat-debt").textContent = fmtPeso(totalDebt);
 
             const now = new Date();
@@ -996,7 +998,7 @@
                 const dueStr = item.nextInstallmentDue || item.dueDate;
                 if (!dueStr) return false;
                 const dueDate = new Date(dueStr);
-                const bal = (parseFloat(item.totalAmount || 0)) - (parseFloat(item.cashReceived || 0) + parseFloat(item.digitalAmount || 0));
+                const bal = (parseFloat(item.totalAmount || 0)) - (parseFloat(item.cashReceived || 0) + parseFloat(item.digitalAmount || 0) + parseFloat(item.refundOffset || 0));
                 return dueDate < now && bal > 0;
             }).length;
 
@@ -1010,12 +1012,12 @@
             const tbody = el("activePayLaterBody");
             const titleEl = el("activePayLaterTitle");
             if (filteredPayLaterData.length === 0) {
-                if (titleEl) titleEl.textContent = `Active Pay Later Accounts (${activePayLaterData.length})`;
+                if (titleEl) titleEl.textContent = `Active Pay Later Accounts`;
                 tbody.innerHTML = '<tr><td colspan="8" class="center-text">No active pay later accounts match your search.</td></tr>';
                 el("activePayLaterPagination").style.display = "none";
                 return;
             }
-            if (titleEl) titleEl.textContent = `Active Pay Later Accounts (${activePayLaterData.length})`;
+            if (titleEl) titleEl.textContent = `Active Pay Later Accounts`;
 
             const formatDate = (dateStr) => {
                 if (!dateStr) return 'N/A';
@@ -1033,8 +1035,9 @@
                 const totalAmt = parseFloat(r.totalAmount || 0);
                 const cashAmt = parseFloat(r.cashReceived || 0);
                 const digitalAmt = parseFloat(r.digitalAmount || 0);
+                const refundAmt = parseFloat(r.refundOffset || 0);
                 const paidAmt = cashAmt + digitalAmt;
-                const balanceDue = totalAmt - paidAmt;
+                const balanceDue = totalAmt - (paidAmt + refundAmt);
 
                 // Determine which due date to show
                 let dueDateDisplay = '';
@@ -1309,18 +1312,23 @@
             el("stat-sales").textContent = fmtPeso(dateSales);
             el("stat-refunds").textContent = fmtPeso(totalRefunds);
 
-            // Calculate Receivables and Collections purely from the filtered transactions for the Payments Received stat
-            const filteredReceivables = filteredTransactions
-                .filter(t => t.paymentStatus === 'Unpaid' || t.paymentStatus === 'Partial')
-                .reduce((sum, t) => {
-                    const total = parseFloat(t.totalAmount || 0);
-                    const paid = parseFloat(t.cashReceived || 0) + parseFloat(t.digitalAmount || 0);
-                    return sum + (total - paid);
-                }, 0);
-
-            const filteredCollected = dateSales - filteredReceivables;
-
-            if (el("stat-collected")) el("stat-collected").textContent = fmtPeso(filteredCollected);
+            // Fetch accurate Collections from payment_log API (includes installments and settlements)
+            try {
+                let colUrl = '/api/dashboard/collections';
+                if (dateFrom && dateTo) {
+                    colUrl += `?startDate=${dateFrom}&endDate=${dateTo}`;
+                } else if (dateFrom || dateTo) {
+                    const singleDate = dateFrom || dateTo;
+                    colUrl += `?startDate=${singleDate}&endDate=${singleDate}`;
+                }
+                const colRes = await fetch(colUrl);
+                if (colRes.ok) {
+                    const colData = await colRes.json();
+                    if (el("stat-collected")) el("stat-collected").textContent = fmtPeso(colData.totalCollected);
+                }
+            } catch (err) {
+                console.error("Failed to fetch collections:", err);
+            }
 
             // Fetch overall receivables from API (unaffected by UI filters)
             try {
@@ -1447,12 +1455,19 @@
             }
         });
 
-        function showSettlementReceipt(txnCode, customer, method, ref, amountPaid, remainingBalance) {
+        function showSettlementReceipt(txnCode, customer, method, ref, amountPaid, remainingBalance, termStr = null) {
             el("sr-txn").innerText = txnCode;
             el("sr-date").innerText = new Date().toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric' });
             if (el("sr-cashier")) el("sr-cashier").innerText = window.currentUserName || 'Sales Agent';
             el("sr-customer").innerText = customer || 'N/A';
             el("sr-method").innerText = method;
+
+            if (termStr) {
+                el("sr-term-row").style.display = "block";
+                el("sr-term").innerText = termStr;
+            } else {
+                el("sr-term-row").style.display = "none";
+            }
 
             if (ref) {
                 el("sr-ref-row").style.display = "block";
@@ -1770,7 +1785,7 @@
                         ${paidInfo}
                     </td>
                     <td style="padding: 10px 4px; text-align: center;">
-                        ${isPaid ? '—' : `<input type="checkbox" class="inst-checkbox" data-id="${inst.scheduleID}" data-amount="${remaining}" onclick="updateSelectedInst(); event.stopPropagation();" style="width: 20px; height: 20px; accent-color: var(--bg-dark); cursor: pointer; vertical-align: middle;">`}
+                        ${isPaid ? '—' : `<input type="checkbox" class="inst-checkbox" data-id="${inst.scheduleID}" data-amount="${remaining}" data-term="${i + 1}" onclick="updateSelectedInst(); event.stopPropagation();" style="width: 20px; height: 20px; accent-color: var(--bg-dark); cursor: pointer; vertical-align: middle;">`}
                     </td>
                 </tr>`;
             }).join('');
@@ -1806,9 +1821,11 @@
             const checkboxes = document.querySelectorAll('.inst-checkbox:checked');
             let totalAmt = 0;
             let ids = [];
+            let terms = [];
             checkboxes.forEach(cb => {
                 totalAmt += parseFloat(cb.dataset.amount);
                 ids.push(cb.dataset.id);
+                terms.push(parseInt(cb.dataset.term));
             });
 
             if (ids.length === 0) return;
@@ -1833,6 +1850,23 @@
 
             if (el("settleModalBox")) el("settleModalBox").style.maxWidth = "900px";
             el("instPaymentForm").style.display = "block";
+
+            // Save term string globally for receipt
+            window.activeInstTermString = formatTerms(terms);
+        }
+
+        function formatTerms(termArray) {
+            if (!termArray || termArray.length === 0) return "";
+            if (termArray.length === 1) return formatOrdinal(termArray[0]) + " Installment";
+            const ordinals = termArray.map(t => formatOrdinal(t));
+            const last = ordinals.pop();
+            return ordinals.join(', ') + ' & ' + last + ' Installments';
+        }
+
+        function formatOrdinal(n) {
+            const s = ["th", "st", "nd", "rd"];
+            const v = n % 100;
+            return n + (s[(v - 20) % 10] || s[v] || s[0]);
         }
 
         function cancelInstPayment() {
@@ -1939,7 +1973,7 @@
                 const totalPaid = cashAmount + digitalAmount;
                 const remainingBal = parseFloat(el("settleBalance").innerText.replace(/,/g, '')) - totalPaid;
 
-                showSettlementReceipt(txnCode, custName, mode, ref, totalPaid, Math.max(0, remainingBal));
+                showSettlementReceipt(txnCode, custName, mode, ref, totalPaid, Math.max(0, remainingBal), window.activeInstTermString);
 
                 // Await both data updates before re-opening modal so it uses fresh data
                 await loadTransactions();
@@ -2004,7 +2038,7 @@
                 const totalPaid = cashAmount + digitalAmount;
                 const remainingBal = parseFloat(el("settleBalance").innerText.replace(/,/g, '')) - totalPaid;
 
-                showSettlementReceipt(txnCode, custName, mode, ref, totalPaid, Math.max(0, remainingBal));
+                showSettlementReceipt(txnCode, custName, mode, ref, totalPaid, Math.max(0, remainingBal), "Full Settlement");
 
                 // Await both data updates to refresh tables
                 await loadTransactions();

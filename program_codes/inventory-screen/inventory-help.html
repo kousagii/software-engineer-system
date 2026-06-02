@@ -26,16 +26,16 @@
                 
 <label class="filter-label filter-label-spaced">Product Management</label>
 <div class="filter-options">
-    <span class="sub-text">Creating Products</span><br>
-    <span class="sub-text">Stock Adjustment</span><br>
-    <span class="sub-text">Pricing Strategies</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Creating Products</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Stock Adjustment</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Pricing Strategies</span>
 </div>
 
 <label class="filter-label filter-label-spaced">Purchasing & Receiving</label>
 <div class="filter-options">
-    <span class="sub-text">Purchase Orders (POs)</span><br>
-    <span class="sub-text">Receiving Deliveries</span><br>
-    <span class="sub-text">Supplier Relations</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Purchase Orders (POs)</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Receiving Deliveries</span>
+    <span class="sub-text topic-link" style="cursor: pointer; display: block; padding: 4px 0; transition: color 0.2s;">Supplier Relations</span>
 </div>
 
             </div>
@@ -90,20 +90,30 @@
                 <div class="form-panel" style="margin-top: 20px;">
                     <h3>Frequently Asked Questions</h3>
                     
-<label>How do I update a product's stock count manually?</label>
-<span class="sub-text">Go to the Dashboard or Maintenance section, search for the product, click "Edit", and update the Stock Quantity field. Click "Save Product". Note: It's recommended to update stock via Purchase Orders for accurate auditing.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label>How do I update a product's stock count manually?</label>
+    <span class="sub-text">Go to the Dashboard or Maintenance section, search for the product, click "Edit", and update the Stock Quantity field. Click "Save Product". Note: It's recommended to update stock via Purchase Orders for accurate auditing.</span>
+</div>
 
-<label class="filter-label-spaced">What happens when an item reaches its Low Stock Threshold?</label>
-<span class="sub-text">The system will flag the item with a warning indicator on the Inventory Dashboard. It will also appear in the "Low Stock Alerts" widget, reminding you to reorder it soon.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">What happens when an item reaches its Low Stock Threshold?</label>
+    <span class="sub-text">The system will flag the item with a warning indicator on the Inventory Dashboard. It will also appear in the "Low Stock Alerts" widget, reminding you to reorder it soon.</span>
+</div>
 
-<label class="filter-label-spaced">Can I delete a product entirely?</label>
-<span class="sub-text">Products cannot be permanently deleted if they are tied to past sales or purchase orders, to preserve historical data integrity. Instead, you should <strong>Archive</strong> the product, which hides it from active searches and point-of-sale screens.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">Can I delete a product entirely?</label>
+    <span class="sub-text">Products cannot be permanently deleted if they are tied to past sales or purchase orders, to preserve historical data integrity. Instead, you should <strong>Archive</strong> the product, which hides it from active searches and point-of-sale screens.</span>
+</div>
 
-<label class="filter-label-spaced">What does a 'Pending' Purchase Order mean?</label>
-<span class="sub-text">It means the order has been created and sent to the supplier, but no physical items have been received at the warehouse yet.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">What does a 'Pending' Purchase Order mean?</label>
+    <span class="sub-text">It means the order has been created and sent to the supplier, but no physical items have been received at the warehouse yet.</span>
+</div>
 
-<label class="filter-label-spaced">How do I track partial deliveries?</label>
-<span class="sub-text">Open the pending Purchase Order, click "Receive", and enter the exact quantity you received for each line item. The system will automatically mark the order as "Partially Completed" and track the remaining balance due from the supplier.</span>
+<div class="faq-item" style="margin-bottom: 15px;">
+    <label class="filter-label-spaced">How do I track partial deliveries?</label>
+    <span class="sub-text">Open the pending Purchase Order, click "Receive", and enter the exact quantity you received for each line item. The system will automatically mark the order as "Partially Completed" and track the remaining balance due from the supplier.</span>
+</div>
 
                 </div>
             </div>
@@ -186,8 +196,7 @@
             <p><em>Note: All manual stock adjustments are tracked in the system's backend audit logs for accountability.</em></p>
         </div>
     `
-}
-,
+},
             'contact-support': {
                 title: 'Contact System Support',
                 content: `
@@ -214,15 +223,164 @@
             const searchBtn = document.querySelector('.btn-search');
             const tableRows = document.querySelectorAll('.data-table tbody tr');
 
+            // --- Highlight Setup ---
+            const highlightableElements = [];
+            tableRows.forEach(row => {
+                const tds = row.querySelectorAll('td');
+                if(tds.length >= 2) {
+                    highlightableElements.push(tds[0], tds[1]);
+                }
+            });
+            document.querySelectorAll('.faq-item label, .faq-item .sub-text').forEach(el => {
+                highlightableElements.push(el);
+            });
+            highlightableElements.forEach(el => {
+                el.dataset.originalHtml = el.innerHTML;
+            });
+
+            function highlightText(node, keywords) {
+                if (!keywords || keywords.length === 0) return;
+                
+                if (node.nodeType === 3) {
+                    const text = node.nodeValue;
+                    let lowerText = text.toLowerCase();
+                    let matchIndex = -1;
+                    let matchedKeyword = null;
+
+                    for (let kw of keywords) {
+                        let idx = lowerText.indexOf(kw);
+                        if (idx !== -1) {
+                            if (matchIndex === -1 || idx < matchIndex) {
+                                matchIndex = idx;
+                                matchedKeyword = kw;
+                            }
+                        }
+                    }
+
+                    if (matchIndex !== -1) {
+                        const span = document.createElement('span');
+                        span.className = 'search-highlight';
+                        span.style.backgroundColor = '#fef08a';
+                        span.style.color = '#854d0e';
+                        span.style.borderRadius = '2px';
+                        span.style.padding = '0 2px';
+                        
+                        const before = text.substring(0, matchIndex);
+                        const match = text.substring(matchIndex, matchIndex + matchedKeyword.length);
+                        const after = text.substring(matchIndex + matchedKeyword.length);
+                        
+                        if (before) {
+                            node.parentNode.insertBefore(document.createTextNode(before), node);
+                        }
+                        span.textContent = match;
+                        node.parentNode.insertBefore(span, node);
+                        
+                        const afterNode = document.createTextNode(after);
+                        node.parentNode.insertBefore(afterNode, node);
+                        
+                        node.parentNode.removeChild(node);
+                        
+                        highlightText(afterNode, keywords);
+                    }
+                } else if (node.nodeType === 1 && node.className !== 'search-highlight' && !/(script|style|button)/i.test(node.tagName)) {
+                    const children = Array.from(node.childNodes);
+                    for (let child of children) {
+                        highlightText(child, keywords);
+                    }
+                }
+            }
+
+            function clearHighlights() {
+                highlightableElements.forEach(el => {
+                    el.innerHTML = el.dataset.originalHtml;
+                });
+            }
+            // --- End Highlight Setup ---
+
             function performSearch() {
-                const filter = searchInput.value.toLowerCase();
+                const query = searchInput.value.toLowerCase().trim();
+                const keywords = query.split(/\s+/).filter(k => k.length > 0);
+
+                clearHighlights();
 
                 tableRows.forEach(row => {
                     const rowText = row.textContent.toLowerCase();
-                    if (rowText.includes(filter)) {
+                    const btn = row.querySelector('.btn-view');
+                    let guideContent = "";
+                    let plainTextContent = "";
+                    
+                    if (btn) {
+                        const guideKey = btn.getAttribute('data-guide');
+                        if (guides[guideKey]) {
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = guides[guideKey].content;
+                            plainTextContent = (tempDiv.textContent || tempDiv.innerText || "").replace(/\s+/g, ' ');
+                            guideContent = (guides[guideKey].title + " " + plainTextContent).toLowerCase();
+                        }
+                    }
+
+                    const combinedText = rowText + " " + guideContent;
+                    const isMatch = keywords.every(kw => combinedText.includes(kw));
+
+                    if (keywords.length === 0 || isMatch) {
                         row.style.display = '';
+                        if (keywords.length > 0) {
+                            const tds = row.querySelectorAll('td');
+                            if(tds.length >= 2) {
+                                highlightText(tds[0], keywords);
+                                highlightText(tds[1], keywords);
+                                
+                                const missingInVisible = keywords.some(kw => !rowText.includes(kw));
+                                if (missingInVisible && plainTextContent) {
+                                    let firstKw = keywords.find(kw => !rowText.includes(kw) && plainTextContent.toLowerCase().includes(kw));
+                                    
+                                    let snippetText = "Matches found inside guide content.";
+                                    if (firstKw) {
+                                        let idx = plainTextContent.toLowerCase().indexOf(firstKw);
+                                        let start = Math.max(0, idx - 30);
+                                        let end = Math.min(plainTextContent.length, idx + firstKw.length + 40);
+                                        snippetText = "..." + plainTextContent.substring(start, end).trim() + "...";
+                                    }
+
+                                    const note = document.createElement('div');
+                                    note.className = 'search-snippet';
+                                    note.style.fontSize = '12px';
+                                    note.style.color = '#64748b';
+                                    note.style.marginTop = '6px';
+                                    note.style.backgroundColor = '#f8fafc';
+                                    note.style.padding = '6px 10px';
+                                    note.style.borderRadius = '6px';
+                                    note.style.borderLeft = '3px solid #cbd5e1';
+                                    note.style.fontStyle = 'italic';
+                                    note.style.lineHeight = '1.4';
+                                    
+                                    note.textContent = snippetText;
+                                    tds[1].appendChild(note);
+                                    
+                                    highlightText(note, keywords);
+                                }
+                            }
+                        }
                     } else {
                         row.style.display = 'none';
+                    }
+                });
+
+                const faqItems = document.querySelectorAll('.faq-item');
+                faqItems.forEach(faq => {
+                    const faqText = faq.textContent.toLowerCase();
+                    const isMatch = keywords.every(kw => faqText.includes(kw));
+                    
+                    if (keywords.length === 0 || isMatch) {
+                        faq.style.display = '';
+                        if (keywords.length > 0) {
+                            const label = faq.querySelector('label');
+                            const subText = faq.querySelector('.sub-text');
+                            if (label) highlightText(label, keywords);
+                            if (subText) highlightText(subText, keywords);
+                        }
+                    } else {
+                        faq.style.display = 'none';
                     }
                 });
             }
@@ -248,7 +406,17 @@
             searchInput.focus();
         });
 
-        document.addEventListener('keydown', function (e) {
+            document.querySelectorAll('.topic-link').forEach(link => {
+                link.style.cursor = 'pointer';
+                link.addEventListener('mouseover', () => link.style.color = 'var(--accent-primary)');
+                link.addEventListener('mouseout', () => link.style.color = '');
+                link.addEventListener('click', () => {
+                    searchInput.value = link.textContent;
+                    performSearch();
+                });
+            });
+
+            document.addEventListener('keydown', function (e) {
             if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 const activeTag = document.activeElement.tagName.toLowerCase();
                 if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
