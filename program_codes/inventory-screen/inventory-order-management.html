@@ -232,8 +232,21 @@
                     <h3>Order Items</h3>
                     <p class="form-hint">Select a supplier first to view
                         available products.</p>
+                    <div
+                        style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px; padding: 0 10px; font-size: 0.85rem; font-weight: bold; color: #555;">
+                        <div style="flex: 1;">Product</div>
+                        <div style="width: 80px; text-align: center;">Qty</div>
+                        <div style="width: 100px; text-align: right;">Price</div>
+                        <div style="width: 100px; text-align: right;">Subtotal</div>
+                        <div style="width: 30px;"></div>
+                    </div>
 
                     <div id="itemsContainer" class="items-list items-container-box">
+                    </div>
+
+                    <div id="poGrandTotalDisplay" class="text-right mt-10 mb-10"
+                        style="font-size: 1.15rem; font-weight: bold; color: #111827;">
+                        Total: ₱0.00
                     </div>
 
                     <div class="flex-between-center">
@@ -579,7 +592,10 @@
         function addItemRow(selectedProductId = null, qty = 1, disabled = false) {
             const row = document.createElement('div');
             row.className = 'item-row';
-            row.style.alignItems = 'start';
+            row.style.alignItems = 'center';
+            row.style.display = 'flex';
+            row.style.gap = '10px';
+            row.style.marginBottom = '10px';
 
             // Generate a unique ID for the select to init TomSelect
             const selId = 'prod-sel-' + Math.random().toString(36).substr(2, 9);
@@ -596,19 +612,74 @@
             qin.className = 'w-80';
             qin.disabled = disabled;
 
+            const priceDisp = document.createElement('div');
+            priceDisp.style.width = '100px';
+            priceDisp.style.textAlign = 'right';
+            priceDisp.style.fontWeight = '500';
+            priceDisp.textContent = '₱0.00';
+
+            const subtotalDisp = document.createElement('div');
+            subtotalDisp.className = 'row-subtotal';
+            subtotalDisp.style.width = '100px';
+            subtotalDisp.style.textAlign = 'right';
+            subtotalDisp.style.fontWeight = 'bold';
+            subtotalDisp.textContent = '₱0.00';
+
             row.appendChild(sel);
             row.appendChild(qin);
+            row.appendChild(priceDisp);
+            row.appendChild(subtotalDisp);
 
             if (!disabled) {
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
                 removeBtn.className = 'btn-delete';
+                removeBtn.style.width = '30px';
+                removeBtn.style.padding = '5px';
+                removeBtn.style.margin = '0';
                 removeBtn.textContent = 'X';
-                removeBtn.onclick = () => row.remove();
+                removeBtn.onclick = () => { row.remove(); updateGrandTotal(); };
                 row.appendChild(removeBtn);
             }
 
             $('itemsContainer').appendChild(row);
+
+            const updateRowCost = () => {
+                const pId = sel.tomselect ? sel.tomselect.getValue() : sel.value;
+
+                let pCost = 0;
+                let foundHistorical = false;
+
+                if (currentEditId) {
+                    const order = orders.find(x => x.orderID == currentEditId);
+                    if (order) {
+                        const item = (order.items || []).find(x => String(x.productID) === String(pId));
+                        if (item) {
+                            pCost = parseFloat(item.unitCost || 0);
+                            foundHistorical = true;
+                        }
+                    }
+                }
+
+                if (!foundHistorical) {
+                    const p = products.find(x => String(x.productID) === String(pId));
+                    if (p) {
+                        pCost = parseFloat(p.initialPrice || p.price || 0);
+                    }
+                }
+
+                priceDisp.textContent = '₱' + pCost.toFixed(2);
+
+                let qVal = parseFloat(qin.value) || 0;
+                if (qVal < 0) qVal = 0;
+
+                const subtotal = pCost * qVal;
+                subtotalDisp.textContent = '₱' + subtotal.toFixed(2);
+                subtotalDisp.setAttribute('data-subtotal', subtotal);
+                updateGrandTotal();
+            };
+
+            qin.addEventListener('input', updateRowCost);
 
             // Wait for DOM insertion before initializing TomSelect
             setTimeout(() => {
@@ -618,20 +689,24 @@
                     const exists = Array.from(sel.options).some(o => o.value === String(selectedProductId));
                     if (!exists) {
                         let pName = "Unknown Product";
-                        let uCost = 0;
-                        if (currentEditId) {
+                        let suffix = "[Archived/Removed]";
+
+                        const actualP = products.find(x => String(x.productID) === String(selectedProductId));
+                        if (actualP) {
+                            pName = actualP.productName;
+                            suffix = "(Unlinked)";
+                        } else if (currentEditId) {
                             const order = orders.find(x => x.orderID == currentEditId);
                             if (order) {
                                 const item = (order.items || []).find(x => String(x.productID) === String(selectedProductId));
                                 if (item) {
                                     pName = item.productName || "Archived Product";
-                                    uCost = item.unitCost || 0;
                                 }
                             }
                         }
                         const opt = document.createElement('option');
                         opt.value = String(selectedProductId);
-                        opt.textContent = `${pName} [Archived/Removed]`;
+                        opt.textContent = `${pName} ${suffix}`;
                         sel.appendChild(opt);
                     }
                 }
@@ -643,7 +718,20 @@
                 if (selectedProductId) {
                     ts.setValue(String(selectedProductId), true);
                 }
+                ts.on('change', updateRowCost);
+                updateRowCost();
             }, 10);
+        }
+
+        function updateGrandTotal() {
+            let total = 0;
+            document.querySelectorAll('#itemsContainer .row-subtotal').forEach(el => {
+                total += parseFloat(el.getAttribute('data-subtotal') || 0);
+            });
+            const disp = $('poGrandTotalDisplay');
+            if (disp) {
+                disp.textContent = 'Total: ₱' + total.toFixed(2);
+            }
         }
 
         let supplierSelectInstance = null;
@@ -737,7 +825,13 @@
 
             rows.forEach(r => {
                 const sel = r.querySelector('select');
-                const curVal = sel.value;
+                const curVal = sel.tomselect ? sel.tomselect.getValue() : sel.value;
+                let curText = '';
+                if (sel.tomselect && sel.tomselect.options[curVal]) {
+                    curText = sel.tomselect.options[curVal].text;
+                } else if (sel.options && sel.selectedIndex >= 0) {
+                    curText = sel.options[sel.selectedIndex].text;
+                }
 
                 sel.innerHTML = '<option value="">-- Select product --</option>' +
                     allowed.map(p => {
@@ -747,8 +841,39 @@
                         return `<option value="${p.productID}">${p.productName} ${stockStr} (₱${p.price})</option>`;
                     }).join('');
 
-                if (curVal && allowed.some(p => String(p.productID) === String(curVal))) {
-                    sel.value = curVal;
+                if (curVal) {
+                    if (allowed.some(p => String(p.productID) === String(curVal))) {
+                        sel.value = curVal;
+                    } else {
+                        const opt = document.createElement('option');
+                        opt.value = curVal;
+
+                        const actualP = products.find(x => String(x.productID) === String(curVal));
+                        let displayTxt = curText;
+
+                        let historicalCost = 0;
+                        if (currentEditId) {
+                            const o = orders.find(x => x.orderID == currentEditId);
+                            if (o && o.items) {
+                                const it = o.items.find(x => String(x.productID) === String(curVal));
+                                if (it) historicalCost = it.unitCost || 0;
+                            }
+                        }
+
+                        if (actualP) {
+                            displayTxt = `${actualP.productName} (Unlinked)`;
+                        } else if (!displayTxt || displayTxt.includes("Unknown Product")) {
+                            displayTxt = `Unknown Product [Archived/Removed]`;
+                        }
+
+                        if (historicalCost > 0 && !displayTxt.includes('₱')) {
+                            displayTxt += ` (₱${historicalCost.toFixed(2)})`;
+                        }
+
+                        opt.textContent = displayTxt;
+                        sel.appendChild(opt);
+                        sel.value = curVal;
+                    }
                 }
 
                 if (sel.tomselect) {
