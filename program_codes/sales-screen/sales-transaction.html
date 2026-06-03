@@ -1322,6 +1322,7 @@
                     el("discount").value = 0;
                     el("discountType").value = "fixed";
                     renderCart();
+                    loadProductCache(); // Instantly refresh the product grid to show updated stock quantities
 
                     setTimeout(() => el("barcodeInput").focus(), 500);
 
