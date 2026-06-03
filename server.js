@@ -1230,11 +1230,31 @@ app.put('/api/orders/:id/payment', async (req, res) => {
     const { paymentMethod, paymentReference, paymentDate, amountPaid } = req.body;
 
     try {
-        await db.promise().query(
-            `UPDATE purchase_order SET paymentStatus = 'Completed', paymentMethod = ?, paymentReference = ?, paymentDate = ?, amountPaid = ? WHERE orderID = ?`,
-            [paymentMethod, paymentReference || null, paymentDate || new Date(), amountPaid || null, id]
+        const [itemRows] = await db.promise().query(
+            `SELECT COALESCE(SUM(quantity * unitCost), 0) AS totalAmount FROM purchase_item WHERE orderID = ?`,
+            [id]
         );
-        res.json({ message: "Payment processed successfully" });
+        const totalAmount = parseFloat(itemRows[0]?.totalAmount || 0);
+
+        const [poRows] = await db.promise().query(
+            `SELECT amountPaid FROM purchase_order WHERE orderID = ?`,
+            [id]
+        );
+        const currentPaid = parseFloat(poRows[0]?.amountPaid || 0);
+        const newPaid = currentPaid + parseFloat(amountPaid || 0);
+
+        let newStatus = 'Pending';
+        if (newPaid >= totalAmount - 0.01 && totalAmount > 0) {
+            newStatus = 'Completed';
+        } else if (newPaid > 0) {
+            newStatus = 'Partially Paid';
+        }
+
+        await db.promise().query(
+            `UPDATE purchase_order SET paymentStatus = ?, paymentMethod = ?, paymentReference = ?, paymentDate = ?, amountPaid = ? WHERE orderID = ?`,
+            [newStatus, paymentMethod, paymentReference || null, paymentDate || new Date(), newPaid, id]
+        );
+        res.json({ message: "Payment processed successfully", newStatus });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to process payment" });
