@@ -850,6 +850,11 @@
             let headers = [];
             let rows = [];
 
+            const formatDate = (dateStr) => {
+                if (!dateStr) return 'N/A';
+                return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            };
+
             if (currentReportType === 'sales') {
                 headers = ['Product', 'No. of Products Sold', 'No. of Returns', 'Income (Sales)'];
                 rows = reportData.map(r => [r.productName, r.qtySold, r.qtyReturned, r.income]);
