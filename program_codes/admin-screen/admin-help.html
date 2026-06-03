@@ -441,7 +441,7 @@
                 link.addEventListener('mouseover', () => link.style.color = 'var(--accent-primary)');
                 link.addEventListener('mouseout', () => link.style.color = '');
                 link.addEventListener('click', () => {
-                    searchInput.value = link.textContent;
+                    searchInput.value = link.textContent.replace(/\s+/g, ' ').trim();
                     performSearch();
                 });
             });
