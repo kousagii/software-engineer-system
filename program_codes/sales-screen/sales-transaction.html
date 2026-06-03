@@ -622,9 +622,6 @@
                 e.preventDefault();
                 clearTimeout(searchTimeout);
 
-                const value = el("barcodeInput").value.trim();
-                if (!value) return;
-
                 if (posSelectedIndex >= 0 && posSelectedIndex < posRenderedData.length) {
                     const selected = posRenderedData[posSelectedIndex];
                     if (selected.stockQuantity > 0) {
@@ -637,6 +634,9 @@
                     }
                     return;
                 }
+
+                const value = el("barcodeInput").value.trim();
+                if (!value) return;
 
                 // If this is a rapid input from a physical scanner, skip the grid completely
                 if (isScannerInput) {
@@ -810,9 +810,9 @@
                             <div style="color: #64748b; font-size: 11px; margin-top: 4px;">₱${parseFloat(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                         </td>
                         <td class="text-center" style="padding: 8px 12px; vertical-align: middle;">
-                            <div class="pos-qty-controls" style="margin: 0 auto; transform: scale(0.85); transform-origin: center;">
+                            <div class="pos-qty-controls" style="margin: 0 auto; transform: scale(0.9); transform-origin: center; display: flex; align-items: center; justify-content: center; gap: 4px;">
                                 <button onclick="updateQty(${i}, -1)">-</button>
-                                <input type="number" value="${item.qty}" min="1" max="${item.stockQuantity}" onchange="manualQtyUpdate(${i}, this.value)" style="width: 30px;">
+                                <input type="number" value="${item.qty}" min="1" max="${item.stockQuantity}" onchange="manualQtyUpdate(${i}, this.value)" style="width: 55px; text-align: center;">
                                 <button onclick="updateQty(${i}, 1)">+</button>
                             </div>
                         </td>

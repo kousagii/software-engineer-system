@@ -3612,7 +3612,7 @@ input:checked+.slider:before {
 
 /* POS RIGHT COL (SUMMARY) */
 .pos-right-col {
-    width: 450px;
+    width: 500px;
     display: flex;
     flex-direction: column;
     background: #ffffff;
