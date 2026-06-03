@@ -3904,9 +3904,9 @@ input:checked+.slider:before {
     padding: 8px 16px;
     font-size: 13px;
     font-weight: 600;
-    color: #64748b;
-    background: transparent;
-    border: 1px solid #cbd5e1;
+    color: var(--white);
+    background: var(--green-light);
+    border: none;
     border-radius: var(--rad-md);
     cursor: pointer;
     transition: all 0.2s;
@@ -3914,10 +3914,10 @@ input:checked+.slider:before {
 }
 
 .pos-clear-btn:hover {
-    background: #f8fafc;
-    color: #0f172a;
-    border-color: #94a3b8;
+    background: var(--green-hover);
+    color: var(--white);
 }
+
 
 @media (max-width: 1024px) {
     .pos-layout {
