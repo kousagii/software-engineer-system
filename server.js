@@ -2006,12 +2006,22 @@ app.get('/api/dashboard/top-products', (req, res) => {
 // GET collected payments (actual cash inflow) for a date range
 // Uses: Initial payments, settled pay later payments, and paid installments logged in payment_log
 app.get('/api/dashboard/collections', (req, res) => {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, types } = req.query;
     
+    let typeFilter = "'Initial', 'Settlement', 'Installment'";
+    if (types) {
+        // Sanitize to prevent SQL injection, though it's an internal API
+        const allowedTypes = ['Initial', 'Settlement', 'Installment'];
+        const requestedTypes = types.split(',').filter(t => allowedTypes.includes(t.trim()));
+        if (requestedTypes.length > 0) {
+            typeFilter = requestedTypes.map(t => `'${t}'`).join(',');
+        }
+    }
+
     let sql = `
         SELECT COALESCE(SUM(cashAmount + digitalAmount), 0) AS totalCollected
         FROM payment_log
-        WHERE status = 'Paid' AND paymentType IN ('Initial', 'Settlement', 'Installment')
+        WHERE status = 'Paid' AND paymentType IN (${typeFilter})
     `;
     const params = [];
 
