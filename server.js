@@ -918,16 +918,19 @@ app.get('/api/orders', (req, res) => {
 
                 // Calculate due date based on receive date and terms. 
                 // Only start countdown if status is Partially Completed or Completed
-                let dueDateStr = 'N/A';
-                if ((o.status === 'Partially Completed' || o.status === 'Completed') && (o.receiveDate || orderDate)) {
+                let dueDateStr = o.dueDate ? new Date(o.dueDate).toISOString() : 'N/A';
+                if (dueDateStr === 'N/A' && (o.status === 'Partially Completed' || o.status === 'Completed') && (o.receiveDate || orderDate)) {
                     let days = 0;
                     if (terms.includes('Days')) {
                         const match = terms.match(/(\d+)\s*Days/i);
                         if (match) days = parseInt(match[1]);
+                    } else if (terms.match(/Net\s*(\d+)/i)) {
+                        const match = terms.match(/Net\s*(\d+)/i);
+                        if (match) days = parseInt(match[1]);
                     }
                     const dDate = new Date(o.receiveDate || orderDate);
                     dDate.setDate(dDate.getDate() + days);
-                    dueDateStr = dDate.toLocaleDateString();
+                    dueDateStr = dDate.toISOString();
                 }
 
                 return {

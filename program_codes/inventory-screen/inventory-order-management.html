@@ -134,7 +134,9 @@
                         <label>Payment Status</label>
                         <select id="paymentStatusFilter">
                             <option value="All">All</option>
+                            <option value="DueSoon">Due / Overdue</option>
                             <option value="Pending">Pending</option>
+                            <option value="Partially Paid">Partially Paid</option>
                             <option value="Completed">Completed</option>
                         </select>
                     </div>
@@ -982,7 +984,23 @@
 
             const paymentStatus = val('paymentStatusFilter');
             if (paymentStatus && paymentStatus !== 'All') {
-                data = data.filter(o => o.paymentStatus === paymentStatus);
+                if (paymentStatus === 'DueSoon') {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const threeDaysFromNow = new Date(today);
+                    threeDaysFromNow.setDate(today.getDate() + 3);
+
+                    data = data.filter(o => {
+                        if (o.paymentStatus === 'Completed') return false;
+                        if (o.status === 'Cancelled') return false;
+                        if (!o.dueDate) return false;
+                        const due = new Date(o.dueDate);
+                        due.setHours(0, 0, 0, 0);
+                        return due <= threeDaysFromNow;
+                    });
+                } else {
+                    data = data.filter(o => o.paymentStatus === paymentStatus);
+                }
             }
 
             const sort = val('sortMode');
@@ -1035,7 +1053,15 @@
                 const orderTimeStr = orderDateObj.toLocaleTimeString();
 
                 // Due Date is provided by backend API
-                let dueDateStr = o.dueDate || 'N/A';
+                let dueDateStr = 'N/A';
+                if (o.dueDate && o.dueDate !== 'N/A') {
+                    const dueObj = new Date(o.dueDate);
+                    if (!isNaN(dueObj)) {
+                        dueDateStr = dueObj.toLocaleDateString();
+                    } else {
+                        dueDateStr = o.dueDate;
+                    }
+                }
 
                 let actionButtons = '';
                 if (canEdit) {
@@ -1369,6 +1395,12 @@
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('filter') === 'due') {
+                const pFilter = document.getElementById('paymentStatusFilter');
+                if (pFilter) pFilter.value = 'DueSoon';
+            }
+
             await Promise.all([loadProducts(), loadSuppliers()]);
             await loadOrders();
             $('searchInput').addEventListener('keyup', () => { currentPage = 1; processData(); });
