@@ -616,6 +616,8 @@
                 return;
             }
 
+            const isScannerInput = timeSinceLastKey < SCAN_CHAR_INTERVAL;
+
             if (e.key === "Enter") {
                 e.preventDefault();
                 clearTimeout(searchTimeout);
@@ -627,15 +629,41 @@
                         el("barcodeInput").value = "";
                         posSelectedIndex = -1;
                         renderPosGrid();
+                    } else {
+                        showToast("This product is out of stock.", true);
                     }
                     return;
                 }
 
                 const value = el("barcodeInput").value.trim();
-                if (value) {
+                if (!value) return;
+
+                // If this is a rapid input from a physical scanner, skip the grid completely
+                if (isScannerInput) {
                     queueScan(value);
                     el("barcodeInput").value = "";
-                    renderPosGrid(); // reset grid
+                    renderPosGrid();
+                    return;
+                }
+
+                // Manual type fallback
+                if (posRenderedData.length > 0) {
+                    // Find exact match first, else fallback to the top item
+                    let match = posRenderedData.find(p => p.barcode === value || p.productName.toLowerCase() === value.toLowerCase());
+                    if (!match) match = posRenderedData[0];
+
+                    if (match.stockQuantity > 0) {
+                        addProduct(match.barcode, 1);
+                        el("barcodeInput").value = "";
+                        posSelectedIndex = -1;
+                        renderPosGrid();
+                    } else {
+                        showToast("This product is out of stock.", true);
+                    }
+                } else {
+                    queueScan(value);
+                    el("barcodeInput").value = "";
+                    renderPosGrid();
                 }
                 return;
             }
@@ -646,8 +674,6 @@
                 renderPosGrid();
                 return;
             }
-
-            const isScannerInput = timeSinceLastKey < SCAN_CHAR_INTERVAL;
 
             if (!isScannerInput && (e.key.length === 1 || e.key === "Backspace" || e.key === "Delete")) {
                 clearTimeout(searchTimeout);
@@ -703,13 +729,22 @@
 
                 const actualBarcode = String(product.barcode || product.Barcode || searchBarcode);
                 const actualName = product.productName || product.name || "Unknown Item";
-                const actualStock = parseInt(product.stockQuantity || product.stock || 999);
+                
+                // Fix JS falsy bug: if stockQuantity is 0, 0 || 999 evaluates to 999.
+                let stockVal = product.stockQuantity !== undefined ? product.stockQuantity : product.stock;
+                const actualStock = (stockVal !== undefined && stockVal !== null) ? parseInt(stockVal) : 999;
+                
                 const actualPrice = parseFloat(product.price || product.Price || 0);
 
                 let existingItem = cart.find(p => String(p.barcode) === actualBarcode);
 
                 let currentQtyInCart = existingItem ? existingItem.qty : 0;
                 let newTotalQty = currentQtyInCart + qtyToAdd;
+
+                if (actualStock <= 0) {
+                    showToast(`❌ "${actualName}" is out of stock.`, true);
+                    return;
+                }
 
                 if (actualStock < newTotalQty) {
                     showToast(`Stock Limit! Available: ${actualStock}`, true);
@@ -775,9 +810,9 @@
                             <div style="color: #64748b; font-size: 11px; margin-top: 4px;">₱${parseFloat(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                         </td>
                         <td class="text-center" style="padding: 8px 12px; vertical-align: middle;">
-                            <div class="pos-qty-controls" style="margin: 0 auto; transform: scale(0.85); transform-origin: center;">
+                            <div class="pos-qty-controls" style="margin: 0 auto; transform: scale(0.9); transform-origin: center; display: flex; align-items: center; justify-content: center; gap: 4px;">
                                 <button onclick="updateQty(${i}, -1)">-</button>
-                                <input type="number" value="${item.qty}" min="1" max="${item.stockQuantity}" onchange="manualQtyUpdate(${i}, this.value)" style="width: 30px;">
+                                <input type="number" value="${item.qty}" min="1" max="${item.stockQuantity}" onchange="manualQtyUpdate(${i}, this.value)" style="width: 55px; text-align: center;">
                                 <button onclick="updateQty(${i}, 1)">+</button>
                             </div>
                         </td>
