@@ -1689,6 +1689,11 @@
                     if (backupTab) backupTab.style.display = 'none';
                     const sectionBackups = document.getElementById('section-backups');
                     if (sectionBackups) sectionBackups.innerHTML = '<div class="center-text mt-20" style="padding:40px;">Access Denied</div>';
+                    
+                    const arcTabUsers = document.getElementById('arc-tab-users');
+                    if (arcTabUsers) arcTabUsers.style.display = 'none';
+                    const arcUsersSection = document.getElementById('arc-users-table-section');
+                    if (arcUsersSection) arcUsersSection.innerHTML = '<div class="center-text mt-20" style="padding:40px;">Access Denied</div>';
                 } else {
                     fetchBackups();
                 }
