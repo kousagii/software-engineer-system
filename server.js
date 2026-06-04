@@ -129,7 +129,7 @@ app.post('/api/login', (req, res) => {
     const sql = `SELECT * FROM users WHERE username = ?`;
     db.query(sql, [username], async (err, results) => {
         if (err || results.length === 0) {
-            return res.status(401).json({ error: "User not found" });
+            return res.status(401).json({ error: "Incorrect username or password." });
         }
 
         const user = results[0];
@@ -137,7 +137,7 @@ app.post('/api/login', (req, res) => {
         const match = await bcrypt.compare(password, user.userPassword);
 
         if (!match) {
-            return res.status(401).json({ error: "Incorrect password" });
+            return res.status(401).json({ error: "Incorrect username or password." });
         }
 
         const dbRoles = user.role.split(',').map(r => r.trim());
@@ -2048,7 +2048,7 @@ app.get('/api/dashboard/top-products', (req, res) => {
 // Uses: Initial payments, settled pay later payments, and paid installments logged in payment_log
 app.get('/api/dashboard/collections', (req, res) => {
     const { startDate, endDate, types } = req.query;
-    
+
     let typeFilter = "'Initial', 'Settlement', 'Installment'";
     if (types) {
         // Sanitize to prevent SQL injection, though it's an internal API
@@ -2259,7 +2259,7 @@ app.put('/api/transactions/:id/installments/:scheduleId/pay', (req, res) => {
         const currentPaid = parseFloat(inst.cashAmount || 0) + parseFloat(inst.digitalAmount || 0);
         const newInstTotalPaid = currentPaid + totalNewPaid;
         const expected = parseFloat(inst.amountDue);
-        
+
         const instStatus = (newInstTotalPaid >= (expected - 0.01)) ? 'Paid' : 'Partial';
 
         let sqlInst = `UPDATE payment_log SET status = ?, paymentDate = NOW(), paymentMethod = ?, referenceNumber = ?, cashAmount = cashAmount + ?, digitalAmount = digitalAmount + ? WHERE paymentID = ?`;
@@ -2557,7 +2557,7 @@ app.get('/api/getTransactionForRefund', (req, res) => {
                     originalQty: i.quantity,
                     refundedQty: refunded,
                     availableQty: i.quantity - refunded,
-                    
+
                     // Transaction details
                     paymentMethod: txnData.paymentMethod,
                     paymentStatus: txnData.paymentStatus,

@@ -761,7 +761,10 @@
                 sortField: { field: "text", direction: "asc" }
             });
 
-            if (selectedId) handleSupplierChange(false);
+            if (selectedId) {
+                supplierSelectInstance.setValue(String(selectedId), true);
+                handleSupplierChange(false);
+            }
         }
 
         function handleSupplierChange(resetItems = true) {
