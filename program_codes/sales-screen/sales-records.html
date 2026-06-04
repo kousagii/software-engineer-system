@@ -44,6 +44,20 @@
             <!-- SUMMARY STAT CARDS: PAY LATER -->
             <div class="split dash-cards-row">
                 <div class="form-panel dash-stat-card">
+                    <div class="dash-stat-icon dash-icon-dark" style="background:#e0f2fe;">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="5" width="20" height="14" rx="2" stroke="#0284c7" stroke-width="1.8" />
+                            <path d="M2 10h20" stroke="#0284c7" stroke-width="1.8" />
+                            <circle cx="12" cy="15" r="2" stroke="#0284c7" stroke-width="1.8" />
+                        </svg>
+                    </div>
+                    <div class="dash-stat-info">
+                        <div class="sub-text">Payment Received Today</div>
+                        <h3 class="mt-0" id="pl-stat-today" style="color:#0284c7;">—</h3>
+                    </div>
+                </div>
+
+                <div class="form-panel dash-stat-card">
                     <div class="dash-stat-icon dash-icon-blue">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path
@@ -93,8 +107,21 @@
                     <h3 style="margin: 0; color: var(--text-dark);" id="activePayLaterTitle">Active Pay Later Accounts
                     </h3>
                     <div style="display: flex; gap: 10px;">
-                        <button class="btn-view" onclick="printActivePayLater()"
-                            style="margin: 0; font-size: 14px; padding: 8px 20px;">Print</button>
+                        <button class="btn-export" onclick="printActivePayLater()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z"
+                                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                                <path d="M14 2V8H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                                <path d="M9 15H15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                                <path d="M9 11H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                            Export to PDF
+                        </button>
                     </div>
                 </div>
                 <div class="toolbar" style="margin-bottom: 15px; border-bottom: none;">
@@ -111,6 +138,8 @@
                             <select id="plSortSelect" onchange="applyPayLaterFilters()" style="margin:0; width:auto;">
                                 <option value="due-asc">Due Date: Soonest First</option>
                                 <option value="due-desc">Due Date: Farthest First</option>
+                                <option value="date-desc">Date: Newest First</option>
+                                <option value="date-asc">Date: Oldest First</option>
                                 <option value="balance-desc">Balance: High → Low</option>
                                 <option value="balance-asc">Balance: Low → High</option>
                                 <option value="name-asc">Customer: A → Z</option>
@@ -952,6 +981,14 @@
                 activePayLaterData = await res.json();
                 if (el("tabBadgePayLater")) el("tabBadgePayLater").textContent = activePayLaterData.length;
                 applyPayLaterFilters();
+
+                // Fetch today's Pay Later payments
+                const today = new Date().toLocaleDateString('en-CA');
+                const plRes = await fetch(`/api/dashboard/collections?startDate=${today}&endDate=${today}&types=Settlement,Installment`);
+                if (plRes.ok) {
+                    const plData = await plRes.json();
+                    el("pl-stat-today").textContent = fmtPeso(plData.totalCollected || 0);
+                }
             } catch (err) {
                 console.error(err);
                 el("activePayLaterBody").innerHTML = `<tr><td colspan="8" class="empty-cart-msg">Failed to load active pay later accounts.</td></tr>`;
@@ -979,6 +1016,8 @@
 
                 if (sortVal === "due-asc") return getDue(a) - getDue(b);
                 if (sortVal === "due-desc") return getDue(b) - getDue(a);
+                if (sortVal === "date-desc") return new Date(b.transDateTime).getTime() - new Date(a.transDateTime).getTime();
+                if (sortVal === "date-asc") return new Date(a.transDateTime).getTime() - new Date(b.transDateTime).getTime();
                 if (sortVal === "balance-desc") return balB - balA;
                 if (sortVal === "balance-asc") return balA - balB;
                 if (sortVal === "name-asc") return (a.customerName || "").localeCompare(b.customerName || "");
@@ -1796,13 +1835,33 @@
         function toggleInstRowCheckbox(row, event) {
             if (event.target.tagName.toLowerCase() === 'input') return;
             const cb = row.querySelector('.inst-checkbox');
-            if (cb) {
+            if (cb && !cb.disabled) {
                 cb.checked = !cb.checked;
                 updateSelectedInst();
             }
         }
 
         function updateSelectedInst() {
+            const allUnpaidCb = Array.from(document.querySelectorAll('.inst-checkbox'));
+            
+            let canSelectNext = true;
+            allUnpaidCb.forEach(cb => {
+                if (!canSelectNext) {
+                    cb.checked = false;
+                    cb.disabled = true;
+                    cb.closest('tr').style.opacity = '0.5';
+                    cb.closest('tr').style.cursor = 'not-allowed';
+                } else {
+                    cb.disabled = false;
+                    cb.closest('tr').style.opacity = '1';
+                    cb.closest('tr').style.cursor = 'pointer';
+                }
+                
+                if (!cb.checked) {
+                    canSelectNext = false;
+                }
+            });
+
             const checkboxes = document.querySelectorAll('.inst-checkbox:checked');
             let totalAmt = 0;
             checkboxes.forEach(cb => totalAmt += parseFloat(cb.dataset.amount));

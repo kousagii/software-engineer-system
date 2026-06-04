@@ -48,8 +48,16 @@
 
             <div class="mt-15" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span style="color: #666;">Total Amount Due:</span>
-                    <strong id="modal-payment-amount" style="font-size: 1.1rem; color: var(--primary);">₱0.00</strong>
+                    <span style="color: #666;">Total PO Cost:</span>
+                    <strong id="modal-payment-total" style="font-size: 1.1rem; color: #4a5568;">₱0.00</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: #666;">Amount Paid:</span>
+                    <strong id="modal-payment-paid" style="font-size: 1.1rem; color: var(--success, #38a169);">₱0.00</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-top: 1px dashed #ccc; padding-top: 8px;">
+                    <span style="color: #666;">Remaining Balance:</span>
+                    <strong id="modal-payment-amount" style="font-size: 1.1rem; color: var(--danger, #e53e3e);">₱0.00</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                     <span style="color: #666;">Due Date:</span>
@@ -126,7 +134,9 @@
                         <label>Payment Status</label>
                         <select id="paymentStatusFilter">
                             <option value="All">All</option>
+                            <option value="DueSoon">Due / Overdue</option>
                             <option value="Pending">Pending</option>
+                            <option value="Partially Paid">Partially Paid</option>
                             <option value="Completed">Completed</option>
                         </select>
                     </div>
@@ -974,7 +984,23 @@
 
             const paymentStatus = val('paymentStatusFilter');
             if (paymentStatus && paymentStatus !== 'All') {
-                data = data.filter(o => o.paymentStatus === paymentStatus);
+                if (paymentStatus === 'DueSoon') {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const threeDaysFromNow = new Date(today);
+                    threeDaysFromNow.setDate(today.getDate() + 3);
+
+                    data = data.filter(o => {
+                        if (o.paymentStatus === 'Completed') return false;
+                        if (o.status === 'Cancelled') return false;
+                        if (!o.dueDate) return false;
+                        const due = new Date(o.dueDate);
+                        due.setHours(0, 0, 0, 0);
+                        return due <= threeDaysFromNow;
+                    });
+                } else {
+                    data = data.filter(o => o.paymentStatus === paymentStatus);
+                }
             }
 
             const sort = val('sortMode');
@@ -1017,7 +1043,9 @@
                 const canEdit = o.status === 'To Order';
 
                 const payStatus = o.paymentStatus || 'Pending';
-                const payClass = payStatus === 'Completed' ? 'status-completed' : 'status-pending';
+                let payClass = 'status-pending';
+                if (payStatus === 'Completed') payClass = 'status-completed';
+                else if (payStatus === 'Partially Paid') payClass = 'status-partially-completed';
 
                 // Format Order Date to multiple lines
                 const orderDateObj = new Date(o.orderDate || o.createdAt || '');
@@ -1025,7 +1053,15 @@
                 const orderTimeStr = orderDateObj.toLocaleTimeString();
 
                 // Due Date is provided by backend API
-                let dueDateStr = o.dueDate || 'N/A';
+                let dueDateStr = 'N/A';
+                if (o.dueDate && o.dueDate !== 'N/A') {
+                    const dueObj = new Date(o.dueDate);
+                    if (!isNaN(dueObj)) {
+                        dueDateStr = dueObj.toLocaleDateString();
+                    } else {
+                        dueDateStr = o.dueDate;
+                    }
+                }
 
                 let actionButtons = '';
                 if (canEdit) {
@@ -1047,7 +1083,9 @@
                     }
                 } else {
                     if (o.status !== 'To Order' && o.status !== 'Cancelled') {
-                        actionButtons += ` <button class="btn-view" style="background-color:#4a5568;" onclick="openPaymentModal(${o.orderID}, ${totalAmount}, '${dueDateStr}')">Process Payment</button>`;
+                        const amountPaid = parseFloat(o.amountPaid || 0);
+                        const balance = Math.max(0, totalAmount - amountPaid);
+                        actionButtons += ` <button class="btn-view" style="background-color:#4a5568;" onclick="openPaymentModal(${o.orderID}, ${totalAmount}, ${amountPaid}, ${balance}, '${dueDateStr}')">Process Payment</button>`;
                     }
                 }
                 actionButtons += ` <button class="btn-view" onclick="printPO(${o.orderID})">Print</button>`;
@@ -1065,6 +1103,7 @@
         <td><span class="status-badge ${statusClass}">${o.status || 'To Order'}</span></td>
         <td>
             <span class="status-badge ${payClass}">${payStatus}</span>
+            <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">Total Cost: ₱${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">Due: ${dueDateStr}</div>
         </td>
         <td><div class="action-btns">${actionButtons}</div></td>
@@ -1075,13 +1114,15 @@
 
         // --- Payment Processing ---
         let paymentOrderId = null;
-        function openPaymentModal(id, amount, dueDate) {
+        function openPaymentModal(id, totalAmount, amountPaid, balance, dueDate) {
             paymentOrderId = id;
 
-            $('modal-payment-amount').textContent = '₱' + (parseFloat(amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            $('modal-payment-total').textContent = '₱' + (parseFloat(totalAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            $('modal-payment-paid').textContent = '₱' + (parseFloat(amountPaid) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            $('modal-payment-amount').textContent = '₱' + (parseFloat(balance) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             $('modal-payment-due').textContent = dueDate || 'N/A';
 
-            $('paymentAmountInput').value = parseFloat(amount) || 0;
+            $('paymentAmountInput').value = parseFloat(balance) || 0;
             $('paymentMethodSelect').value = 'Cash';
             $('paymentReferenceInput').value = '';
             $('paymentDateInput').value = new Date().toISOString().split('T')[0];
@@ -1354,6 +1395,12 @@
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('filter') === 'due') {
+                const pFilter = document.getElementById('paymentStatusFilter');
+                if (pFilter) pFilter.value = 'DueSoon';
+            }
+
             await Promise.all([loadProducts(), loadSuppliers()]);
             await loadOrders();
             $('searchInput').addEventListener('keyup', () => { currentPage = 1; processData(); });

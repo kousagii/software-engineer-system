@@ -289,12 +289,26 @@
                                 <input type="text" id="plAddress" placeholder="Enter address" class="digital-input">
                             </div>
                             <div class="mb-10">
+                                <label for="plDepositMethod" class="digital-label-blue" style="color: #664d03;">Deposit Method</label>
+                                <select id="plDepositMethod" class="payment-select" onchange="handlePlDepositMethod()" style="width: 100%; border-color: #ffe69c;">
+                                    <option value="Cash">Cash</option>
+                                    <option value="E-wallet">E-wallet</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                </select>
+                            </div>
+                            <div class="mb-10">
                                 <label for="plDeposit" class="digital-label-blue" style="color: #664d03;">Deposit
                                     Received (Optional)</label>
                                 <input type="number" id="plDeposit" min="0" step="0.01" placeholder="0.00"
                                     class="digital-input" oninput="calculateChange(); updateInstallmentSchedule();">
                             </div>
-                            <div>
+                            <div id="plDepositDigitalSection" style="display: none;">
+                                <div class="mb-10">
+                                    <label for="plDepositRef" class="digital-label-blue" style="color: #664d03;">Reference / Trace Number</label>
+                                    <input type="text" id="plDepositRef" placeholder="Enter Ref No." class="digital-input">
+                                </div>
+                            </div>
+                            <div id="plCashGivenSection">
                                 <label for="plCashGiven" class="digital-label-blue" style="color: #664d03;">Cash
                                     Given</label>
                                 <input type="number" id="plCashGiven" min="0" step="0.01" placeholder="0.00"
@@ -929,6 +943,10 @@
                 el("referenceNumber").value = "";
                 el("digitalAmount").value = "";
                 el("cashInput").value = "";
+                if (el("plDepositMethod")) el("plDepositMethod").value = "Cash";
+                if (el("plDepositRef")) el("plDepositRef").value = "";
+                if (el("plDepositDigitalSection")) el("plDepositDigitalSection").style.display = "none";
+                if (el("plCashGivenSection")) el("plCashGivenSection").style.display = "block";
 
                 calculateChange();
                 setTimeout(() => el("plCustomerName").focus(), 100);
@@ -1005,6 +1023,10 @@
             el("plDueDate").value = "";
             el("plDeposit").value = "";
             el("plCashGiven").value = "";
+            if (el("plDepositMethod")) el("plDepositMethod").value = "Cash";
+            if (el("plDepositRef")) el("plDepositRef").value = "";
+            if (el("plDepositDigitalSection")) el("plDepositDigitalSection").style.display = "none";
+            if (el("plCashGivenSection")) el("plCashGivenSection").style.display = "block";
 
             el("changeAmount").innerText = "0.00";
             el("changeBox").style.background = "#e7f3e8";
@@ -1017,13 +1039,31 @@
 
 
 
+        function handlePlDepositMethod() {
+            const method = el("plDepositMethod").value;
+            if (method !== "Cash") {
+                el("plDepositDigitalSection").style.display = "block";
+                el("plCashGivenSection").style.display = "none";
+                el("plCashGiven").value = "";
+                el("changeAmount").innerText = "0.00";
+                el("changeBox").style.background = "#e7f3e8";
+            } else {
+                el("plDepositDigitalSection").style.display = "none";
+                el("plCashGivenSection").style.display = "block";
+                el("plDepositRef").value = "";
+                calculateChange();
+            }
+        }
+
         function calculateChange() {
             const total = parseFloat(el("modalTotal").innerText.replace(/,/g, ''));
             const mode = el("paymentMode").value;
 
             if (mode === "Pay Later") {
                 const deposit = parseFloat(el("plDeposit").value) || 0;
-                if (deposit > 0) {
+                const depositMethod = el("plDepositMethod") ? el("plDepositMethod").value : "Cash";
+                
+                if (deposit > 0 && depositMethod === "Cash") {
                     el("changeBox").style.display = "block";
                     const given = parseFloat(el("plCashGiven").value) || 0;
                     const change = given - deposit;
@@ -1231,15 +1271,32 @@
                     }
                 }
 
-                rawCash = parseFloat(el("plDeposit").value) || 0;
-                const given = parseFloat(el("plCashGiven").value) || 0;
-                if (rawCash > 0 && given < rawCash) {
-                    showToast("Insufficient cash given for deposit.", true);
-                    el("plCashGiven").focus();
-                    return;
+                const depositAmount = parseFloat(el("plDeposit").value) || 0;
+                const plDepositMethod = el("plDepositMethod") ? el("plDepositMethod").value : "Cash";
+                
+                if (depositAmount > 0) {
+                    if (plDepositMethod === "Cash") {
+                        rawCash = depositAmount;
+                        digital = 0;
+                        const given = parseFloat(el("plCashGiven").value) || 0;
+                        if (given < rawCash) {
+                            showToast("Insufficient cash given for deposit.", true);
+                            el("plCashGiven").focus();
+                            return;
+                        }
+                    } else {
+                        rawCash = 0;
+                        digital = depositAmount;
+                        referenceNum = el("plDepositRef") ? el("plDepositRef").value.trim() : "";
+                        if (referenceNum === "") {
+                            showToast("Please enter the Reference Number for deposit.", true);
+                            if (el("plDepositRef")) el("plDepositRef").focus();
+                            return;
+                        }
+                    }
                 }
 
-                paymentStatus = rawCash > 0 ? "Partial" : "Unpaid";
+                paymentStatus = depositAmount > 0 ? "Partial" : "Unpaid";
 
             } else if (paymentMethod !== "Cash") {
                 rawCash = parseFloat(el("cashInput").value) || 0;

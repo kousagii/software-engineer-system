@@ -936,16 +936,19 @@ app.get('/api/orders', (req, res) => {
 
                 // Calculate due date based on receive date and terms. 
                 // Only start countdown if status is Partially Completed or Completed
-                let dueDateStr = 'N/A';
-                if ((o.status === 'Partially Completed' || o.status === 'Completed') && (o.receiveDate || orderDate)) {
+                let dueDateStr = o.dueDate ? new Date(o.dueDate).toISOString() : 'N/A';
+                if (dueDateStr === 'N/A' && (o.status === 'Partially Completed' || o.status === 'Completed') && (o.receiveDate || orderDate)) {
                     let days = 0;
                     if (terms.includes('Days')) {
                         const match = terms.match(/(\d+)\s*Days/i);
                         if (match) days = parseInt(match[1]);
+                    } else if (terms.match(/Net\s*(\d+)/i)) {
+                        const match = terms.match(/Net\s*(\d+)/i);
+                        if (match) days = parseInt(match[1]);
                     }
                     const dDate = new Date(o.receiveDate || orderDate);
                     dDate.setDate(dDate.getDate() + days);
-                    dueDateStr = dDate.toLocaleDateString();
+                    dueDateStr = dDate.toISOString();
                 }
 
                 return {
@@ -1248,11 +1251,31 @@ app.put('/api/orders/:id/payment', async (req, res) => {
     const { paymentMethod, paymentReference, paymentDate, amountPaid } = req.body;
 
     try {
-        await db.promise().query(
-            `UPDATE purchase_order SET paymentStatus = 'Completed', paymentMethod = ?, paymentReference = ?, paymentDate = ?, amountPaid = ? WHERE orderID = ?`,
-            [paymentMethod, paymentReference || null, paymentDate || new Date(), amountPaid || null, id]
+        const [itemRows] = await db.promise().query(
+            `SELECT COALESCE(SUM(quantity * unitCost), 0) AS totalAmount FROM purchase_item WHERE orderID = ?`,
+            [id]
         );
-        res.json({ message: "Payment processed successfully" });
+        const totalAmount = parseFloat(itemRows[0]?.totalAmount || 0);
+
+        const [poRows] = await db.promise().query(
+            `SELECT amountPaid FROM purchase_order WHERE orderID = ?`,
+            [id]
+        );
+        const currentPaid = parseFloat(poRows[0]?.amountPaid || 0);
+        const newPaid = currentPaid + parseFloat(amountPaid || 0);
+
+        let newStatus = 'Pending';
+        if (newPaid >= totalAmount - 0.01 && totalAmount > 0) {
+            newStatus = 'Completed';
+        } else if (newPaid > 0) {
+            newStatus = 'Partially Paid';
+        }
+
+        await db.promise().query(
+            `UPDATE purchase_order SET paymentStatus = ?, paymentMethod = ?, paymentReference = ?, paymentDate = ?, amountPaid = ? WHERE orderID = ?`,
+            [newStatus, paymentMethod, paymentReference || null, paymentDate || new Date(), newPaid, id]
+        );
+        res.json({ message: "Payment processed successfully", newStatus });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to process payment" });
@@ -2024,12 +2047,22 @@ app.get('/api/dashboard/top-products', (req, res) => {
 // GET collected payments (actual cash inflow) for a date range
 // Uses: Initial payments, settled pay later payments, and paid installments logged in payment_log
 app.get('/api/dashboard/collections', (req, res) => {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, types } = req.query;
     
+    let typeFilter = "'Initial', 'Settlement', 'Installment'";
+    if (types) {
+        // Sanitize to prevent SQL injection, though it's an internal API
+        const allowedTypes = ['Initial', 'Settlement', 'Installment'];
+        const requestedTypes = types.split(',').filter(t => allowedTypes.includes(t.trim()));
+        if (requestedTypes.length > 0) {
+            typeFilter = requestedTypes.map(t => `'${t}'`).join(',');
+        }
+    }
+
     let sql = `
         SELECT COALESCE(SUM(cashAmount + digitalAmount), 0) AS totalCollected
         FROM payment_log
-        WHERE status = 'Paid' AND paymentType IN ('Initial', 'Settlement', 'Installment')
+        WHERE status = 'Paid' AND paymentType IN (${typeFilter})
     `;
     const params = [];
 
