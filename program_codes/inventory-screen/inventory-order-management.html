@@ -523,7 +523,7 @@
                 if (!order) return showAlert('Order not found');
 
                 $('form-title').innerText = (isReadOnly ? 'View' : 'Edit') + ' Purchase Order #' + id;
-                populateSupplierSelect(order.supplierID);
+                populateSupplierSelect(order.supplierID, order.supplierName);
                 val('shipmentInfo', order.shipmentInfo || '');
                 val('shipToAddress', order.shipToAddress || "#2 National Road, Brgy. San Juan,\nTaytay, Rizal, Philippines\nPhone: 8658-7984 / 8658-6802");
 
@@ -747,10 +747,19 @@
         let supplierSelectInstance = null;
 
         // --- Supplier & Product Logic ---
-        function populateSupplierSelect(selectedId = null) {
+        function populateSupplierSelect(selectedId = null, fallbackName = null) {
             const sel = $('supplierSelect');
             sel.innerHTML = '<option value="">-- Select supplier --</option>' +
                 suppliers.map(s => `<option value="${s.supplierID}" ${s.supplierID == selectedId ? 'selected' : ''}>${s.supplierName}</option>`).join('');
+
+            // If the selected supplier is archived (not in active list), add it as a fallback option
+            if (selectedId && !suppliers.some(s => String(s.supplierID) === String(selectedId))) {
+                const archivedLabel = (fallbackName || `Supplier #${selectedId}`) + ' (Archived)';
+                const opt = document.createElement('option');
+                opt.value = String(selectedId);
+                opt.textContent = archivedLabel;
+                sel.appendChild(opt);
+            }
 
             if (supplierSelectInstance) {
                 supplierSelectInstance.destroy();
@@ -772,6 +781,7 @@
             const s = suppliers.find(x => String(x.supplierID) === String(selId));
 
             if (s) {
+                // Active supplier — show full details
                 $('supplierInfoDisplay').style.display = 'block';
                 $('dispContact').innerText = s.contactNumber || s.email || 'N/A';
                 $('dispAddress').innerText = s.address || 'N/A';
@@ -788,6 +798,11 @@
                     }
                     sel.value = term;
                 }
+            } else if (selId) {
+                // Archived supplier — show minimal note
+                $('supplierInfoDisplay').style.display = 'block';
+                $('dispContact').innerText = 'N/A (Archived supplier)';
+                $('dispAddress').innerText = 'N/A';
             } else {
                 $('supplierInfoDisplay').style.display = 'none';
             }
