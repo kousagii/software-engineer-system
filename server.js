@@ -58,22 +58,40 @@ app.use(session({
     cookie: { secure: false }
 }));
 
-const db = mysql.createConnection({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
-});
+// Use a single connection with auto-reconnect to support the app's transaction style
+// and prevent crash if DB wasn't fully ready at startup (important for portable)
+let db;
 
-db.connect((err) => {
-    if (err) {
-        console.error('❌ DATABASE CONNECTION ERROR:', err.message);
-        return;
-    }
-    console.log('✅ Connected to MySQL Database!');
+function handleDisconnect() {
+    db = mysql.createConnection({
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT || 3306,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME
+    });
 
-});
+    db.connect((err) => {
+        if (err) {
+            console.error('❌ DATABASE CONNECTION ERROR:', err.message);
+            console.error('   Make sure MariaDB is running on port', process.env.DB_PORT || 3306);
+            setTimeout(handleDisconnect, 2000); // retry after 2 seconds
+        } else {
+            console.log('✅ Connected to MySQL Database!');
+        }
+    });
+
+    db.on('error', (err) => {
+        if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
+            console.error('❌ Database connection lost. Reconnecting...');
+            handleDisconnect();
+        } else {
+            throw err;
+        }
+    });
+}
+
+handleDisconnect();
 
 
 // Route to add a new user (Admin only)
