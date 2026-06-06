@@ -220,7 +220,8 @@
                                 </div>
                                 <div>
                                     <label>Brand</label>
-                                    <input type="text" id="prodBrand" placeholder="e.g. Stanley" oninput="updatePreview()">
+                                    <input type="text" id="prodBrand" placeholder="e.g. Stanley"
+                                        oninput="updatePreview()">
                                 </div>
                             </div>
 
@@ -237,8 +238,8 @@
                             <div class="split">
                                 <div>
                                     <label>Purchase Price (₱)</label>
-                                    <input type="number" id="prodInitialPrice" placeholder="e.g. 120" min="0" step="0.01"
-                                        oninput="updatePreview(); propagateBaseInitialPrice()">
+                                    <input type="number" id="prodInitialPrice" placeholder="e.g. 120" min="0"
+                                        step="0.01" oninput="updatePreview(); propagateBaseInitialPrice()">
                                 </div>
                                 <div>
                                     <label>Selling Price (₱)</label>
@@ -257,7 +258,8 @@
                                 <div>
                                     <label>Stock Quantity</label>
                                     <div class="qty-control" id="stock-qty-control">
-                                        <button class="qty-btn" id="btn-stock-minus" onclick="changeStock(-1)">-</button>
+                                        <button class="qty-btn" id="btn-stock-minus"
+                                            onclick="changeStock(-1)">-</button>
                                         <input type="number" id="prodStock" value="25" class="center-text m-0" min="0"
                                             oninput="updatePreview(); propagateBaseStock()" readonly>
                                         <button class="qty-btn" id="btn-stock-plus" onclick="changeStock(1)">+</button>
@@ -290,7 +292,9 @@
                                 <div style="display:flex; justify-content:space-between; align-items:center; gap:20px;">
                                     <div>
                                         <strong style="margin:0; display:block;">Enable Variations</strong>
-                                        <span class="sub-text" style="margin:0; font-size:0.8rem;">Turn on if this product has different sizes, colors, or types. Each variation can have its own price and stock.</span>
+                                        <span class="sub-text" style="margin:0; font-size:0.8rem;">Turn on if this
+                                            product has different sizes, colors, or types. Each variation can have its
+                                            own price and stock.</span>
                                     </div>
                                     <label class="switch" style="margin:0; flex-shrink:0;">
                                         <input type="checkbox" id="varModeMulti" onchange="handleVariationsToggle()">
@@ -305,12 +309,15 @@
                                 <!-- Step 1 -->
                                 <div class="prod-step-card">
                                     <div class="prod-step-badge">Step 1</div>
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                    <div
+                                        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                                         <div>
                                             <strong style="margin:0; display:block;">Define Variation Types</strong>
-                                            <span class="sub-text" style="margin:0; font-size:0.78rem;">Add option types like Size or Color, then enter the possible values.</span>
+                                            <span class="sub-text" style="margin:0; font-size:0.78rem;">Add option types
+                                                like Size or Color, then enter the possible values.</span>
                                         </div>
-                                        <button type="button" class="btn-create" style="width:auto; margin:0; font-size:0.82rem; padding:8px 16px;"
+                                        <button type="button" class="btn-create"
+                                            style="width:auto; margin:0; font-size:0.82rem; padding:8px 16px;"
                                             onclick="addVariationOptionRow()">+ Add Type</button>
                                     </div>
                                     <div class="flex-col-gap-10" id="variation-options-list">
@@ -322,7 +329,8 @@
                                     <div class="prod-step-badge">Step 2</div>
                                     <div style="margin-bottom:12px;">
                                         <strong style="margin:0; display:block;">Set Price & Stock per Variant</strong>
-                                        <span class="sub-text" style="margin:0; font-size:0.78rem;">Combinations are auto-generated. Adjust individually or add custom entries below.</span>
+                                        <span class="sub-text" style="margin:0; font-size:0.78rem;">Combinations are
+                                            auto-generated. Adjust individually or add custom entries below.</span>
                                     </div>
                                     <div class="table-container" style="padding:0; box-shadow:none;">
                                         <table class="data-table">
@@ -339,7 +347,8 @@
                                             <tbody id="combinations-tbody"></tbody>
                                         </table>
                                     </div>
-                                    <button type="button" class="btn-back" style="margin-top:10px;" onclick="addCustomCombinationRow()">+ Add Custom Variant</button>
+                                    <button type="button" class="btn-back" style="margin-top:10px;"
+                                        onclick="addCustomCombinationRow()">+ Add Custom Variant</button>
                                 </div>
                             </div>
                         </div>
@@ -355,8 +364,8 @@
                                     alt="Preview" onerror="this.onerror=null; this.src=placeholderImg;" class="w-full">
                             </div>
                             <div class="input-row">
-                                <input type="file" id="prodImage" accept="image/*" onchange="previewSelectedImage(event)"
-                                    class="input-barcode">
+                                <input type="file" id="prodImage" accept="image/*"
+                                    onchange="previewSelectedImage(event)" class="input-barcode">
                             </div>
                         </div>
                     </div>
@@ -734,7 +743,7 @@
                     area.appendChild(label);
 
                     JsBarcode(svg, item.barcode, {
-                        format: "CODE128", width: 1.0, fontSize: 9, height: 35, margin: 0, displayValue: true, background: "white"
+                        format: "CODE128", width: 0.8, fontSize: 9, height: 35, margin: 0, displayValue: true, background: "white"
                     });
                 }
             });
@@ -857,7 +866,7 @@
             hint.style.display = 'none';
             hint.innerHTML = '';
             let html = '';
-            
+
             for (const sibling of siblings) {
                 try {
                     const res = await fetch(`/api/products/${sibling.productID}/suggest-threshold`);
@@ -869,7 +878,7 @@
                             html += `<div style="margin-top: 4px;"><strong>${variantSuffix}:</strong> Suggested: ${data.suggested} units — ${data.reason}</div>`;
                         }
                     }
-                } catch (e) {}
+                } catch (e) { }
             }
             if (html) {
                 hint.innerHTML = html;

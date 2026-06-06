@@ -4270,3 +4270,218 @@ input:checked+.slider:before {
     color: #64748b;
     font-weight: normal;
 }
+
+/* ===================== FORGOT PASSWORD MODAL ===================== */
+
+#fp-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+#fp-overlay.active {
+    display: flex;
+}
+
+#fp-box {
+    background: var(--white);
+    border-radius: 14px;
+    padding: 36px 40px 32px;
+    min-width: 370px;
+    max-width: 92vw;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+    text-align: left;
+    position: relative;
+    animation: fp-pop 0.2s ease;
+}
+
+@keyframes fp-pop {
+    from {
+        transform: scale(0.93);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+#fp-box h3 {
+    margin: 0 0 6px;
+    font-size: 1.15rem;
+    color: var(--text-dark);
+}
+
+.fp-sub {
+    font-size: 13px;
+    color: #777;
+    margin-bottom: 22px;
+}
+
+.fp-step {
+    display: none;
+}
+
+.fp-step.active {
+    display: block;
+}
+
+.fp-error {
+    color: #e05252;
+    font-size: 13px;
+    margin-bottom: 10px;
+    min-height: 18px;
+}
+
+.fp-success {
+    color: #3a9e5f;
+    font-size: 13.5px;
+    margin-bottom: 10px;
+    min-height: 18px;
+    font-weight: 600;
+}
+
+#fp-box label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 5px;
+    margin-top: 14px;
+}
+
+#fp-box label:first-of-type {
+    margin-top: 0;
+}
+
+#fp-box input[type="text"],
+#fp-box input[type="password"] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--rad-md);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-top: 0;
+}
+
+#fp-box input:focus {
+    border-color: #8fc96a;
+}
+
+.fp-question-display {
+    background: var(--bg-main);
+    border-radius: var(--rad-md);
+    padding: 10px 14px;
+    font-size: 13.5px;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+}
+
+.fp-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.fp-btn {
+    padding: 9px 22px;
+    border-radius: var(--rad-md);
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    width: auto;
+    margin: 0;
+}
+
+.fp-btn:active {
+    transform: scale(0.97);
+}
+
+.fp-btn-cancel {
+    background: var(--btn-gray);
+    color: var(--text-dark);
+}
+
+.fp-btn-cancel:hover {
+    background: #d0d0d0;
+}
+
+.fp-btn-ok {
+    background: #8fc96a;
+    color: var(--white);
+}
+
+.fp-btn-ok:hover {
+    background: #75b453;
+}
+
+.fp-btn-ok:disabled {
+    background: #c2e2a7;
+    cursor: not-allowed;
+}
+
+.fp-close {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #aaa;
+    cursor: pointer;
+    line-height: 1;
+    width: auto;
+    margin: 0;
+    padding: 0 4px;
+}
+
+.fp-close:hover {
+    color: var(--text-dark);
+    background: none;
+}
+
+/* "Forgot password?" link on login form */
+.forgot-link {
+    display: block;
+    text-align: center;
+    font-size: 12.5px;
+    color: #8fc96a;
+    text-decoration: none;
+    margin-top: 6px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    width: 100%;
+}
+
+.forgot-link:hover {
+    text-decoration: underline;
+    background: none;
+    color: #75b453;
+}
+
+/* Login accent colour for brand span */
+.login-brand-accent {
+    color: #8fc96a;
+}
+
+/* Login form error message */
+#error-message {
+    color: var(--red-main);
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 10px;
+}

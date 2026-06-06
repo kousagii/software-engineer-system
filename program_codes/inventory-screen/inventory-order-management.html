@@ -721,13 +721,22 @@
                     }
                 }
 
+                // Initialize TomSelect on the native select (which may be disabled for view mode)
                 const ts = new TomSelect('#' + selId, {
                     create: false,
                     dropdownParent: 'body'
                 });
+
                 if (selectedProductId) {
+                    // TomSelect locks itself when the native <select> is disabled.
+                    // We must temporarily unlock it so setValue() can actually set the item,
+                    // then re-lock to preserve the read-only state.
+                    const wasLocked = ts.isLocked;
+                    if (wasLocked) ts.unlock();
                     ts.setValue(String(selectedProductId), true);
+                    if (wasLocked) ts.lock();
                 }
+
                 ts.on('change', updateRowCost);
                 updateRowCost();
             }, 10);
@@ -749,17 +758,9 @@
         // --- Supplier & Product Logic ---
         function populateSupplierSelect(selectedId = null, fallbackName = null) {
             const sel = $('supplierSelect');
+            // Build base options from active suppliers only
             sel.innerHTML = '<option value="">-- Select supplier --</option>' +
-                suppliers.map(s => `<option value="${s.supplierID}" ${s.supplierID == selectedId ? 'selected' : ''}>${s.supplierName}</option>`).join('');
-
-            // If the selected supplier is archived (not in active list), add it as a fallback option
-            if (selectedId && !suppliers.some(s => String(s.supplierID) === String(selectedId))) {
-                const archivedLabel = (fallbackName || `Supplier #${selectedId}`) + ' (Archived)';
-                const opt = document.createElement('option');
-                opt.value = String(selectedId);
-                opt.textContent = archivedLabel;
-                sel.appendChild(opt);
-            }
+                suppliers.map(s => `<option value="${s.supplierID}">${s.supplierName}</option>`).join('');
 
             if (supplierSelectInstance) {
                 supplierSelectInstance.destroy();
@@ -771,13 +772,21 @@
             });
 
             if (selectedId) {
+                // If the supplier is not in the active list (archived), inject it into TomSelect directly
+                const isActive = suppliers.some(s => String(s.supplierID) === String(selectedId));
+                if (!isActive) {
+                    const archivedLabel = (fallbackName || `Supplier #${selectedId}`) + ' (Archived)';
+                    supplierSelectInstance.addOption({ value: String(selectedId), text: archivedLabel });
+                }
+                // Set value AFTER the option exists in TomSelect's internal list
                 supplierSelectInstance.setValue(String(selectedId), true);
-                handleSupplierChange(false);
+                handleSupplierChange(false, String(selectedId));
             }
         }
 
-        function handleSupplierChange(resetItems = true) {
-            const selId = val('supplierSelect');
+        function handleSupplierChange(resetItems = true, forcedId = null) {
+            // Use forcedId when called right after TomSelect init (native select value may not be synced yet)
+            const selId = forcedId || (supplierSelectInstance ? supplierSelectInstance.getValue() : val('supplierSelect'));
             const s = suppliers.find(x => String(x.supplierID) === String(selId));
 
             if (s) {
@@ -818,7 +827,8 @@
         function clearItems() { $('itemsContainer').innerHTML = ''; }
 
         function getAllowedProductsForCurrentSupplier() {
-            const sid = val('supplierSelect');
+            // Use TomSelect's own value — more reliable than reading native select which may not be synced
+            const sid = supplierSelectInstance ? supplierSelectInstance.getValue() : val('supplierSelect');
             if (!sid) return [];
 
             const s = suppliers.find(x => String(x.supplierID) === String(sid));

@@ -11,22 +11,72 @@
 <body id="login-body">
     <div id="login-box">
         <form id="login-form">
-            <h1 class="center-text">UDICON <span style="color:#8fc96a;">Trading</span></h1>
+            <h1 class="center-text">UDICON <span class="login-brand-accent">Trading</span></h1>
 
-            <p id="error-message"
-                style="color: red; display: none; text-align: center; font-size: 14px; margin-bottom: 10px;"></p>
+            <p id="error-message" class="hidden"></p>
 
             <label for="username">Username</label>
             <input type="text" id="username" name="username" required />
 
             <label for="password">Password</label>
             <input type="password" id="password" name="password" required />
+            <button type="button" class="forgot-link" onclick="openForgotPassword()">Forgot password?</button>
 
-            <button type="submit" id="login-btn" style="margin-top:20px;">Log in</button>
+            <button type="submit" id="login-btn">Log in</button>
         </form>
     </div>
 
+    <!-- ===== FORGOT PASSWORD MODAL ===== -->
+    <div id="fp-overlay">
+        <div id="fp-box">
+            <button class="fp-close" onclick="closeForgotPassword()" title="Close">&times;</button>
+            <h3>Forgot Password</h3>
+
+            <!-- Step 1: Enter username -->
+            <div class="fp-step active" id="fp-step1">
+                <p class="fp-sub">Enter your username and we'll verify your identity with your security question.</p>
+                <div class="fp-error" id="fp-error1"></div>
+                <label for="fp-username">Username</label>
+                <input type="text" id="fp-username" placeholder="Enter your username" autocomplete="off">
+                <div class="fp-actions">
+                    <button class="fp-btn fp-btn-cancel" onclick="closeForgotPassword()">Cancel</button>
+                    <button class="fp-btn fp-btn-ok" id="fp-btn-next1" onclick="fpStep1Next()">Next</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Answer security question -->
+            <div class="fp-step" id="fp-step2">
+                <p class="fp-sub">Answer your security question to verify your identity.</p>
+                <div class="fp-error" id="fp-error2"></div>
+                <label>Security Question</label>
+                <div class="fp-question-display" id="fp-question-text">—</div>
+                <label for="fp-answer">Your Answer</label>
+                <input type="text" id="fp-answer" placeholder="Enter your answer" autocomplete="off">
+                <div class="fp-actions">
+                    <button class="fp-btn fp-btn-cancel" onclick="fpGoBack(1)">Back</button>
+                    <button class="fp-btn fp-btn-ok" id="fp-btn-next2" onclick="fpStep2Next()">Next</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Set new password -->
+            <div class="fp-step" id="fp-step3">
+                <p class="fp-sub">Enter a new password for your account.</p>
+                <div class="fp-error" id="fp-error3"></div>
+                <div class="fp-success" id="fp-success3"></div>
+                <label for="fp-newpass">New Password</label>
+                <input type="password" id="fp-newpass" placeholder="At least 6 characters">
+                <label for="fp-confirmpass">Confirm New Password</label>
+                <input type="password" id="fp-confirmpass" placeholder="Re-enter new password">
+                <div class="fp-actions">
+                    <button class="fp-btn fp-btn-cancel" id="fp-back3" onclick="fpGoBack(2)">Back</button>
+                    <button class="fp-btn fp-btn-ok" id="fp-btn-save" onclick="fpStep3Save()">Save Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // ===== LOGIN =====
         document.getElementById('login-form').addEventListener('submit', async function (event) {
             event.preventDefault();
 
@@ -34,7 +84,7 @@
             const passwordInput = document.getElementById('password').value;
             const errorMessage = document.getElementById('error-message');
 
-            errorMessage.style.display = 'none';
+            errorMessage.classList.add('hidden');
 
             try {
                 const response = await fetch('/api/login', {
@@ -58,14 +108,178 @@
                     }
                 } else {
                     errorMessage.textContent = data.error;
-                    errorMessage.style.display = 'block';
+                    errorMessage.classList.remove('hidden');
                 }
             } catch (error) {
                 console.error("Login Error:", error);
                 errorMessage.textContent = "Could not connect to the server. Is it running?";
-                errorMessage.style.display = 'block';
+                errorMessage.classList.remove('hidden');
             }
         });
+
+        // ===== FORGOT PASSWORD =====
+        let fpUsername = '';
+        let fpAnswer = '';
+
+        function openForgotPassword() {
+            fpUsername = '';
+            fpAnswer = '';
+            document.getElementById('fp-username').value = '';
+            document.getElementById('fp-answer').value = '';
+            document.getElementById('fp-newpass').value = '';
+            document.getElementById('fp-confirmpass').value = '';
+            document.getElementById('fp-question-text').textContent = '—';
+            setFpError(1, ''); setFpError(2, ''); setFpError(3, '');
+            document.getElementById('fp-success3').textContent = '';
+            showFpStep(1);
+            document.getElementById('fp-overlay').classList.add('active');
+            setTimeout(() => document.getElementById('fp-username').focus(), 80);
+        }
+
+        function closeForgotPassword() {
+            document.getElementById('fp-overlay').classList.remove('active');
+        }
+
+        function showFpStep(n) {
+            document.querySelectorAll('.fp-step').forEach((el, i) => {
+                el.classList.toggle('active', i + 1 === n);
+            });
+        }
+
+        function fpGoBack(toStep) {
+            setFpError(toStep + 1, '');
+            showFpStep(toStep);
+        }
+
+        function setFpError(step, msg) {
+            const el = document.getElementById('fp-error' + step);
+            if (el) el.textContent = msg;
+        }
+
+        async function fpStep1Next() {
+            const username = document.getElementById('fp-username').value.trim();
+            if (!username) { setFpError(1, 'Please enter your username.'); return; }
+
+            const btn = document.getElementById('fp-btn-next1');
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+            setFpError(1, '');
+
+            try {
+                const res = await fetch(`/api/forgot-password/question?username=${encodeURIComponent(username)}`);
+                const data = await res.json();
+                if (!res.ok) {
+                    setFpError(1, data.error || 'User not found or no security question set.');
+                } else {
+                    fpUsername = username;
+                    document.getElementById('fp-question-text').textContent = data.security_question;
+                    document.getElementById('fp-answer').value = '';
+                    setFpError(2, '');
+                    showFpStep(2);
+                    setTimeout(() => document.getElementById('fp-answer').focus(), 80);
+                }
+            } catch (e) {
+                setFpError(1, 'Could not connect to server.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Next';
+            }
+        }
+
+        async function fpStep2Next() {
+            const answer = document.getElementById('fp-answer').value.trim();
+            if (!answer) { setFpError(2, 'Please enter your answer.'); return; }
+
+            const btn = document.getElementById('fp-btn-next2');
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+            setFpError(2, '');
+
+            try {
+                const res = await fetch('/api/forgot-password/verify-answer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: fpUsername, security_answer: answer })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    setFpError(2, data.error || 'Incorrect security answer.');
+                } else {
+                    fpAnswer = answer;
+                    setFpError(3, '');
+                    document.getElementById('fp-success3').textContent = '';
+                    document.getElementById('fp-newpass').value = '';
+                    document.getElementById('fp-confirmpass').value = '';
+                    document.getElementById('fp-back3').style.display = '';
+                    document.getElementById('fp-btn-save').disabled = false;
+                    document.getElementById('fp-btn-save').textContent = 'Save Password';
+                    document.getElementById('fp-btn-save').onclick = fpStep3Save;
+                    showFpStep(3);
+                    setTimeout(() => document.getElementById('fp-newpass').focus(), 80);
+                }
+            } catch (e) {
+                setFpError(2, 'Could not connect to server.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Next';
+            }
+        }
+
+        async function fpStep3Save() {
+            const newPassword = document.getElementById('fp-newpass').value;
+            const confirmPassword = document.getElementById('fp-confirmpass').value;
+            setFpError(3, '');
+            document.getElementById('fp-success3').textContent = '';
+
+            if (!newPassword || newPassword.length < 6) {
+                setFpError(3, 'Password must be at least 6 characters.'); return;
+            }
+            if (newPassword !== confirmPassword) {
+                setFpError(3, 'Passwords do not match.'); return;
+            }
+
+            const btn = document.getElementById('fp-btn-save');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const res = await fetch('/api/forgot-password/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: fpUsername,
+                        security_answer: fpAnswer,
+                        newPassword: newPassword
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    setFpError(3, data.error || 'Failed to reset password.');
+                    btn.disabled = false;
+                    btn.textContent = 'Save Password';
+                } else {
+                    document.getElementById('fp-success3').textContent = data.message;
+                    document.getElementById('fp-back3').style.display = 'none';
+                    btn.textContent = 'Done';
+                    btn.onclick = closeForgotPassword;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                setFpError(3, 'Could not connect to server.');
+                btn.disabled = false;
+                btn.textContent = 'Save Password';
+            }
+        }
+
+        // Close modal by clicking outside the box
+        document.getElementById('fp-overlay').addEventListener('click', function (e) {
+            if (e.target === this) closeForgotPassword();
+        });
+
+        // Enter key support
+        document.getElementById('fp-username').addEventListener('keydown', e => { if (e.key === 'Enter') fpStep1Next(); });
+        document.getElementById('fp-answer').addEventListener('keydown', e => { if (e.key === 'Enter') fpStep2Next(); });
+        document.getElementById('fp-confirmpass').addEventListener('keydown', e => { if (e.key === 'Enter') fpStep3Save(); });
     </script>
 </body>
 

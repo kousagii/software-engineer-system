@@ -96,14 +96,14 @@ handleDisconnect();
 
 // Route to add a new user (Admin only)
 app.post('/api/users', async (req, res) => {
-    const { username, firstName, lastName, rawPassword, role, contactInfo } = req.body;
+    const { username, firstName, lastName, rawPassword, role, contactInfo, security_question, security_answer } = req.body;
 
     try {
         const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
-        const sql = `INSERT INTO users (username, firstName, lastName, userPassword, role, contactInfo) VALUES (?, ?, ?, ?, ?, ?)`;
+        const sql = `INSERT INTO users (username, firstName, lastName, userPassword, role, contactInfo, security_question, security_answer) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
-        db.query(sql, [username, firstName, lastName, hashedPassword, role, contactInfo], (err, result) => {
+        db.query(sql, [username, firstName, lastName, hashedPassword, role, contactInfo, security_question || null, security_answer || null], (err, result) => {
             if (err) {
                 if (err.code === 'ER_DUP_ENTRY') {
                     return res.status(400).json({ error: "Username already exists. Please choose another." });
@@ -1422,10 +1422,21 @@ app.post('/api/auto-reorder', async (req, res) => {
 
 // GET route to fetch all users (excluding passwords for security)
 app.get('/api/users', (req, res) => {
-    const sql = `SELECT userID, username, firstName, lastName, role, contactInfo FROM users WHERE isActive = 1 OR isActive IS NULL ORDER BY userID DESC`;
+    const sql = `SELECT userID, username, firstName, lastName, role, contactInfo, security_question FROM users WHERE isActive = 1 OR isActive IS NULL ORDER BY userID DESC`;
 
     db.query(sql, (err, results) => {
         if (err) {
+            // Fallback: security_question column may not exist yet (migration not yet run)
+            if (err.code === 'ER_BAD_FIELD_ERROR') {
+                const fallback = `SELECT userID, username, firstName, lastName, role, contactInfo FROM users WHERE isActive = 1 OR isActive IS NULL ORDER BY userID DESC`;
+                return db.query(fallback, (err2, results2) => {
+                    if (err2) {
+                        console.error(err2);
+                        return res.status(500).json({ error: "Failed to fetch users" });
+                    }
+                    res.json(results2);
+                });
+            }
             console.error(err);
             return res.status(500).json({ error: "Failed to fetch users" });
         }
@@ -1433,10 +1444,91 @@ app.get('/api/users', (req, res) => {
     });
 });
 
+// GET route to fetch security question for a given username (public, for forgot password)
+app.get('/api/forgot-password/question', (req, res) => {
+    const { username } = req.query;
+    if (!username) return res.status(400).json({ error: "Username is required." });
+
+    const sql = `SELECT userID, security_question FROM users WHERE username = ? AND (isActive = 1 OR isActive IS NULL)`;
+    db.query(sql, [username], (err, results) => {
+        if (err) return res.status(500).json({ error: "Database error" });
+        if (results.length === 0 || !results[0].security_question) {
+            return res.status(404).json({ error: "User not found or no security question set." });
+        }
+        res.json({ userID: results[0].userID, security_question: results[0].security_question });
+    });
+});
+
+// POST route to verify ONLY the security answer (no password change)
+app.post('/api/forgot-password/verify-answer', (req, res) => {
+    const { username, security_answer } = req.body;
+    if (!username || !security_answer) {
+        return res.status(400).json({ error: "Username and answer are required." });
+    }
+
+    const sql = `SELECT userID, security_answer FROM users WHERE username = ? AND (isActive = 1 OR isActive IS NULL)`;
+    db.query(sql, [username], (err, results) => {
+        if (err) return res.status(500).json({ error: "Database error" });
+        if (results.length === 0) return res.status(404).json({ error: "User not found." });
+
+        const user = results[0];
+        if (!user.security_answer) {
+            return res.status(400).json({ error: "No security answer is set for this account." });
+        }
+
+        const match = security_answer.trim().toLowerCase() === user.security_answer.trim().toLowerCase();
+        if (!match) {
+            return res.status(401).json({ error: "Incorrect security answer." });
+        }
+
+        res.json({ ok: true });
+    });
+});
+
+// POST route to verify security answer and reset password
+app.post('/api/forgot-password/reset', async (req, res) => {
+    const { username, security_answer, newPassword } = req.body;
+
+    if (!username || !security_answer || !newPassword) {
+        return res.status(400).json({ error: "All fields are required." });
+    }
+    if (newPassword.trim().length < 6) {
+        return res.status(400).json({ error: "New password must be at least 6 characters." });
+    }
+
+    const sql = `SELECT userID, security_answer FROM users WHERE username = ? AND (isActive = 1 OR isActive IS NULL)`;
+    db.query(sql, [username], async (err, results) => {
+        if (err) return res.status(500).json({ error: "Database error" });
+        if (results.length === 0) return res.status(404).json({ error: "User not found." });
+
+        const user = results[0];
+        if (!user.security_answer) {
+            return res.status(400).json({ error: "No security answer is set for this account." });
+        }
+
+        const answerMatch = security_answer.trim().toLowerCase() === user.security_answer.trim().toLowerCase();
+        if (!answerMatch) {
+            return res.status(401).json({ error: "Incorrect security answer." });
+        }
+
+        try {
+            const hashedPassword = await bcrypt.hash(newPassword.trim(), 10);
+            db.query(`UPDATE users SET userPassword = ? WHERE userID = ?`, [hashedPassword, user.userID], (err2) => {
+                if (err2) return res.status(500).json({ error: "Failed to update password." });
+                db.query(`INSERT INTO activity_log (userID, actionType, details) VALUES (?, 'Reset Password', ?)`,
+                    [user.userID, `Password reset via security question for user: ${username}`]);
+                res.json({ message: "Password reset successfully. You may now log in." });
+            });
+        } catch (e) {
+            res.status(500).json({ error: "Server error." });
+        }
+    });
+});
+
 // Put route to UPDATE a user
 app.put('/api/users/:id', async (req, res) => {
     const { id } = req.params;
-    const { username, firstName, lastName, rawPassword, role, contactInfo } = req.body;
+    const { username, firstName, lastName, rawPassword, role, contactInfo, security_question, security_answer } = req.body;
 
     try {
         let sql;
@@ -1447,22 +1539,43 @@ app.put('/api/users/:id', async (req, res) => {
 
             sql = `
                 UPDATE users 
-                SET username = ?, firstName = ?, lastName = ?, userPassword = ?, role = ?, contactInfo = ? 
+                SET username = ?, firstName = ?, lastName = ?, userPassword = ?, role = ?, contactInfo = ?,
+                    security_question = ?, security_answer = ?
                 WHERE userID = ?
             `;
-
-            params = [username, firstName, lastName, hashedPassword, role, contactInfo, id];
+            params = [username, firstName, lastName, hashedPassword, role, contactInfo, security_question || null, security_answer || null, id];
         } else {
             sql = `
                 UPDATE users 
-                SET username = ?, firstName = ?, lastName = ?, role = ?, contactInfo = ? 
+                SET username = ?, firstName = ?, lastName = ?, role = ?, contactInfo = ?,
+                    security_question = ?, security_answer = ?
                 WHERE userID = ?
             `;
-
-            params = [username, firstName, lastName, role, contactInfo, id];
+            params = [username, firstName, lastName, role, contactInfo, security_question || null, security_answer || null, id];
         }
 
-        db.query(sql, params, (err, result) => {
+        const runUpdate = (sqlStr, sqlParams, callback) => {
+            db.query(sqlStr, sqlParams, (err, result) => {
+                if (err) {
+                    // Fallback: security columns may not exist yet — retry without them
+                    if (err.code === 'ER_BAD_FIELD_ERROR') {
+                        let fallbackSql, fallbackParams;
+                        if (rawPassword && rawPassword.trim() !== "") {
+                            fallbackSql = `UPDATE users SET username = ?, firstName = ?, lastName = ?, userPassword = ?, role = ?, contactInfo = ? WHERE userID = ?`;
+                            fallbackParams = [username, firstName, lastName, sqlParams[3], role, contactInfo, id];
+                        } else {
+                            fallbackSql = `UPDATE users SET username = ?, firstName = ?, lastName = ?, role = ?, contactInfo = ? WHERE userID = ?`;
+                            fallbackParams = [username, firstName, lastName, role, contactInfo, id];
+                        }
+                        return db.query(fallbackSql, fallbackParams, callback);
+                    }
+                    return callback(err, null);
+                }
+                callback(null, result);
+            });
+        };
+
+        runUpdate(sql, params, (err, result) => {
             if (err) {
                 if (err.code === 'ER_DUP_ENTRY') {
                     return res.status(400).json({ error: "Username already exists." });
