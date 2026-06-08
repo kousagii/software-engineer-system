@@ -4456,7 +4456,7 @@ input:checked+.slider:before {
     display: block;
     text-align: center;
     font-size: 12.5px;
-    color: #8fc96a;
+    color: var(--green-light);
     text-decoration: none;
     margin-top: 6px;
     cursor: pointer;
@@ -4470,7 +4470,7 @@ input:checked+.slider:before {
 .forgot-link:hover {
     text-decoration: underline;
     background: none;
-    color: #75b453;
+    color: var(--green-hover);
 }
 
 /* Login accent colour for brand span */

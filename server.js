@@ -100,10 +100,11 @@ app.post('/api/users', async (req, res) => {
 
     try {
         const hashedPassword = await bcrypt.hash(rawPassword, 10);
+        const hashedSecurityAnswer = security_answer ? await bcrypt.hash(security_answer.trim().toLowerCase(), 10) : null;
 
         const sql = `INSERT INTO users (username, firstName, lastName, userPassword, role, contactInfo, security_question, security_answer) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
-        db.query(sql, [username, firstName, lastName, hashedPassword, role, contactInfo, security_question || null, security_answer || null], (err, result) => {
+        db.query(sql, [username, firstName, lastName, hashedPassword, role, contactInfo, security_question || null, hashedSecurityAnswer], (err, result) => {
             if (err) {
                 if (err.code === 'ER_DUP_ENTRY') {
                     return res.status(400).json({ error: "Username already exists. Please choose another." });
@@ -1460,14 +1461,14 @@ app.get('/api/forgot-password/question', (req, res) => {
 });
 
 // POST route to verify ONLY the security answer (no password change)
-app.post('/api/forgot-password/verify-answer', (req, res) => {
+app.post('/api/forgot-password/verify-answer', async (req, res) => {
     const { username, security_answer } = req.body;
     if (!username || !security_answer) {
         return res.status(400).json({ error: "Username and answer are required." });
     }
 
     const sql = `SELECT userID, security_answer FROM users WHERE username = ? AND (isActive = 1 OR isActive IS NULL)`;
-    db.query(sql, [username], (err, results) => {
+    db.query(sql, [username], async (err, results) => {
         if (err) return res.status(500).json({ error: "Database error" });
         if (results.length === 0) return res.status(404).json({ error: "User not found." });
 
@@ -1476,12 +1477,15 @@ app.post('/api/forgot-password/verify-answer', (req, res) => {
             return res.status(400).json({ error: "No security answer is set for this account." });
         }
 
-        const match = security_answer.trim().toLowerCase() === user.security_answer.trim().toLowerCase();
-        if (!match) {
-            return res.status(401).json({ error: "Incorrect security answer." });
+        try {
+            const match = await bcrypt.compare(security_answer.trim().toLowerCase(), user.security_answer);
+            if (!match) {
+                return res.status(401).json({ error: "Incorrect security answer." });
+            }
+            res.json({ ok: true });
+        } catch (e) {
+            res.status(500).json({ error: "Server error." });
         }
-
-        res.json({ ok: true });
     });
 });
 
@@ -1506,12 +1510,12 @@ app.post('/api/forgot-password/reset', async (req, res) => {
             return res.status(400).json({ error: "No security answer is set for this account." });
         }
 
-        const answerMatch = security_answer.trim().toLowerCase() === user.security_answer.trim().toLowerCase();
-        if (!answerMatch) {
-            return res.status(401).json({ error: "Incorrect security answer." });
-        }
-
         try {
+            const answerMatch = await bcrypt.compare(security_answer.trim().toLowerCase(), user.security_answer);
+            if (!answerMatch) {
+                return res.status(401).json({ error: "Incorrect security answer." });
+            }
+
             const hashedPassword = await bcrypt.hash(newPassword.trim(), 10);
             db.query(`UPDATE users SET userPassword = ? WHERE userID = ?`, [hashedPassword, user.userID], (err2) => {
                 if (err2) return res.status(500).json({ error: "Failed to update password." });
@@ -1534,24 +1538,52 @@ app.put('/api/users/:id', async (req, res) => {
         let sql;
         let params;
 
+        const hashedSecurityAnswer = security_answer && security_answer.trim() !== ''
+            ? await bcrypt.hash(security_answer.trim().toLowerCase(), 10)
+            : null;
+
         if (rawPassword && rawPassword.trim() !== "") {
             const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
-            sql = `
-                UPDATE users 
-                SET username = ?, firstName = ?, lastName = ?, userPassword = ?, role = ?, contactInfo = ?,
-                    security_question = ?, security_answer = ?
-                WHERE userID = ?
-            `;
-            params = [username, firstName, lastName, hashedPassword, role, contactInfo, security_question || null, security_answer || null, id];
+            if (hashedSecurityAnswer !== null) {
+                // Update password AND security answer
+                sql = `
+                    UPDATE users 
+                    SET username = ?, firstName = ?, lastName = ?, userPassword = ?, role = ?, contactInfo = ?,
+                        security_question = ?, security_answer = ?
+                    WHERE userID = ?
+                `;
+                params = [username, firstName, lastName, hashedPassword, role, contactInfo, security_question || null, hashedSecurityAnswer, id];
+            } else {
+                // Update password only, keep existing security answer
+                sql = `
+                    UPDATE users 
+                    SET username = ?, firstName = ?, lastName = ?, userPassword = ?, role = ?, contactInfo = ?,
+                        security_question = ?
+                    WHERE userID = ?
+                `;
+                params = [username, firstName, lastName, hashedPassword, role, contactInfo, security_question || null, id];
+            }
         } else {
-            sql = `
-                UPDATE users 
-                SET username = ?, firstName = ?, lastName = ?, role = ?, contactInfo = ?,
-                    security_question = ?, security_answer = ?
-                WHERE userID = ?
-            `;
-            params = [username, firstName, lastName, role, contactInfo, security_question || null, security_answer || null, id];
+            if (hashedSecurityAnswer !== null) {
+                // Update security answer, keep existing password
+                sql = `
+                    UPDATE users 
+                    SET username = ?, firstName = ?, lastName = ?, role = ?, contactInfo = ?,
+                        security_question = ?, security_answer = ?
+                    WHERE userID = ?
+                `;
+                params = [username, firstName, lastName, role, contactInfo, security_question || null, hashedSecurityAnswer, id];
+            } else {
+                // Keep both password and security answer unchanged
+                sql = `
+                    UPDATE users 
+                    SET username = ?, firstName = ?, lastName = ?, role = ?, contactInfo = ?,
+                        security_question = ?
+                    WHERE userID = ?
+                `;
+                params = [username, firstName, lastName, role, contactInfo, security_question || null, id];
+            }
         }
 
         const runUpdate = (sqlStr, sqlParams, callback) => {
