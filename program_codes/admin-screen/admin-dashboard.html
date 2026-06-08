@@ -632,6 +632,8 @@
 
       const dpr = window.devicePixelRatio || 1;
       const w = canvas.parentElement.clientWidth - 40;
+      if (w <= 0) return; // Prevent DOMException if parent is hidden
+
       const fontSize = 14;
       const lineHeight = 18;
       const barH = 18;
