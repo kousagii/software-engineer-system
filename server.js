@@ -2166,27 +2166,149 @@ app.get('/api/transactions', (req, res) => {
 
 
 // GET top/most bought products (for dashboard)
-app.get('/api/dashboard/top-products', (req, res) => {
-    const sql = `
-        SELECT 
-            COALESCE(si.productName, p.productName, CONCAT('Product #', si.productID)) AS productName,
-            SUM(CASE WHEN si.quantity > 0 THEN si.quantity ELSE 0 END) AS totalSold
-        FROM sales_item si
-        JOIN sales_transaction st ON si.transactionID = st.transactionID
-        LEFT JOIN product p ON si.productID = p.productID
-        WHERE st.paymentStatus IN ('Paid', 'Partial', 'Exchanged')
-          AND si.quantity > 0
-        GROUP BY si.productID, COALESCE(si.productName, p.productName, CONCAT('Product #', si.productID))
-        ORDER BY totalSold DESC
-        LIMIT 8
-    `;
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: 'Failed to fetch top products' });
+app.get('/api/dashboard/top-products', async (req, res) => {
+    try {
+        const period = req.query.period || '30';
+        let dateCondition = '';
+        let queryParams = [];
+
+        if (period !== 'all') {
+            const days = parseInt(period);
+            if (!isNaN(days)) {
+                dateCondition = 'AND st.transDateTime >= DATE_SUB(CURDATE(), INTERVAL ? DAY)';
+                queryParams.push(days);
+            }
         }
-        res.json(results);
-    });
+
+        // 1A. Fast Moving Goods (by quantity)
+        const [fastMovingRows] = await db.promise().query(`
+            SELECT 
+                si.productID,
+                COALESCE(si.productName, p.productName, CONCAT('Product #', si.productID)) AS productName,
+                p.category,
+                p.stockQuantity,
+                p.price AS unitPrice,
+                SUM(CASE WHEN si.quantity > 0 THEN si.quantity ELSE 0 END) AS totalSold,
+                SUM(CASE WHEN si.quantity > 0 THEN si.subtotal ELSE 0 END) AS totalRevenue
+            FROM sales_item si
+            JOIN sales_transaction st ON si.transactionID = st.transactionID
+            LEFT JOIN product p ON si.productID = p.productID
+            WHERE st.paymentStatus IN ('Paid', 'Partial', 'Exchanged')
+              AND si.quantity > 0
+              ${dateCondition}
+            GROUP BY si.productID, COALESCE(si.productName, p.productName, CONCAT('Product #', si.productID)), p.category, p.stockQuantity, p.price
+            ORDER BY totalSold DESC
+            LIMIT 10
+        `, queryParams);
+
+        // 1B. Most Profitable (by revenue)
+        const [profitableRows] = await db.promise().query(`
+            SELECT 
+                si.productID,
+                COALESCE(si.productName, p.productName, CONCAT('Product #', si.productID)) AS productName,
+                p.category,
+                p.stockQuantity,
+                p.price AS unitPrice,
+                SUM(CASE WHEN si.quantity > 0 THEN si.quantity ELSE 0 END) AS totalSold,
+                SUM(CASE WHEN si.quantity > 0 THEN si.subtotal ELSE 0 END) AS totalRevenue
+            FROM sales_item si
+            JOIN sales_transaction st ON si.transactionID = st.transactionID
+            LEFT JOIN product p ON si.productID = p.productID
+            WHERE st.paymentStatus IN ('Paid', 'Partial', 'Exchanged')
+              AND si.quantity > 0
+              ${dateCondition}
+            GROUP BY si.productID, COALESCE(si.productName, p.productName, CONCAT('Product #', si.productID)), p.category, p.stockQuantity, p.price
+            ORDER BY totalRevenue DESC
+            LIMIT 10
+        `, queryParams);
+
+        // 2. Daily sales for last 7 days (for sparkline trend per product)
+        const productIDs = [...new Set([...fastMovingRows.map(p => p.productID), ...profitableRows.map(p => p.productID)])].filter(Boolean);
+        let dailyTrends = {};
+        if (productIDs.length > 0) {
+            const [trendRows] = await db.promise().query(`
+                SELECT 
+                    si.productID,
+                    DATE(st.transDateTime) AS saleDate,
+                    SUM(CASE WHEN si.quantity > 0 THEN si.quantity ELSE 0 END) AS qty
+                FROM sales_item si
+                JOIN sales_transaction st ON si.transactionID = st.transactionID
+                WHERE si.productID IN (?)
+                  AND st.paymentStatus IN ('Paid', 'Partial', 'Exchanged')
+                  AND si.quantity > 0
+                  AND st.transDateTime >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                GROUP BY si.productID, DATE(st.transDateTime)
+                ORDER BY si.productID, saleDate
+            `, [productIDs]);
+
+            trendRows.forEach(r => {
+                if (!dailyTrends[r.productID]) dailyTrends[r.productID] = [];
+                dailyTrends[r.productID].push({ date: r.saleDate, qty: parseInt(r.qty) });
+            });
+        }
+
+        // 3. Overall summary stats
+        const [summaryRows] = await db.promise().query(`
+            SELECT 
+                COUNT(DISTINCT si.productID) AS uniqueProductsSold,
+                SUM(CASE WHEN si.quantity > 0 THEN si.quantity ELSE 0 END) AS totalUnitsSold,
+                SUM(CASE WHEN si.quantity > 0 THEN si.subtotal ELSE 0 END) AS totalRevenue
+            FROM sales_item si
+            JOIN sales_transaction st ON si.transactionID = st.transactionID
+            WHERE st.paymentStatus IN ('Paid', 'Partial', 'Exchanged')
+              AND si.quantity > 0
+              ${dateCondition}
+        `, queryParams);
+
+        // 4. Category breakdown
+        const [categoryRows] = await db.promise().query(`
+            SELECT 
+                COALESCE(p.category, 'Uncategorized') AS category,
+                SUM(CASE WHEN si.quantity > 0 THEN si.quantity ELSE 0 END) AS totalSold,
+                SUM(CASE WHEN si.quantity > 0 THEN si.subtotal ELSE 0 END) AS totalRevenue
+            FROM sales_item si
+            JOIN sales_transaction st ON si.transactionID = st.transactionID
+            LEFT JOIN product p ON si.productID = p.productID
+            WHERE st.paymentStatus IN ('Paid', 'Partial', 'Exchanged')
+              AND si.quantity > 0
+              ${dateCondition}
+            GROUP BY COALESCE(p.category, 'Uncategorized')
+            ORDER BY totalRevenue DESC
+            LIMIT 6
+        `, queryParams);
+
+        // Build 7-day date labels
+        const dateLabels = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            dateLabels.push(d.toISOString().split('T')[0]);
+        }
+
+        // Attach trend data (fill missing days with 0)
+        const attachTrend = (arr) => arr.map(p => {
+            const raw = dailyTrends[p.productID] || [];
+            const trend = dateLabels.map(dl => {
+                const found = raw.find(r => {
+                    const rd = new Date(r.date).toISOString().split('T')[0];
+                    return rd === dl;
+                });
+                return found ? found.qty : 0;
+            });
+            return { ...p, trend };
+        });
+
+        res.json({
+            fastMoving: attachTrend(fastMovingRows),
+            mostProfitable: attachTrend(profitableRows),
+            summary: summaryRows[0] || {},
+            categories: categoryRows,
+            dateLabels
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch top products analytics' });
+    }
 });
 
 // GET collected payments (actual cash inflow) for a date range
@@ -2963,6 +3085,16 @@ function performIncrementalBackup(userID) {
             // Locate all binary log files that were modified AT OR AFTER the last backup time
             const binlogDir = 'C:/ProgramData/MySQL/MySQL Server 8.0/Data';
             const binlogIndexFile = path.join(binlogDir, 'ASHLEY-bin.index');
+
+            if (!fs.existsSync(binlogIndexFile)) {
+                console.warn('⚠️ Binlog index file not found. Skipping incremental backup and performing full dump instead.');
+                const dumpCmd = `mysqldump -u ${process.env.DB_USER} --password="${process.env.DB_PASSWORD}" -h ${process.env.DB_HOST || 'localhost'} ${process.env.DB_NAME} > "${filePath}"`;
+                exec(dumpCmd, (execErr) => {
+                    if (execErr) return reject(execErr);
+                    logAndResolve(fileName, filePath, userID, resolve, reject);
+                });
+                return;
+            }
 
             fs.readFile(binlogIndexFile, 'utf8', (readErr, indexData) => {
                 if (readErr) {
