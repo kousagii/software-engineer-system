@@ -791,7 +791,7 @@
 
                 thAction.innerHTML = 'Action';
             }
-            processData();
+            renderTable(productList);
         }
 
         function toggleAllProducts(source) {
@@ -1708,15 +1708,6 @@
                 $('prevBarcode').style.display = 'block';
                 renderPreviewBarcode();
             }
-        }
-
-        async function loadProducts() {
-            try {
-                const res = await fetch('/api/products?limit=all');
-                const json = await res.json();
-                productList = json.data || json;
-                processData();
-            } catch { $('product-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error loading data.</td></tr>'; }
         }
 
         function deleteCurrentProduct() {
