@@ -289,8 +289,10 @@
                                 <input type="text" id="plAddress" placeholder="Enter address" class="digital-input">
                             </div>
                             <div class="mb-10">
-                                <label for="plDepositMethod" class="digital-label-blue" style="color: #664d03;">Deposit Method</label>
-                                <select id="plDepositMethod" class="payment-select" onchange="handlePlDepositMethod()" style="width: 100%; border-color: #ffe69c;">
+                                <label for="plDepositMethod" class="digital-label-blue" style="color: #664d03;">Deposit
+                                    Method</label>
+                                <select id="plDepositMethod" class="payment-select" onchange="handlePlDepositMethod()"
+                                    style="width: 100%; border-color: #ffe69c;">
                                     <option value="Cash">Cash</option>
                                     <option value="E-wallet">E-wallet</option>
                                     <option value="Bank Transfer">Bank Transfer</option>
@@ -304,8 +306,10 @@
                             </div>
                             <div id="plDepositDigitalSection" style="display: none;">
                                 <div class="mb-10">
-                                    <label for="plDepositRef" class="digital-label-blue" style="color: #664d03;">Reference / Trace Number</label>
-                                    <input type="text" id="plDepositRef" placeholder="Enter Ref No." class="digital-input">
+                                    <label for="plDepositRef" class="digital-label-blue"
+                                        style="color: #664d03;">Reference / Trace Number</label>
+                                    <input type="text" id="plDepositRef" placeholder="Enter Ref No."
+                                        class="digital-input">
                                 </div>
                             </div>
                             <div id="plCashGivenSection">
@@ -743,11 +747,11 @@
 
                 const actualBarcode = String(product.barcode || product.Barcode || searchBarcode);
                 const actualName = product.productName || product.name || "Unknown Item";
-                
+
                 // Fix JS falsy bug: if stockQuantity is 0, 0 || 999 evaluates to 999.
                 let stockVal = product.stockQuantity !== undefined ? product.stockQuantity : product.stock;
                 const actualStock = (stockVal !== undefined && stockVal !== null) ? parseInt(stockVal) : 999;
-                
+
                 const actualPrice = parseFloat(product.price || product.Price || 0);
 
                 let existingItem = cart.find(p => String(p.barcode) === actualBarcode);
@@ -1062,7 +1066,7 @@
             if (mode === "Pay Later") {
                 const deposit = parseFloat(el("plDeposit").value) || 0;
                 const depositMethod = el("plDepositMethod") ? el("plDepositMethod").value : "Cash";
-                
+
                 if (deposit > 0 && depositMethod === "Cash") {
                     el("changeBox").style.display = "block";
                     const given = parseFloat(el("plCashGiven").value) || 0;
@@ -1273,7 +1277,7 @@
 
                 const depositAmount = parseFloat(el("plDeposit").value) || 0;
                 const plDepositMethod = el("plDepositMethod") ? el("plDepositMethod").value : "Cash";
-                
+
                 if (depositAmount > 0) {
                     if (plDepositMethod === "Cash") {
                         rawCash = depositAmount;
@@ -1599,8 +1603,9 @@
 
         async function loadProductCache() {
             try {
-                const res = await fetch('/api/products');
-                productCache = await res.json();
+                const res = await fetch('/api/products?limit=all');
+                const json = await res.json();
+                productCache = json.data || json;
                 productCacheLoaded = true;
                 renderPosGrid();
             } catch (e) {

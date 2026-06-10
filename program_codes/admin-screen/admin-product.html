@@ -414,7 +414,7 @@
     <script>
         let productList = [], currentEditId = null, currentBarcode = "";
         let currentPage = 1;
-        let totalPages  = 1;
+        let totalPages = 1;
         let currentPrintBarcode = "", currentPrintName = "";
         let deletedVariantIds = [];
         let loadedVariantIds = [];
@@ -464,10 +464,10 @@
         }
 
         async function fetchProducts() {
-            const search   = val('searchInput');
+            const search = val('searchInput');
             const category = val('categoryFilter');
-            const sort     = val('sortMode');
-            const limit    = val('showLimit');
+            const sort = val('sortMode');
+            const limit = val('showLimit');
 
             const params = new URLSearchParams({
                 page: currentPage,
@@ -481,7 +481,7 @@
                 '<tr><td colspan="7" class="center-text">Loading...</td></tr>';
 
             try {
-                const res  = await fetch('/api/products?' + params.toString());
+                const res = await fetch('/api/products?' + params.toString());
                 const json = await res.json();
 
                 productList = json.data || [];
@@ -1712,8 +1712,9 @@
 
         async function loadProducts() {
             try {
-                const res = await fetch('/api/products');
-                productList = await res.json();
+                const res = await fetch('/api/products?limit=all');
+                const json = await res.json();
+                productList = json.data || json;
                 processData();
             } catch { $('product-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error loading data.</td></tr>'; }
         }

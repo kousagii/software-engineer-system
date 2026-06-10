@@ -263,11 +263,13 @@
 
     // --- Stat Cards ---
     async function loadStats() {
-      const [products, suppliers, orders] = await Promise.all([
-        safeFetch('/api/products'),
+      let [products, suppliers, orders] = await Promise.all([
+        safeFetch('/api/products?limit=all'),
         safeFetch('/api/suppliers'),
         safeFetch('/api/orders')
       ]);
+
+      if (products && products.data) products = products.data;
 
       if (products) {
         document.getElementById('stat-products').textContent = products.length;
