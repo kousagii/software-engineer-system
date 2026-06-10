@@ -270,6 +270,8 @@
       ]);
 
       if (products && products.data) products = products.data;
+      if (suppliers && suppliers.data) suppliers = suppliers.data;
+      if (orders && orders.data) orders = orders.data;
 
       if (products) {
         document.getElementById('stat-products').textContent = products.length;

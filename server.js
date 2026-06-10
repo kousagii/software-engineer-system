@@ -579,6 +579,8 @@ app.put('/api/products/:id/threshold', async (req, res) => {
 // DELETE route to REMOVE a product (soft delete - marks as inactive)
 app.delete('/api/products/:id', (req, res) => {
     const { id } = req.params;
+    const sessionUserID = req.session?.user?.id;
+    if (!sessionUserID) return res.status(401).json({ error: "Unauthorized" });
 
     const sql = `UPDATE product SET isActive = 0 WHERE productID = ?`;
 
@@ -587,15 +589,10 @@ app.delete('/api/products/:id', (req, res) => {
             console.error(err);
             return res.status(500).json({ error: "Failed to remove product from view" });
         }
-        const sessionUserID = req.session?.user?.id;
-        if (!sessionUserID) return res.status(401).json({ error: "Unauthorized" });
-
         db.query(`INSERT INTO inventory_record (userID, productID, actionType, quantityChange, inventoryDate, details) VALUES (?, ?, 'Archive', 0, NOW(), ?)`,
             [sessionUserID, id, `Archived product ID: ${id}`]);
         res.status(200).json({ message: "Product removed!" });
     });
-
-
 });
 
 
@@ -687,7 +684,10 @@ app.get('/api/archive/users', (req, res) => {
     db.query(`SELECT COUNT(*) AS total FROM users ${where}`, params, (err, countRes) => {
         if (err) return res.status(500).json({ error: 'Failed to count archived users' });
         const total = countRes[0].total;
-        let sql = `SELECT userID, username, firstName, lastName, role, contactInfo FROM users ${where} ORDER BY userID DESC`;
+        const sort = req.query.sort || 'default';
+        const sortMap = { 'default': 'userID DESC', 'asc': 'username ASC', 'desc': 'username DESC' };
+        const orderBy = 'ORDER BY ' + (sortMap[sort] || sortMap['default']);
+        let sql = `SELECT userID, username, firstName, lastName, role, contactInfo FROM users ${where} ${orderBy}`;
         let dataParams = [...params];
         if (limit !== null) { sql += ' LIMIT ? OFFSET ?'; dataParams.push(limit, (page - 1) * limit); }
         db.query(sql, dataParams, (err, results) => {
@@ -730,7 +730,10 @@ app.get('/api/archive/products', (req, res) => {
     db.query(`SELECT COUNT(*) AS total FROM product ${where}`, params, (err, countRes) => {
         if (err) return res.status(500).json({ error: 'Failed to count archived products' });
         const total = countRes[0].total;
-        let sql = `SELECT * FROM product ${where} ORDER BY productID DESC`;
+        const sort = req.query.sort || 'default';
+        const sortMap = { 'default': 'productID DESC', 'asc': 'productName ASC', 'desc': 'productName DESC' };
+        const orderBy = 'ORDER BY ' + (sortMap[sort] || sortMap['default']);
+        let sql = `SELECT * FROM product ${where} ${orderBy}`;
         let dataParams = [...params];
         if (limit !== null) { sql += ' LIMIT ? OFFSET ?'; dataParams.push(limit, (page - 1) * limit); }
         db.query(sql, dataParams, (err, results) => {
@@ -761,7 +764,11 @@ app.get('/api/archive/orders', async (req, res) => {
         );
         const total = countRes[0].total;
 
-        let dataSql = `SELECT po.*, s.supplierName FROM purchase_order po LEFT JOIN supplier s ON po.supplierID = s.supplierID ${where} ORDER BY po.orderID DESC`;
+        const sort = req.query.sort || 'default';
+        const sortMap = { 'default': 'po.orderID DESC', 'asc': 's.supplierName ASC', 'desc': 's.supplierName DESC' };
+        const orderBy = 'ORDER BY ' + (sortMap[sort] || sortMap['default']);
+
+        let dataSql = `SELECT po.*, s.supplierName FROM purchase_order po LEFT JOIN supplier s ON po.supplierID = s.supplierID ${where} ${orderBy}`;
         let dataParams = [...params];
         if (limit !== null) { dataSql += ' LIMIT ? OFFSET ?'; dataParams.push(limit, (page - 1) * limit); }
 
@@ -826,15 +833,20 @@ app.get('/api/archive/suppliers', (req, res) => {
         LEFT JOIN product p ON sp.productID = p.productID
         ${where}
         GROUP BY s.supplierID
-        ORDER BY s.supplierID DESC
     `;
+
+    const sort = req.query.sort || 'default';
+    const sortMap = { 'default': 's.supplierID DESC', 'asc': 's.supplierName ASC', 'desc': 's.supplierName DESC' };
+    const orderBy = 'ORDER BY ' + (sortMap[sort] || sortMap['default']);
+
+    const finalQuery = baseQuery + ' ' + orderBy;
 
     db.query("SET SESSION group_concat_max_len = 1000000", (err) => {
         if (err) console.error("Failed to set group_concat_max_len", err);
         db.query(`SELECT COUNT(*) AS total FROM (${baseQuery}) AS cnt`, params, (err, countRes) => {
             if (err) return res.status(500).json({ error: err.message });
             const total = countRes[0].total;
-            let dataQuery = baseQuery;
+            let dataQuery = finalQuery;
             let dataParams = [...params];
             if (limit !== null) { dataQuery += ' LIMIT ? OFFSET ?'; dataParams.push(limit, (page - 1) * limit); }
             db.query(dataQuery, dataParams, (err, results) => {
@@ -2585,6 +2597,28 @@ app.get('/api/dashboard/pay-later', (req, res) => {
         }
         res.json(results);
     });
+});
+
+// GET a single transaction by ID
+app.get('/api/transactions/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [rows] = await db.promise().query(`
+            SELECT st.transactionID, st.transactionCode, st.transDateTime,
+                   st.totalAmount, st.paymentMethod, st.paymentStatus,
+                   st.cashReceived, st.digitalAmount, st.discountAmount,
+                   st.customerName, st.contactInfo, st.address, st.dueDate,
+                   u.firstName, u.lastName
+            FROM sales_transaction st
+            LEFT JOIN users u ON st.userID = u.userID
+            WHERE st.transactionID = ?
+        `, [id]);
+        if (!rows || rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+        res.json(rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch transaction' });
+    }
 });
 
 // GET transaction items detail by transaction ID

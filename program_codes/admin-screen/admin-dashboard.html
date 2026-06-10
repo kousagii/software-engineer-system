@@ -979,14 +979,14 @@
       el('customerDetailModal').style.display = 'flex';
 
       try {
-        const [txns, items, installments] = await Promise.all([
-          safeFetch('/api/transactions?limit=500'),
+        const [txnRes, items, installments] = await Promise.all([
+          safeFetch(`/api/transactions/${transactionID}`),
           safeFetch(`/api/transactions/${transactionID}/items`),
           safeFetch(`/api/transactions/${transactionID}/installments`)
         ]);
 
-        const txn = txns ? txns.find(t => t.transactionID === transactionID) : null;
-        if (!txn) {
+        const txn = txnRes || null;
+        if (!txn || !txn.transactionID) {
           content.innerHTML = '<div class="center-text sub-text" style="padding:40px; color:#ef4444;">Transaction not found.</div>';
           return;
         }

@@ -1146,9 +1146,14 @@
 
         async function loadProducts() {
             const search   = val('prodSearchInput');
-            const sort     = val('prodSortMode');
+            const sortRaw  = val('prodSortMode');
             const limitVal = val('prodShowLimit');
-            const params   = new URLSearchParams({ page: prodCurrentPage, limit: limitVal, search, sort });
+            const category = val('prodCategoryFilter');
+            let sort = sortRaw;
+            if (sortRaw === 'priceLow') sort = 'priceLowHigh';
+            if (sortRaw === 'priceHigh') sort = 'priceHighLow';
+
+            const params   = new URLSearchParams({ page: prodCurrentPage, limit: limitVal, search, sort, category });
             $('products-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Loading...</td></tr>';
             try {
                 const res  = await fetch('/api/products?' + params);
@@ -1158,51 +1163,13 @@
                 $('products-count').textContent = total;
                 const lim = limitVal === 'all' ? total : parseInt(limitVal);
                 updatePaginationUI('prod-pagination-controls','prod-page-info','prod-btn-prev','prod-btn-next', total, lim, prodCurrentPage);
-                processProducts();
+                renderProductsTable(allProducts);
             } catch {
                 $('products-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error loading products.</td></tr>';
             }
         }
 
-        function processProducts() {
-            let data = [...allProducts];
-            const query = val('prodSearchInput').toLowerCase();
-            const sort = val('prodSortMode');
-            const limitVal = val('prodShowLimit');
-            const category = val('prodCategoryFilter');
-
-            if (query) {
-                data = data.filter(p =>
-                    (p.productName || '').toLowerCase().includes(query) ||
-                    (p.productID || '').toString().includes(query) ||
-                    (p.productDescription || '').toLowerCase().includes(query) ||
-                    (p.barcode || '').includes(query) ||
-                    (p.brand || '').toLowerCase().includes(query)
-                );
-            }
-
-            if (category !== 'All') {
-                data = data.filter(p => p.category === category);
-            }
-
-            if (sort === 'az') data.sort((a, b) => (a.productName || '').localeCompare(b.productName || ''));
-            else if (sort === 'za') data.sort((a, b) => (b.productName || '').localeCompare(a.productName || ''));
-            else if (sort === 'priceLow') data.sort((a, b) => parseFloat(a.price || 0) - parseFloat(b.price || 0));
-            else if (sort === 'priceHigh') data.sort((a, b) => parseFloat(b.price || 0) - parseFloat(a.price || 0));
-
-            const parsedLimit = limitVal === 'all' ? data.length : parseInt(limitVal);
-            const totalPages = Math.ceil(data.length / parsedLimit) || 1;
-            if (prodCurrentPage > totalPages) prodCurrentPage = totalPages;
-            if (prodCurrentPage < 1) prodCurrentPage = 1;
-
-            const startIndex = (prodCurrentPage - 1) * parsedLimit;
-            const paginatedData = data.slice(startIndex, startIndex + parsedLimit);
-
-            renderProductsTable(paginatedData);
-            updatePaginationUI('prod-pagination-controls', 'prod-page-info', 'prod-btn-prev', 'prod-btn-next', data.length, parsedLimit, prodCurrentPage);
-        }
-
-        function changeProdPage(dir) { prodCurrentPage += dir; processProducts(); }
+        function changeProdPage(dir) { prodCurrentPage += dir; loadProducts(); }
 
         function renderProductsTable(data) {
             if (data.length === 0) {
