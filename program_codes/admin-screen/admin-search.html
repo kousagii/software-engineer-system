@@ -143,12 +143,13 @@
         async function fetchData() {
             try {
                 const [prodRes, suppRes] = await Promise.all([
-                    fetch('/api/products'),
-                    fetch('/api/suppliers')
+                    fetch('/api/products?limit=all'),
+                    fetch('/api/suppliers?limit=all')
                 ]);
                 
                 if (prodRes.ok) {
-                    allProducts = await prodRes.json();
+                    const prodJson = await prodRes.json();
+                    allProducts = prodJson.data || [];
                     
                     const uniqueCategories = [...new Set(allProducts.map(p => p.category).filter(Boolean))].sort();
                     const container = document.getElementById('categoryFilterOptions');
@@ -160,7 +161,10 @@
                         el.addEventListener('change', processDataAndRender);
                     });
                 }
-                if (suppRes.ok) allSuppliers = await suppRes.json();
+                if (suppRes.ok) {
+                    const suppJson = await suppRes.json();
+                    allSuppliers = suppJson.data || [];
+                }
 
                 document.getElementById('countProducts').innerText = allProducts.length;
                 document.getElementById('countSuppliers').innerText = allSuppliers.length;

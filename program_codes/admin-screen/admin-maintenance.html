@@ -811,164 +811,100 @@
         }
 
         function processArchiveData() {
-            if (arcCurrentTab === 'products') processArcProducts();
-            else if (arcCurrentTab === 'suppliers') processArcSuppliers();
-            else if (arcCurrentTab === 'orders') processArcOrders();
-            else if (arcCurrentTab === 'users') processArcUsers();
+            if (arcCurrentTab === 'products') fetchArcProducts();
+            else if (arcCurrentTab === 'suppliers') fetchArcSuppliers();
+            else if (arcCurrentTab === 'orders') fetchArcOrders();
+            else if (arcCurrentTab === 'users') fetchArcUsers();
         }
 
-        function processArcProducts() {
-            let data = [...archivedProducts];
-            const query = val('arcSearchInput').toLowerCase();
-            const sort = val('arcSortMode');
+        async function fetchArcProducts() {
+            const search   = val('arcSearchInput');
+            const sort     = val('arcSortMode');
             const limitVal = val('arcShowLimit');
-
-            if (query) {
-                data = data.filter(p =>
-                    (p.productName || '').toLowerCase().includes(query) ||
-                    (p.category || '').toLowerCase().includes(query) ||
-                    (p.brand || '').toLowerCase().includes(query) ||
-                    (p.barcode || '').toLowerCase().includes(query) ||
-                    String(p.productID).includes(query)
-                );
-            }
-
-            if (sort === 'asc') data.sort((a, b) => (a.productName || '').localeCompare(b.productName || ''));
-            else if (sort === 'desc') data.sort((a, b) => (b.productName || '').localeCompare(a.productName || ''));
-
-            let paginatedData;
-            if (limitVal === 'all') {
-                paginatedData = data;
-                updatePaginationUI('arc-pagination-controls', 'arc-page-info', 'arc-btn-prev', 'arc-btn-next', data.length, data.length, arcCurrentPage);
-            } else {
-                const limit = parseInt(limitVal);
-                const totalPages = Math.ceil(data.length / limit);
-                if (arcCurrentPage > totalPages && totalPages > 0) arcCurrentPage = totalPages;
-                const start = (arcCurrentPage - 1) * limit;
-                paginatedData = data.slice(start, start + limit);
-                updatePaginationUI('arc-pagination-controls', 'arc-page-info', 'arc-btn-prev', 'arc-btn-next', data.length, limit, arcCurrentPage);
-            }
-
-            renderArcProductsTable(paginatedData);
+            const params   = new URLSearchParams({ page: arcCurrentPage, limit: limitVal, search, sort });
+            $('arc-products-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Loading...</td></tr>';
+            try {
+                const res  = await fetch('/api/archive/products?' + params);
+                const json = await res.json();
+                archivedProducts = json.data || [];
+                $('arc-product-count').textContent = json.total || 0;
+                const total = json.total || 0;
+                const lim   = limitVal === 'all' ? total : parseInt(limitVal);
+                updatePaginationUI('arc-pagination-controls','arc-page-info','arc-btn-prev','arc-btn-next', total, lim, arcCurrentPage);
+                renderArcProductsTable(archivedProducts);
+            } catch { $('arc-products-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error.</td></tr>'; }
         }
 
-        function processArcSuppliers() {
-            let data = [...archivedSuppliers];
-            const query = val('arcSearchInput').toLowerCase();
-            const sort = val('arcSortMode');
+        async function fetchArcSuppliers() {
+            const search   = val('arcSearchInput');
             const limitVal = val('arcShowLimit');
-
-            if (query) {
-                data = data.filter(s => Object.values(s).some(v => String(v).toLowerCase().includes(query)));
-            }
-
-            if (sort === 'asc') data.sort((a, b) => (a.supplierName || '').localeCompare(b.supplierName || ''));
-            else if (sort === 'desc') data.sort((a, b) => (b.supplierName || '').localeCompare(a.supplierName || ''));
-
-            let paginatedData;
-            if (limitVal === 'all') {
-                paginatedData = data;
-                updatePaginationUI('arc-sup-pagination-controls', 'arc-sup-page-info', 'arc-sup-btn-prev', 'arc-sup-btn-next', data.length, data.length, arcSupplierPage);
-            } else {
-                const limit = parseInt(limitVal);
-                const totalPages = Math.ceil(data.length / limit);
-                if (arcSupplierPage > totalPages && totalPages > 0) arcSupplierPage = totalPages;
-                const start = (arcSupplierPage - 1) * limit;
-                paginatedData = data.slice(start, start + limit);
-                updatePaginationUI('arc-sup-pagination-controls', 'arc-sup-page-info', 'arc-sup-btn-prev', 'arc-sup-btn-next', data.length, limit, arcSupplierPage);
-            }
-
-            renderArcSuppliersTable(paginatedData);
+            const params   = new URLSearchParams({ page: arcSupplierPage, limit: limitVal, search });
+            $('arc-suppliers-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Loading...</td></tr>';
+            try {
+                const res  = await fetch('/api/archive/suppliers?' + params);
+                const json = await res.json();
+                archivedSuppliers = json.data || [];
+                $('arc-supplier-count').textContent = json.total || 0;
+                const total = json.total || 0;
+                const lim   = limitVal === 'all' ? total : parseInt(limitVal);
+                updatePaginationUI('arc-sup-pagination-controls','arc-sup-page-info','arc-sup-btn-prev','arc-sup-btn-next', total, lim, arcSupplierPage);
+                renderArcSuppliersTable(archivedSuppliers);
+            } catch { $('arc-suppliers-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error.</td></tr>'; }
         }
 
-        function processArcOrders() {
-            let data = [...archivedOrders];
-            const query = val('arcSearchInput').toLowerCase();
-            const sort = val('arcSortMode');
+        async function fetchArcOrders() {
+            const search   = val('arcSearchInput');
             const limitVal = val('arcShowLimit');
-
-            if (query) {
-                data = data.filter(o =>
-                    String(o.orderID).includes(query) ||
-                    (o.supplierName || '').toLowerCase().includes(query) ||
-                    (o.status || '').toLowerCase().includes(query)
-                );
-            }
-
-            if (sort === 'asc') data.sort((a, b) => a.orderID - b.orderID);
-            else if (sort === 'desc') data.sort((a, b) => b.orderID - a.orderID);
-
-            let paginatedData;
-            if (limitVal === 'all') {
-                paginatedData = data;
-                updatePaginationUI('arc-ord-pagination-controls', 'arc-ord-page-info', 'arc-ord-btn-prev', 'arc-ord-btn-next', data.length, data.length, arcOrderPage);
-            } else {
-                const limit = parseInt(limitVal);
-                const totalPages = Math.ceil(data.length / limit);
-                if (arcOrderPage > totalPages && totalPages > 0) arcOrderPage = totalPages;
-                const start = (arcOrderPage - 1) * limit;
-                paginatedData = data.slice(start, start + limit);
-                updatePaginationUI('arc-ord-pagination-controls', 'arc-ord-page-info', 'arc-ord-btn-prev', 'arc-ord-btn-next', data.length, limit, arcOrderPage);
-            }
-
-            renderArcOrdersTable(paginatedData);
+            const params   = new URLSearchParams({ page: arcOrderPage, limit: limitVal, search });
+            $('arc-orders-table-body').innerHTML = '<tr><td colspan="6" class="center-text">Loading...</td></tr>';
+            try {
+                const res  = await fetch('/api/archive/orders?' + params);
+                const json = await res.json();
+                archivedOrders = json.data || [];
+                $('arc-order-count').textContent = json.total || 0;
+                const total = json.total || 0;
+                const lim   = limitVal === 'all' ? total : parseInt(limitVal);
+                updatePaginationUI('arc-ord-pagination-controls','arc-ord-page-info','arc-ord-btn-prev','arc-ord-btn-next', total, lim, arcOrderPage);
+                renderArcOrdersTable(archivedOrders);
+            } catch { $('arc-orders-table-body').innerHTML = '<tr><td colspan="6" class="center-text">Error.</td></tr>'; }
         }
 
-        function processArcUsers() {
-            let data = [...archivedUsers];
-            const query = val('arcSearchInput').toLowerCase();
-            const sort = val('arcSortMode');
+        async function fetchArcUsers() {
+            const search   = val('arcSearchInput');
             const limitVal = val('arcShowLimit');
-
-            if (query) {
-                data = data.filter(u =>
-                    (u.username || '').toLowerCase().includes(query) ||
-                    (u.firstName || '').toLowerCase().includes(query) ||
-                    (u.lastName || '').toLowerCase().includes(query) ||
-                    (u.role || '').toLowerCase().includes(query)
-                );
-            }
-
-            if (sort === 'asc') data.sort((a, b) => (a.username || '').localeCompare(b.username || ''));
-            else if (sort === 'desc') data.sort((a, b) => (b.username || '').localeCompare(a.username || ''));
-
-            let paginatedData;
-            if (limitVal === 'all') {
-                paginatedData = data;
-                updatePaginationUI('arc-usr-pagination-controls', 'arc-usr-page-info', 'arc-usr-btn-prev', 'arc-usr-btn-next', data.length, data.length, arcUserPage);
-            } else {
-                const limit = parseInt(limitVal);
-                const totalPages = Math.ceil(data.length / limit);
-                if (arcUserPage > totalPages && totalPages > 0) arcUserPage = totalPages;
-                const start = (arcUserPage - 1) * limit;
-                paginatedData = data.slice(start, start + limit);
-                updatePaginationUI('arc-usr-pagination-controls', 'arc-usr-page-info', 'arc-usr-btn-prev', 'arc-usr-btn-next', data.length, limit, arcUserPage);
-            }
-
-            renderArcUsersTable(paginatedData);
+            const params   = new URLSearchParams({ page: arcUserPage, limit: limitVal, search });
+            $('arc-users-table-body').innerHTML = '<tr><td colspan="5" class="center-text">Loading...</td></tr>';
+            try {
+                const res  = await fetch('/api/archive/users?' + params);
+                const json = await res.json();
+                archivedUsers = json.data || [];
+                $('arc-user-count').textContent = json.total || 0;
+                const total = json.total || 0;
+                const lim   = limitVal === 'all' ? total : parseInt(limitVal);
+                updatePaginationUI('arc-usr-pagination-controls','arc-usr-page-info','arc-usr-btn-prev','arc-usr-btn-next', total, lim, arcUserPage);
+                renderArcUsersTable(archivedUsers);
+            } catch { $('arc-users-table-body').innerHTML = '<tr><td colspan="5" class="center-text">Error.</td></tr>'; }
         }
 
         function updatePaginationUI(containerId, infoId, prevId, nextId, totalItems, limit, page) {
             const container = $(containerId);
-            if (limit === 'all' || limit >= totalItems || totalItems === 0) {
+            if (!totalItems || limit === 'all' || totalItems <= limit) {
                 container.classList.add('hidden');
                 container.classList.remove('flex');
                 return;
             }
-
             const totalPages = Math.ceil(totalItems / limit);
             $(infoId).innerText = `Page ${page} of ${totalPages}`;
             $(prevId).disabled = page === 1;
             $(nextId).disabled = page === totalPages;
-
             container.classList.remove('hidden');
             container.classList.add('flex');
         }
 
-        function changeArcPage(dir) { arcCurrentPage += dir; processArcProducts(); }
-        function changeArcSupplierPage(dir) { arcSupplierPage += dir; processArcSuppliers(); }
-        function changeArcOrderPage(dir) { arcOrderPage += dir; processArcOrders(); }
-        function changeArcUserPage(dir) { arcUserPage += dir; processArcUsers(); }
+        function changeArcPage(dir) { arcCurrentPage += dir; fetchArcProducts(); }
+        function changeArcSupplierPage(dir) { arcSupplierPage += dir; fetchArcSuppliers(); }
+        function changeArcOrderPage(dir) { arcOrderPage += dir; fetchArcOrders(); }
+        function changeArcUserPage(dir) { arcUserPage += dir; fetchArcUsers(); }
 
         function renderArcProductsTable(data) {
             if (data.length === 0) {
@@ -1109,45 +1045,38 @@
 
         async function loadArchivedProducts() {
             try {
-                const res = await fetch('/api/archive/products');
-                archivedProducts = await res.json();
-                $('arc-product-count').textContent = archivedProducts.length;
-            } catch {
-                archivedProducts = [];
-                $('arc-product-count').textContent = '0';
-            }
+                const res  = await fetch('/api/archive/products?limit=10&page=1');
+                const json = await res.json();
+                archivedProducts = json.data || [];
+                $('arc-product-count').textContent = json.total || 0;
+            } catch { archivedProducts = []; $('arc-product-count').textContent = '0'; }
         }
 
         async function loadArchivedSuppliers() {
             try {
-                const res = await fetch('/api/archive/suppliers');
-                archivedSuppliers = await res.json();
-                $('arc-supplier-count').textContent = archivedSuppliers.length;
-            } catch {
-                archivedSuppliers = [];
-                $('arc-supplier-count').textContent = '0';
-            }
+                const res  = await fetch('/api/archive/suppliers?limit=10&page=1');
+                const json = await res.json();
+                archivedSuppliers = json.data || [];
+                $('arc-supplier-count').textContent = json.total || 0;
+            } catch { archivedSuppliers = []; $('arc-supplier-count').textContent = '0'; }
         }
 
         async function loadArchivedOrders() {
             try {
-                const res = await fetch('/api/archive/orders');
-                archivedOrders = await res.json();
-                $('arc-order-count').textContent = archivedOrders.length;
-            } catch {
-                console.error("Failed to load archived orders");
-            }
+                const res  = await fetch('/api/archive/orders?limit=10&page=1');
+                const json = await res.json();
+                archivedOrders = json.data || [];
+                $('arc-order-count').textContent = json.total || 0;
+            } catch { console.error("Failed to load archived orders"); }
         }
 
         async function loadArchivedUsers() {
             try {
-                const res = await fetch('/api/archive/users');
-                archivedUsers = await res.json();
-                $('arc-user-count').textContent = archivedUsers.length;
-            } catch {
-                archivedUsers = [];
-                $('arc-user-count').textContent = '0';
-            }
+                const res  = await fetch('/api/archive/users?limit=10&page=1');
+                const json = await res.json();
+                archivedUsers = json.data || [];
+                $('arc-user-count').textContent = json.total || 0;
+            } catch { archivedUsers = []; $('arc-user-count').textContent = '0'; }
         }
 
         async function loadArchiveData() {
@@ -1216,11 +1145,19 @@
         let prodEditId = null;
 
         async function loadProducts() {
+            const search   = val('prodSearchInput');
+            const sort     = val('prodSortMode');
+            const limitVal = val('prodShowLimit');
+            const params   = new URLSearchParams({ page: prodCurrentPage, limit: limitVal, search, sort });
+            $('products-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Loading...</td></tr>';
             try {
-                const res = await fetch('/api/products');
-                allProducts = await res.json();
-                $('products-count').textContent = allProducts.length;
-                prodCurrentPage = 1;
+                const res  = await fetch('/api/products?' + params);
+                const json = await res.json();
+                allProducts = json.data || [];
+                const total = json.total || 0;
+                $('products-count').textContent = total;
+                const lim = limitVal === 'all' ? total : parseInt(limitVal);
+                updatePaginationUI('prod-pagination-controls','prod-page-info','prod-btn-prev','prod-btn-next', total, lim, prodCurrentPage);
                 processProducts();
             } catch {
                 $('products-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error loading products.</td></tr>';
@@ -1422,43 +1359,26 @@
         let supEditId = null;
 
         async function loadSuppliers() {
+            const search   = val('supSearchInput');
+            const sort     = val('supSortMode');
+            const limitVal = val('supShowLimit');
+            const params   = new URLSearchParams({ page: supCurrentPage, limit: limitVal, search, sort });
+            $('suppliers-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Loading...</td></tr>';
             try {
-                const res = await fetch('/api/suppliers');
-                allSuppliers = await res.json();
-                $('suppliers-count').textContent = allSuppliers.length;
-                supCurrentPage = 1;
-                processSuppliers();
+                const res  = await fetch('/api/suppliers?' + params);
+                const json = await res.json();
+                allSuppliers = json.data || [];
+                const total = json.total || 0;
+                $('suppliers-count').textContent = total;
+                const lim = limitVal === 'all' ? total : parseInt(limitVal);
+                updatePaginationUI('sup-pagination-controls','sup-page-info','sup-btn-prev','sup-btn-next', total, lim, supCurrentPage);
+                renderSuppliersTable(allSuppliers);
             } catch {
                 $('suppliers-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error loading suppliers.</td></tr>';
             }
         }
 
-        function processSuppliers() {
-            let data = [...allSuppliers];
-            const query = val('supSearchInput').toLowerCase();
-            const sort = val('supSortMode');
-            const limitVal = val('supShowLimit');
-
-            if (query) {
-                data = data.filter(s => Object.values(s).some(v => String(v).toLowerCase().includes(query)));
-            }
-
-            if (sort === 'asc') data.sort((a, b) => (a.supplierName || '').localeCompare(b.supplierName || ''));
-            else if (sort === 'desc') data.sort((a, b) => (b.supplierName || '').localeCompare(a.supplierName || ''));
-
-            const parsedLimit = limitVal === 'all' ? data.length : parseInt(limitVal);
-            const totalPages = Math.ceil(data.length / parsedLimit) || 1;
-            if (supCurrentPage > totalPages) supCurrentPage = totalPages;
-            if (supCurrentPage < 1) supCurrentPage = 1;
-
-            const startIndex = (supCurrentPage - 1) * parsedLimit;
-            const paginatedData = data.slice(startIndex, startIndex + parsedLimit);
-
-            renderSuppliersTable(paginatedData);
-            updatePaginationUI('sup-pagination-controls', 'sup-page-info', 'sup-btn-prev', 'sup-btn-next', data.length, parsedLimit, supCurrentPage);
-        }
-
-        function changeSupPage(dir) { supCurrentPage += dir; processSuppliers(); }
+        function changeSupPage(dir) { supCurrentPage += dir; loadSuppliers(); }
 
         function renderSuppliersTable(data) {
             if (data.length === 0) {
@@ -1515,8 +1435,9 @@
 
         async function fetchMaintProducts() {
             try {
-                const res = await fetch('/api/products');
-                maintProductList = await res.json();
+                const res  = await fetch('/api/products?limit=all');
+                const json = await res.json();
+                maintProductList = json.data || [];
                 const container = $('maint-product-checkbox-container');
                 container.innerHTML = maintProductList.length ? maintProductList.map(p => {
                     const brandStr = p.brand ? ` (${p.brand})` : '';
@@ -1707,26 +1628,25 @@
 
             // Archive search/sort/limit listeners
             ['arcSearchInput', 'arcSortMode', 'arcShowLimit'].forEach(id => {
-                $(id).addEventListener(id === 'arcSearchInput' ? 'keyup' : 'change', () => {
-                    arcCurrentPage = 1;
-                    arcSupplierPage = 1;
+                $(id).addEventListener(id === 'arcSearchInput' ? 'input' : 'change', () => {
+                    arcCurrentPage = 1; arcSupplierPage = 1; arcOrderPage = 1; arcUserPage = 1;
                     processArchiveData();
                 });
             });
 
             // Products search/sort/limit/category listeners
             ['prodSearchInput', 'prodSortMode', 'prodShowLimit', 'prodCategoryFilter'].forEach(id => {
-                $(id).addEventListener(id === 'prodSearchInput' ? 'keyup' : 'change', () => {
+                $(id).addEventListener(id === 'prodSearchInput' ? 'input' : 'change', () => {
                     prodCurrentPage = 1;
-                    processProducts();
+                    loadProducts();
                 });
             });
 
             // Suppliers search/sort/limit listeners
             ['supSearchInput', 'supSortMode', 'supShowLimit'].forEach(id => {
-                $(id).addEventListener(id === 'supSearchInput' ? 'keyup' : 'change', () => {
+                $(id).addEventListener(id === 'supSearchInput' ? 'input' : 'change', () => {
                     supCurrentPage = 1;
-                    processSuppliers();
+                    loadSuppliers();
                 });
             });
         });

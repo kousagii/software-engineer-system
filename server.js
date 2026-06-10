@@ -144,23 +144,11 @@ app.post('/api/login', (req, res) => {
         const dbRoles = user.role.split(',').map(r => r.trim());
         let availableRoles = [];
 
-        // Check for Admin
         if (dbRoles.includes('Admin')) availableRoles.push('Admin');
-
-        // Check for Sales (handles 'SalesStaff' and legacy 'Sales')
         if (dbRoles.includes('SalesStaff') || dbRoles.includes('Sales')) {
             availableRoles.push('Sales');
         }
-
-        // Check for Inventory (handles 'InventoryStaff' and legacy 'Inventory')
         if (dbRoles.includes('InventoryStaff') || dbRoles.includes('Inventory')) {
-            availableRoles.push('Inventory');
-        }
-
-        // Fallback for old legacy 'Staff' role. 
-        // Only grant both if the user isn't already explicitly identified as Sales or Inventory
-        if (dbRoles.includes('Staff') && availableRoles.length === 0) {
-            availableRoles.push('Sales');
             availableRoles.push('Inventory');
         }
 
@@ -264,12 +252,61 @@ app.listen(PORT, HOST, () => {
     console.log(`   Network: http://${lanIP}:${PORT}/log-in.html`);
 });
 
-// GET route to fetch products for the inventory product list page
+// GET route to fetch products with backend pagination, search, category filter, and sort
 app.get('/api/products', (req, res) => {
-    const sql = `SELECT * FROM product WHERE isActive = 1 ORDER BY productID DESC`;
-    db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ error: "Failed to fetch products" });
-        res.json(results);
+    const page     = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit    = req.query.limit === 'all' ? null : Math.max(1, parseInt(req.query.limit) || 10);
+    const search   = (req.query.search   || '').trim();
+    const category = (req.query.category || '').trim();
+    const sort     = req.query.sort || 'default';
+
+    // Build WHERE clause
+    let conditions = ['isActive = 1'];
+    let params = [];
+
+    if (search) {
+        conditions.push('(productName LIKE ? OR CAST(productID AS CHAR) LIKE ? OR productDescription LIKE ? OR barcode LIKE ?)');
+        const like = `%${search}%`;
+        params.push(like, like, like, like);
+    }
+
+    if (category && category !== 'All') {
+        conditions.push('category = ?');
+        params.push(category);
+    }
+
+    const where = 'WHERE ' + conditions.join(' AND ');
+
+    // Build ORDER BY clause
+    const sortMap = {
+        'default':      'productID DESC',
+        'az':           'productName ASC',
+        'za':           'productName DESC',
+        'priceLowHigh': 'price ASC',
+        'priceHighLow': 'price DESC'
+    };
+    const orderBy = 'ORDER BY ' + (sortMap[sort] || sortMap['default']);
+
+    // Count total matching rows
+    const countSql = `SELECT COUNT(*) AS total FROM product ${where}`;
+    db.query(countSql, params, (err, countResult) => {
+        if (err) return res.status(500).json({ error: 'Failed to count products' });
+        const total = countResult[0].total;
+
+        // Build paginated data query
+        let dataSql = `SELECT * FROM product ${where} ${orderBy}`;
+        let dataParams = [...params];
+
+        if (limit !== null) {
+            const offset = (page - 1) * limit;
+            dataSql += ' LIMIT ? OFFSET ?';
+            dataParams.push(limit, offset);
+        }
+
+        db.query(dataSql, dataParams, (err, results) => {
+            if (err) return res.status(500).json({ error: 'Failed to fetch products' });
+            res.json({ data: results, total, page, limit });
+        });
     });
 });
 
@@ -634,10 +671,29 @@ app.get('/api/products/:id/suggest-threshold', async (req, res) => {
 
 // GET archived (soft-deleted) users
 app.get('/api/archive/users', (req, res) => {
-    const sql = `SELECT userID, username, firstName, lastName, role, contactInfo FROM users WHERE isActive = 0 ORDER BY userID DESC`;
-    db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ error: "Failed to fetch archived users" });
-        res.json(results);
+    const page    = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit   = req.query.limit === 'all' ? null : Math.max(1, parseInt(req.query.limit) || 10);
+    const search  = (req.query.search || '').trim();
+
+    let conditions = ['isActive = 0'];
+    let params = [];
+    if (search) {
+        conditions.push('(username LIKE ? OR firstName LIKE ? OR lastName LIKE ? OR role LIKE ?)');
+        const like = `%${search}%`;
+        params.push(like, like, like, like);
+    }
+    const where = 'WHERE ' + conditions.join(' AND ');
+
+    db.query(`SELECT COUNT(*) AS total FROM users ${where}`, params, (err, countRes) => {
+        if (err) return res.status(500).json({ error: 'Failed to count archived users' });
+        const total = countRes[0].total;
+        let sql = `SELECT userID, username, firstName, lastName, role, contactInfo FROM users ${where} ORDER BY userID DESC`;
+        let dataParams = [...params];
+        if (limit !== null) { sql += ' LIMIT ? OFFSET ?'; dataParams.push(limit, (page - 1) * limit); }
+        db.query(sql, dataParams, (err, results) => {
+            if (err) return res.status(500).json({ error: 'Failed to fetch archived users' });
+            res.json({ data: results, total, page, limit });
+        });
     });
 });
 
@@ -658,58 +714,83 @@ app.put('/api/archive/users/:id/restore', (req, res) => {
 
 // GET archived (soft-deleted) products
 app.get('/api/archive/products', (req, res) => {
-    const sql = `SELECT * FROM product WHERE isActive = 0 ORDER BY productID DESC`;
-    db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ error: "Failed to fetch archived products" });
-        res.json(results);
+    const page    = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit   = req.query.limit === 'all' ? null : Math.max(1, parseInt(req.query.limit) || 10);
+    const search  = (req.query.search || '').trim();
+
+    let conditions = ['isActive = 0'];
+    let params = [];
+    if (search) {
+        conditions.push('(productName LIKE ? OR barcode LIKE ? OR category LIKE ?)');
+        const like = `%${search}%`;
+        params.push(like, like, like);
+    }
+    const where = 'WHERE ' + conditions.join(' AND ');
+
+    db.query(`SELECT COUNT(*) AS total FROM product ${where}`, params, (err, countRes) => {
+        if (err) return res.status(500).json({ error: 'Failed to count archived products' });
+        const total = countRes[0].total;
+        let sql = `SELECT * FROM product ${where} ORDER BY productID DESC`;
+        let dataParams = [...params];
+        if (limit !== null) { sql += ' LIMIT ? OFFSET ?'; dataParams.push(limit, (page - 1) * limit); }
+        db.query(sql, dataParams, (err, results) => {
+            if (err) return res.status(500).json({ error: 'Failed to fetch archived products' });
+            res.json({ data: results, total, page, limit });
+        });
     });
 });
 
 // GET archived purchase orders
-app.get('/api/archive/orders', (req, res) => {
-    const sql = `
-        SELECT po.*, s.supplierName 
-        FROM purchase_order po
-        LEFT JOIN supplier s ON po.supplierID = s.supplierID
-        WHERE po.isActive = 0 
-        ORDER BY po.orderID DESC
-    `;
-    db.query(sql, (err, orders) => {
-        if (err) return res.status(500).json({ error: "Failed to fetch archived orders" });
-        if (!orders || orders.length === 0) return res.json([]);
+app.get('/api/archive/orders', async (req, res) => {
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = req.query.limit === 'all' ? null : Math.max(1, parseInt(req.query.limit) || 10);
+    const search = (req.query.search || '').trim();
+
+    let conditions = ['po.isActive = 0'];
+    let params = [];
+    if (search) {
+        conditions.push('(s.supplierName LIKE ? OR CAST(po.orderID AS CHAR) LIKE ?)');
+        const like = `%${search}%`;
+        params.push(like, like);
+    }
+    const where = 'WHERE ' + conditions.join(' AND ');
+
+    try {
+        const [countRes] = await db.promise().query(
+            `SELECT COUNT(*) AS total FROM purchase_order po LEFT JOIN supplier s ON po.supplierID = s.supplierID ${where}`, params
+        );
+        const total = countRes[0].total;
+
+        let dataSql = `SELECT po.*, s.supplierName FROM purchase_order po LEFT JOIN supplier s ON po.supplierID = s.supplierID ${where} ORDER BY po.orderID DESC`;
+        let dataParams = [...params];
+        if (limit !== null) { dataSql += ' LIMIT ? OFFSET ?'; dataParams.push(limit, (page - 1) * limit); }
+
+        const [orders] = await db.promise().query(dataSql, dataParams);
+        if (!orders || orders.length === 0) return res.json({ data: [], total, page, limit });
 
         const ids = orders.map(o => o.orderID);
-        const itemsSql = `
-            SELECT pi.orderID, pi.productID, pi.quantity, pi.receivedQty, pi.defectiveQty, pi.unitCost, p.productName
-            FROM purchase_item pi
-            LEFT JOIN product p ON pi.productID = p.productID
-            WHERE pi.orderID IN (?);
-        `;
+        const [items] = await db.promise().query(
+            `SELECT pi.orderID, pi.productID, pi.quantity, pi.receivedQty, pi.defectiveQty, pi.unitCost, p.productName
+             FROM purchase_item pi LEFT JOIN product p ON pi.productID = p.productID WHERE pi.orderID IN (?)`, [ids]
+        );
 
-        db.query(itemsSql, [ids], (itErr, items) => {
-            if (itErr) {
-                console.error(itErr);
-                return res.status(500).json({ error: "Failed to fetch archived order items" });
-            }
-
-            const itemsByOrder = {};
-            (items || []).forEach(it => {
-                if (!itemsByOrder[it.orderID]) itemsByOrder[it.orderID] = [];
-                itemsByOrder[it.orderID].push({ productID: it.productID, productName: it.productName, qty: it.quantity, receivedQty: it.receivedQty, defectiveQty: it.defectiveQty, unitCost: it.unitCost });
-            });
-
-            const result = orders.map(o => {
-                const orderDate = o.orderDateTime || o.orderDate || null;
-                return {
-                    ...o,
-                    orderDate: orderDate,
-                    items: itemsByOrder[o.orderID] || []
-                };
-            });
-
-            res.json(result);
+        const itemsByOrder = {};
+        (items || []).forEach(it => {
+            if (!itemsByOrder[it.orderID]) itemsByOrder[it.orderID] = [];
+            itemsByOrder[it.orderID].push({ productID: it.productID, productName: it.productName, qty: it.quantity, receivedQty: it.receivedQty, defectiveQty: it.defectiveQty, unitCost: it.unitCost });
         });
-    });
+
+        const result = orders.map(o => ({
+            ...o,
+            orderDate: o.orderDateTime || o.orderDate || null,
+            items: itemsByOrder[o.orderID] || []
+        }));
+
+        res.json({ data: result, total, page, limit });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch archived orders' });
+    }
 });
 
 // Restore an archived purchase order
@@ -724,27 +805,42 @@ app.put('/api/archive/orders/:id/restore', (req, res) => {
 
 // GET archived (soft-deleted) suppliers
 app.get('/api/archive/suppliers', (req, res) => {
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = req.query.limit === 'all' ? null : Math.max(1, parseInt(req.query.limit) || 10);
+    const search = (req.query.search || '').trim();
+
+    let where = 'WHERE s.isActive = 0';
+    let params = [];
+    if (search) {
+        where += ' AND (s.supplierName LIKE ? OR s.contactNumber LIKE ? OR s.email LIKE ?)';
+        const like = `%${search}%`;
+        params.push(like, like, like);
+    }
+
+    const baseQuery = `
+        SELECT s.supplierID, s.supplierName, s.contactNumber, s.email, s.address, s.termsOfPayment,
+               GROUP_CONCAT(DISTINCT sp.productID) AS productIDs,
+               GROUP_CONCAT(DISTINCT p.productName) AS productNames
+        FROM supplier s
+        LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID
+        LEFT JOIN product p ON sp.productID = p.productID
+        ${where}
+        GROUP BY s.supplierID
+        ORDER BY s.supplierID DESC
+    `;
+
     db.query("SET SESSION group_concat_max_len = 1000000", (err) => {
         if (err) console.error("Failed to set group_concat_max_len", err);
-        const query = `
-            SELECT 
-                s.supplierID,
-                s.supplierName,
-                s.contactNumber,
-                s.email,
-                s.address,
-                s.termsOfPayment,
-                GROUP_CONCAT(sp.productID) AS productIDs,
-                GROUP_CONCAT(p.productName) AS productNames
-            FROM supplier s
-            LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID
-            LEFT JOIN product p ON sp.productID = p.productID
-            WHERE s.isActive = 0
-            GROUP BY s.supplierID;
-        `;
-        db.query(query, (err, results) => {
+        db.query(`SELECT COUNT(*) AS total FROM (${baseQuery}) AS cnt`, params, (err, countRes) => {
             if (err) return res.status(500).json({ error: err.message });
-            res.json(results);
+            const total = countRes[0].total;
+            let dataQuery = baseQuery;
+            let dataParams = [...params];
+            if (limit !== null) { dataQuery += ' LIMIT ? OFFSET ?'; dataParams.push(limit, (page - 1) * limit); }
+            db.query(dataQuery, dataParams, (err, results) => {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ data: results, total, page, limit });
+            });
         });
     });
 });
@@ -784,28 +880,50 @@ app.put('/api/archive/suppliers/:id/restore', (req, res) => {
 
 // GET route to fetch all suppliers with their associated products
 app.get('/api/suppliers', (req, res) => {
+    const page    = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit   = req.query.limit === 'all' ? null : Math.max(1, parseInt(req.query.limit) || 10);
+    const search  = (req.query.search || '').trim();
+    const sort    = req.query.sort || 'default';
+
+    // Build WHERE clause
+    let where = 'WHERE s.isActive = 1';
+    let params = [];
+    if (search) {
+        where += ' AND (s.supplierName LIKE ? OR s.contactNumber LIKE ? OR s.email LIKE ? OR s.address LIKE ?)';
+        const like = `%${search}%`;
+        params.push(like, like, like, like);
+    }
+    const sortMap = { 'default': 's.supplierID DESC', 'asc': 's.supplierName ASC', 'desc': 's.supplierName DESC' };
+    const orderBy = 'ORDER BY ' + (sortMap[sort] || sortMap['default']);
+
+    const baseQuery = `
+        SELECT s.supplierID, s.supplierName, s.contactNumber, s.email, s.address, s.termsOfPayment,
+               GROUP_CONCAT(DISTINCT sp.productID) AS productIDs,
+               GROUP_CONCAT(DISTINCT p.productName) AS productNames
+        FROM supplier s
+        LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID
+        LEFT JOIN product p ON sp.productID = p.productID
+        ${where}
+        GROUP BY s.supplierID
+        ${orderBy}
+    `;
+
     db.query("SET SESSION group_concat_max_len = 1000000", (err) => {
         if (err) console.error("Failed to set group_concat_max_len", err);
-        const query = `
-            SELECT 
-                s.supplierID,
-                s.supplierName,
-                s.contactNumber,
-                s.email,
-                s.address,
-                s.termsOfPayment,
-                GROUP_CONCAT(sp.productID) AS productIDs,
-                GROUP_CONCAT(p.productName) AS productNames
-            FROM supplier s
-            LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID
-            LEFT JOIN product p ON sp.productID = p.productID
-            WHERE s.isActive = 1
-            GROUP BY s.supplierID;
-        `;
 
-        db.query(query, (err, results) => {
+        // Count total
+        db.query(`SELECT COUNT(*) AS total FROM (${baseQuery}) AS cnt`, params, (err, countRes) => {
             if (err) return res.status(500).json({ error: err.message });
-            res.json(results);
+            const total = countRes[0].total;
+
+            let dataQuery = baseQuery;
+            let dataParams = [...params];
+            if (limit !== null) { dataQuery += ' LIMIT ? OFFSET ?'; dataParams.push(limit, (page - 1) * limit); }
+
+            db.query(dataQuery, dataParams, (err, results) => {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ data: results, total, page, limit });
+            });
         });
     });
 });
@@ -894,87 +1012,104 @@ app.delete('/api/suppliers/:id', (req, res) => {
 // PURCHASE ORDER / ORDERS MANAGEMENT
 
 // GET all orders with their items
-app.get('/api/orders', (req, res) => {
-    const sql = `
-        SELECT po.*, s.supplierName, s.termsOfPayment AS supplierTerms
-        FROM purchase_order po
-        LEFT JOIN supplier s ON po.supplierID = s.supplierID
-        WHERE po.isActive = 1
-        ORDER BY po.orderID DESC
-    `;
+app.get('/api/orders', async (req, res) => {
+    const page          = Math.max(1, parseInt(req.query.page) || 1);
+    const limit         = req.query.limit === 'all' ? null : Math.max(1, parseInt(req.query.limit) || 10);
+    const search        = (req.query.search || '').trim();
+    const status        = (req.query.status || '').trim();
+    const paymentStatus = (req.query.paymentStatus || '').trim();
+    const sort          = req.query.sort || 'default';
 
-    db.query(sql, (err, orders) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: "Failed to fetch orders" });
-        }
+    let conditions = ['po.isActive = 1'];
+    let params = [];
 
-        if (!orders || orders.length === 0) return res.json([]);
+    if (search) {
+        conditions.push('(s.supplierName LIKE ? OR CAST(po.orderID AS CHAR) LIKE ?)');
+        const like = `%${search}%`;
+        params.push(like, like);
+    }
+    if (status && status !== 'All') {
+        conditions.push('po.status = ?');
+        params.push(status);
+    }
+    // DueSoon filter is complex (date math); handle client-side for now
+    if (paymentStatus && paymentStatus !== 'All' && paymentStatus !== 'DueSoon') {
+        conditions.push('po.paymentStatus = ?');
+        params.push(paymentStatus);
+    }
+
+    const where = 'WHERE ' + conditions.join(' AND ');
+    const sortMap = { 'default': 'po.orderID DESC', 'dateAsc': 'po.orderDateTime ASC', 'status': 'po.status ASC' };
+    const orderBy = 'ORDER BY ' + (sortMap[sort] || sortMap['default']);
+
+    try {
+        const [countRes] = await db.promise().query(
+            `SELECT COUNT(*) AS total FROM purchase_order po LEFT JOIN supplier s ON po.supplierID = s.supplierID ${where}`,
+            params
+        );
+        const total = countRes[0].total;
+
+        let dataSql = `
+            SELECT po.*, s.supplierName, s.termsOfPayment AS supplierTerms
+            FROM purchase_order po
+            LEFT JOIN supplier s ON po.supplierID = s.supplierID
+            ${where} ${orderBy}
+        `;
+        let dataParams = [...params];
+        if (limit !== null) { dataSql += ' LIMIT ? OFFSET ?'; dataParams.push(limit, (page - 1) * limit); }
+
+        const [orders] = await db.promise().query(dataSql, dataParams);
+
+        if (!orders || orders.length === 0) return res.json({ data: [], total, page, limit });
 
         const ids = orders.map(o => o.orderID);
-        const itemsSql = `
-            SELECT pi.orderID, pi.productID, pi.quantity, pi.receivedQty, pi.defectiveQty, pi.unitCost, p.productName
-            FROM purchase_item pi
-            LEFT JOIN product p ON pi.productID = p.productID
-            WHERE pi.orderID IN (?);
-        `;
+        const [items] = await db.promise().query(
+            `SELECT pi.orderID, pi.productID, pi.quantity, pi.receivedQty, pi.defectiveQty, pi.unitCost, p.productName
+             FROM purchase_item pi LEFT JOIN product p ON pi.productID = p.productID WHERE pi.orderID IN (?)`,
+            [ids]
+        );
 
-        db.query(itemsSql, [ids], (itErr, items) => {
-            if (itErr) {
-                console.error(itErr);
-                return res.status(500).json({ error: "Failed to fetch order items" });
-            }
-
-            const itemsByOrder = {};
-            (items || []).forEach(it => {
-                if (!itemsByOrder[it.orderID]) itemsByOrder[it.orderID] = [];
-                itemsByOrder[it.orderID].push({ productID: it.productID, productName: it.productName, qty: it.quantity, receivedQty: it.receivedQty, defectiveQty: it.defectiveQty, unitCost: it.unitCost });
-            });
-
-            const result = orders.map(o => {
-                const orderDate = o.orderDateTime || o.orderDate || null;
-                const terms = o.termsOfPayment || o.supplierTerms || 'COD';
-
-                // Calculate due date based on receive date and terms. 
-                // Only start countdown if status is Partially Completed or Completed
-                let dueDateStr = o.dueDate ? new Date(o.dueDate).toISOString() : 'N/A';
-                if (dueDateStr === 'N/A' && (o.status === 'Partially Completed' || o.status === 'Completed') && (o.receiveDate || orderDate)) {
-                    let days = 0;
-                    if (terms.includes('Days')) {
-                        const match = terms.match(/(\d+)\s*Days/i);
-                        if (match) days = parseInt(match[1]);
-                    } else if (terms.match(/Net\s*(\d+)/i)) {
-                        const match = terms.match(/Net\s*(\d+)/i);
-                        if (match) days = parseInt(match[1]);
-                    }
-                    const dDate = new Date(o.receiveDate || orderDate);
-                    dDate.setDate(dDate.getDate() + days);
-                    dueDateStr = dDate.toISOString();
-                }
-
-                return {
-                    orderID: o.orderID,
-                    userID: o.userID,
-                    supplierID: o.supplierID,
-                    supplierName: o.supplierName,
-                    orderDate: orderDate,
-                    dueDate: dueDateStr,
-                    status: o.status,
-                    paymentStatus: o.paymentStatus || 'Pending',
-                    paymentMethod: o.paymentMethod || null,
-                    paymentReference: o.paymentReference || null,
-                    paymentDate: o.paymentDate || null,
-                    amountPaid: o.amountPaid || null,
-                    termsOfPayment: terms,
-                    contact: o.contact || null,
-                    shipmentInfo: o.shipmentInfo || null,
-                    items: itemsByOrder[o.orderID] || []
-                };
-            });
-
-            res.json(result);
+        const itemsByOrder = {};
+        (items || []).forEach(it => {
+            if (!itemsByOrder[it.orderID]) itemsByOrder[it.orderID] = [];
+            itemsByOrder[it.orderID].push({ productID: it.productID, productName: it.productName, qty: it.quantity, receivedQty: it.receivedQty, defectiveQty: it.defectiveQty, unitCost: it.unitCost });
         });
-    });
+
+        const result = orders.map(o => {
+            const orderDate = o.orderDateTime || o.orderDate || null;
+            const terms = o.termsOfPayment || o.supplierTerms || 'COD';
+            let dueDateStr = o.dueDate ? new Date(o.dueDate).toISOString() : 'N/A';
+            if (dueDateStr === 'N/A' && (o.status === 'Partially Completed' || o.status === 'Completed') && (o.receiveDate || orderDate)) {
+                let days = 0;
+                const matchD = terms.match(/(\d+)\s*Days/i);
+                const matchN = terms.match(/Net\s*(\d+)/i);
+                if (matchD) days = parseInt(matchD[1]);
+                else if (matchN) days = parseInt(matchN[1]);
+                const dDate = new Date(o.receiveDate || orderDate);
+                dDate.setDate(dDate.getDate() + days);
+                dueDateStr = dDate.toISOString();
+            }
+            return {
+                orderID: o.orderID, userID: o.userID, supplierID: o.supplierID,
+                supplierName: o.supplierName, orderDate,
+                dueDate: dueDateStr, status: o.status,
+                paymentStatus: o.paymentStatus || 'Pending',
+                paymentMethod: o.paymentMethod || null,
+                paymentReference: o.paymentReference || null,
+                paymentDate: o.paymentDate || null,
+                amountPaid: o.amountPaid || null,
+                termsOfPayment: terms,
+                contact: o.contact || null,
+                shipmentInfo: o.shipmentInfo || null,
+                items: itemsByOrder[o.orderID] || []
+            };
+        });
+
+        res.json({ data: result, total, page, limit });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch orders' });
+    }
 });
 
 // POST create a new order 
@@ -2111,57 +2246,108 @@ app.get('/api/searchProducts', (req, res) => {
 });
 
 // GET aggregated customer records based on sales_transaction
-app.get('/api/customers', (req, res) => {
-    const sql = `
-        SELECT 
-            customerName,
-            MAX(contactInfo) as contactInfo,
-            MAX(address) as address,
-            COUNT(transactionID) as totalTransactions,
-            SUM(totalAmount) as totalSpent,
-            SUM(totalAmount - (COALESCE(cashReceived, 0) + COALESCE(digitalAmount, 0))) as outstandingBalance,
-            MAX(transDateTime) as lastTransactionDate
+app.get('/api/customers', async (req, res) => {
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = req.query.limit === 'all' ? null : Math.max(1, parseInt(req.query.limit) || 15);
+    const search = (req.query.search || '').trim();
+    const sort   = req.query.sort || 'name-asc';
+
+    let having = 'HAVING customerName IS NOT NULL AND TRIM(customerName) != ""';
+    let params = [];
+    if (search) {
+        having += ' AND (customerName LIKE ? OR MAX(contactInfo) LIKE ? OR MAX(address) LIKE ?)';
+        const like = `%${search}%`;
+        params.push(like, like, like);
+    }
+
+    const sortMap = {
+        'name-asc':   'customerName ASC',
+        'name-desc':  'customerName DESC',
+        'txn-desc':   'totalTransactions DESC',
+        'total-desc': 'totalSpent DESC'
+    };
+    const orderBy = 'ORDER BY ' + (sortMap[sort] || sortMap['name-asc']);
+
+    const baseSQL = `
+        SELECT customerName, MAX(contactInfo) as contactInfo, MAX(address) as address,
+               COUNT(transactionID) as totalTransactions, SUM(totalAmount) as totalSpent,
+               SUM(totalAmount - (COALESCE(cashReceived,0) + COALESCE(digitalAmount,0))) as outstandingBalance,
+               MAX(transDateTime) as lastTransactionDate
         FROM sales_transaction
-        WHERE customerName IS NOT NULL AND TRIM(customerName) != ''
         GROUP BY customerName
-        ORDER BY customerName ASC
+        ${having}
+        ${orderBy}
     `;
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error("Customers Error:", err);
-            return res.status(500).json({ error: "Failed to load customers" });
-        }
-        res.json(results);
-    });
+
+    try {
+        const [countRes] = await db.promise().query(`SELECT COUNT(*) AS total FROM (${baseSQL}) AS cnt`, params);
+        const total = countRes[0].total;
+
+        let dataSql = baseSQL;
+        let dataParams = [...params];
+        if (limit !== null) { dataSql += ' LIMIT ? OFFSET ?'; dataParams.push(limit, (page - 1) * limit); }
+
+        const [results] = await db.promise().query(dataSql, dataParams);
+        res.json({ data: results, total, page, limit });
+    } catch (err) {
+        console.error('Customers Error:', err);
+        res.status(500).json({ error: 'Failed to load customers' });
+    }
 });
 
 // GET recent sales transactions (for dashboard)
-app.get('/api/transactions', (req, res) => {
-    const limit = parseInt(req.query.limit) || 20;
-    const sessionUserID = req.session?.user?.id;
-    let sql = `
-        SELECT st.transactionID, st.transactionCode, st.transDateTime,
-               st.totalAmount, st.paymentMethod, st.paymentStatus,
-               st.cashReceived, st.digitalAmount, st.discountAmount,
-               st.customerName, st.contactInfo, st.address, st.dueDate,
-               u.firstName, u.lastName
-        FROM sales_transaction st
-        LEFT JOIN users u ON st.userID = u.userID
-    `;
-    const params = [];
+app.get('/api/transactions', async (req, res) => {
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = req.query.limit === 'all' ? null : Math.max(1, parseInt(req.query.limit) || 15);
+    const search = (req.query.search || '').trim();
+    const status = (req.query.status || '').trim();
+    const dateFrom = req.query.dateFrom || '';
+    const dateTo   = req.query.dateTo   || '';
+    const sort     = req.query.sort     || 'newest';
 
-    // No user filter — all staff can see all transactions for settlement purposes
+    let conditions = [];
+    let params = [];
 
-    sql += ` ORDER BY st.transDateTime DESC LIMIT ? `;
-    params.push(limit);
+    if (search) {
+        conditions.push('(st.transactionCode LIKE ? OR st.customerName LIKE ? OR st.paymentMethod LIKE ?)');
+        const like = `%${search}%`;
+        params.push(like, like, like);
+    }
+    if (status && status !== 'All') {
+        conditions.push('st.paymentStatus = ?');
+        params.push(status);
+    }
+    if (dateFrom) { conditions.push('DATE(st.transDateTime) >= ?'); params.push(dateFrom); }
+    if (dateTo)   { conditions.push('DATE(st.transDateTime) <= ?'); params.push(dateTo);   }
 
-    db.query(sql, params, (err, results) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: 'Failed to fetch transactions' });
-        }
-        res.json(results);
-    });
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    const orderBy = sort === 'oldest' ? 'ORDER BY st.transDateTime ASC' : 'ORDER BY st.transDateTime DESC';
+
+    try {
+        const [countRes] = await db.promise().query(
+            `SELECT COUNT(*) AS total FROM sales_transaction st ${where}`, params
+        );
+        const total = countRes[0].total;
+
+        let dataSql = `
+            SELECT st.transactionID, st.transactionCode, st.transDateTime,
+                   st.totalAmount, st.paymentMethod, st.paymentStatus,
+                   st.cashReceived, st.digitalAmount, st.discountAmount,
+                   st.customerName, st.contactInfo, st.address, st.dueDate,
+                   u.firstName, u.lastName
+            FROM sales_transaction st
+            LEFT JOIN users u ON st.userID = u.userID
+            ${where} ${orderBy}
+        `;
+        let dataParams = [...params];
+        if (limit !== null) { dataSql += ' LIMIT ? OFFSET ?'; dataParams.push(limit, (page - 1) * limit); }
+
+        const [results] = await db.promise().query(dataSql, dataParams);
+        res.json({ data: results, total, page, limit });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
 });
 
 

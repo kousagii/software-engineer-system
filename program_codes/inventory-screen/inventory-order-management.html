@@ -337,7 +337,7 @@
     <script src="../authGuard.js"></script>
     <script src="inventory-navbar.js"></script>
     <script>
-        let orders = [], products = [], suppliers = [], currentPage = 1, currentEditId = null;
+        let orders = [], products = [], suppliers = [], currentPage = 1, totalPages = 1, currentEditId = null;
 
         const $ = id => document.getElementById(id);
         const val = (id, v) => v !== undefined ? $(id).value = v : $(id).value;
@@ -934,17 +934,61 @@
         }
 
         // --- API Calls ---
-        async function loadProducts() { try { const res = await fetch('/api/products'); products = await res.json(); } catch { products = []; } }
-        async function loadSuppliers() { try { const res = await fetch('/api/suppliers'); suppliers = await res.json(); } catch { suppliers = []; } }
-        async function loadOrders() {
+        async function loadProducts() {
             try {
-                const res = await fetch('/api/orders');
-                orders = await res.json();
-                processData();
+                const res = await fetch('/api/products?limit=all');
+                const json = await res.json();
+                products = json.data || [];
+            } catch { products = []; }
+        }
+        async function loadSuppliers() {
+            try {
+                const res = await fetch('/api/suppliers?limit=all');
+                const json = await res.json();
+                suppliers = json.data || [];
+            } catch { suppliers = []; }
+        }
+        async function fetchOrders() {
+            const search        = val('searchInput');
+            const status        = val('statusFilter');
+            const paymentStatus = val('paymentStatusFilter');
+            const sort          = val('sortMode');
+            const limit         = val('showLimit');
+
+            const params = new URLSearchParams({ page: currentPage, limit, search, status, paymentStatus, sort });
+
+            $('orders-table-body').innerHTML = '<tr><td colspan="8" class="center-text">Loading...</td></tr>';
+
+            try {
+                const res  = await fetch('/api/orders?' + params.toString());
+                const json = await res.json();
+
+                let data = json.data || [];
+                const total = json.total || 0;
+                const parsedLimit = limit === 'all' ? total : parseInt(limit);
+                totalPages = parsedLimit > 0 ? Math.ceil(total / parsedLimit) : 1;
+                if (currentPage > totalPages) currentPage = totalPages;
+
+                // Client-side DueSoon filter (complex date logic — only applies to current page)
+                if (paymentStatus === 'DueSoon') {
+                    const today = new Date(); today.setHours(0, 0, 0, 0);
+                    const threeDaysFromNow = new Date(today); threeDaysFromNow.setDate(today.getDate() + 3);
+                    data = data.filter(o => {
+                        if (o.paymentStatus === 'Completed' || o.status === 'Cancelled' || !o.dueDate) return false;
+                        const due = new Date(o.dueDate); due.setHours(0, 0, 0, 0);
+                        return due <= threeDaysFromNow;
+                    });
+                }
+
+                orders = data;
+                renderTable(orders);
+                renderDefectiveItems();
+                updatePaginationUI(total, totalPages);
             } catch {
-                $('orders-table-body').innerHTML = '<tr><td colspan="7" class="center-text">Error loading orders.</td></tr>';
+                $('orders-table-body').innerHTML = '<tr><td colspan="8" class="center-text">Error loading orders.</td></tr>';
             }
         }
+        async function loadOrders() { currentPage = 1; await fetchOrders(); }
 
         async function saveOrder() {
             const supplierID = val('supplierSelect');
@@ -999,7 +1043,12 @@
         }
 
         // --- Table & Pagination Logic ---
-        function changePage(step) { currentPage += step; processData(); }
+        function changePage(step) {
+            const next = currentPage + step;
+            if (next < 1 || next > totalPages) return;
+            currentPage = next;
+            fetchOrders();
+        }
 
         function processData() {
             let data = [...orders];
@@ -1050,14 +1099,15 @@
             updatePaginationUI(data.length, totalPages);
         }
 
-        function updatePaginationUI(totalItems, totalPages) {
+        function updatePaginationUI(totalItems, tPages) {
             const limit = val('showLimit');
             const c = $('pagination-controls');
-            if (limit === 'all' || totalItems <= parseInt(limit)) { c.classList.add('hidden'); return; }
+            const parsedLimit = limit === 'all' ? totalItems : parseInt(limit);
+            if (limit === 'all' || totalItems <= parsedLimit) { c.classList.add('hidden'); return; }
             c.classList.remove('hidden');
-            $('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+            $('page-info').textContent = `Page ${currentPage} of ${tPages}`;
             $('btn-prev').disabled = currentPage === 1;
-            $('btn-next').disabled = currentPage === totalPages;
+            $('btn-next').disabled = currentPage === tPages;
         }
 
         function renderTable(data) {
@@ -1421,7 +1471,6 @@
             $('defective-items-body').innerHTML = rows.join('') || '<tr><td colspan="7" class="center-text">No defective or pending items found.</td></tr>';
         }
 
-        // --- Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('filter') === 'due') {
@@ -1430,12 +1479,12 @@
             }
 
             await Promise.all([loadProducts(), loadSuppliers()]);
-            await loadOrders();
-            $('searchInput').addEventListener('keyup', () => { currentPage = 1; processData(); });
-            $('statusFilter').addEventListener('change', () => { currentPage = 1; processData(); });
-            $('paymentStatusFilter').addEventListener('change', () => { currentPage = 1; processData(); });
-            $('sortMode').addEventListener('change', () => { currentPage = 1; processData(); });
-            $('showLimit').addEventListener('change', () => { currentPage = 1; processData(); });
+            await fetchOrders();
+            $('searchInput').addEventListener('input',  () => { currentPage = 1; fetchOrders(); });
+            $('statusFilter').addEventListener('change', () => { currentPage = 1; fetchOrders(); });
+            $('paymentStatusFilter').addEventListener('change', () => { currentPage = 1; fetchOrders(); });
+            $('sortMode').addEventListener('change', () => { currentPage = 1; fetchOrders(); });
+            $('showLimit').addEventListener('change', () => { currentPage = 1; fetchOrders(); });
         });
     </script>
 </body>

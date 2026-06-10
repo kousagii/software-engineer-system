@@ -815,13 +815,13 @@
         let payLaterCurrentPage = 1;
         let showAllPayLater = false;
         const payLaterItemsPerPage = 8;
-        let currentPage = 1;
+        let currentPage = 1, totalTxnPages = 1;
         let showAllTransactions = false;
         const perPage = 15;
 
         let customersData = [];
         let filteredCustomersData = [];
-        let customersCurrentPage = 1;
+        let customersCurrentPage = 1, totalCustPages = 1;
         let showAllCustomers = false;
         const custItemsPerPage = 15;
 
@@ -833,88 +833,45 @@
             document.getElementById('panel-' + tabId).classList.add('active');
         }
         async function loadTransactions() {
-            try {
-                const res = await fetch('/api/transactions?limit=500');
-                if (!res.ok) throw new Error('Failed to fetch');
-                allTransactions = await res.json();
-                applyFilters();
-            } catch (err) {
-                console.error(err);
-                el("historyBody").innerHTML = `<tr><td colspan="6" class="empty-cart-msg">Failed to load transactions.</td></tr>`;
-            }
+            currentPage = 1;
+            await fetchTransactions();
         }
 
         async function fetchCustomers() {
+            const search = (el("custSearchInput")?.value || "").trim();
+            const sort   = el("custSortSelect")?.value || "name-asc";
+
+            const params = new URLSearchParams({ page: customersCurrentPage, limit: custItemsPerPage, search, sort });
+
+            el("customersBody").innerHTML = '<tr><td colspan="7" class="center-text">Loading...</td></tr>';
+
             try {
-                const res = await fetch('/api/customers');
-                if (!res.ok) throw new Error('Failed to fetch customers');
-                customersData = await res.json();
-                if (el("tabBadgeCustomers")) {
-                    el("tabBadgeCustomers").textContent = customersData.length;
-                }
-                applyCustomerFilters();
+                const res  = await fetch('/api/customers?' + params.toString());
+                const json = await res.json();
+
+                customersData = json.data || [];
+                const total = json.total || 0;
+                totalCustPages = Math.ceil(total / custItemsPerPage) || 1;
+                if (customersCurrentPage > totalCustPages) customersCurrentPage = totalCustPages;
+
+                if (el('tabBadgeCustomers')) el('tabBadgeCustomers').textContent = total;
+
+                renderCustomers(customersData, total);
             } catch (err) {
                 console.error(err);
-                el("customersBody").innerHTML = `<tr><td colspan="7" class="center-text">Failed to load customers.</td></tr>`;
+                el("customersBody").innerHTML = '<tr><td colspan="7" class="center-text">Failed to load customers.</td></tr>';
             }
         }
 
         function applyCustomerFilters() {
-            const searchTerm = (el("custSearchInput")?.value || "").toLowerCase().trim();
-            const sortVal = el("custSortSelect")?.value || "name-asc";
-
-            if (searchTerm) {
-                filteredCustomersData = customersData.filter(c => {
-                    const nameMatch = (c.customerName || "").toLowerCase().includes(searchTerm);
-                    const contactMatch = (c.contactInfo || "").toLowerCase().includes(searchTerm);
-                    const addrMatch = (c.address || "").toLowerCase().includes(searchTerm);
-                    return nameMatch || contactMatch || addrMatch;
-                });
-            } else {
-                filteredCustomersData = [...customersData];
-            }
-
-            filteredCustomersData.sort((a, b) => {
-                if (sortVal === "name-asc") return (a.customerName || "").localeCompare(b.customerName || "");
-                if (sortVal === "name-desc") return (b.customerName || "").localeCompare(a.customerName || "");
-                if (sortVal === "txn-desc") return (b.totalTransactions || 0) - (a.totalTransactions || 0);
-                if (sortVal === "total-desc") return (parseFloat(b.totalSpent) || 0) - (parseFloat(a.totalSpent) || 0);
-                return 0;
-            });
-
-            // Update Customers Stats
-            const totalCustomers = filteredCustomersData.length;
-            el("cust-stat-count").textContent = totalCustomers;
-
-            if (totalCustomers > 0) {
-                // Find top spender among filtered
-                const topSpender = [...filteredCustomersData].sort((a, b) => parseFloat(b.totalSpent || 0) - parseFloat(a.totalSpent || 0))[0];
-                el("cust-stat-top").textContent = topSpender.customerName || 'Unknown';
-
-                // Calculate Active Customers (30 Days)
-                const now = new Date();
-                const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-
-                const activeCustCount = filteredCustomersData.filter(c => {
-                    if (!c.lastTransactionDate) return false;
-                    const lastTxn = new Date(c.lastTransactionDate);
-                    return lastTxn >= thirtyDaysAgo;
-                }).length;
-
-                el("cust-stat-active").textContent = activeCustCount;
-            } else {
-                el("cust-stat-top").textContent = "—";
-                el("cust-stat-active").textContent = "—";
-            }
-
             customersCurrentPage = 1;
-            renderCustomers();
+            fetchCustomers();
         }
 
-        function renderCustomers() {
+        function renderCustomers(data, total) {
             const tbody = el("customersBody");
 
-            if (filteredCustomersData.length === 0) {
+            if (!data || data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="center-text">No customers match your search.</td></tr>';
                 el("customersPagination").style.display = "none";
                 return;
@@ -925,14 +882,7 @@
                 return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
             };
 
-            const totalPages = Math.ceil(filteredCustomersData.length / custItemsPerPage);
-            if (customersCurrentPage > totalPages && totalPages > 0) customersCurrentPage = totalPages;
-
-            const startIdx = (customersCurrentPage - 1) * custItemsPerPage;
-            const endIdx = startIdx + custItemsPerPage;
-            const paginatedData = showAllCustomers ? filteredCustomersData : filteredCustomersData.slice(startIdx, endIdx);
-
-            tbody.innerHTML = paginatedData.map(c => {
+            tbody.innerHTML = data.map(c => {
                 const totalSpent = parseFloat(c.totalSpent || 0);
                 const outstanding = parseFloat(c.outstandingBalance || 0);
 
@@ -950,28 +900,42 @@
             }).join('');
 
             const pagContainer = el("customersPagination");
-            if (totalPages > 1) {
+            if (totalCustPages > 1) {
                 pagContainer.style.display = "flex";
-                el("cust-page-info").textContent = showAllCustomers ? `All ${filteredCustomersData.length} shown` : `Page ${customersCurrentPage} of ${totalPages}`;
-                el("custPrevBtn").disabled = showAllCustomers || customersCurrentPage === 1;
-                el("custNextBtn").disabled = showAllCustomers || customersCurrentPage === totalPages;
-                el("custPrevBtn").style.display = showAllCustomers ? "none" : "";
-                el("custNextBtn").style.display = showAllCustomers ? "none" : "";
-                el("custShowAllBtn").textContent = showAllCustomers ? "Paginate" : "Show All";
+                el("cust-page-info").textContent = `Page ${customersCurrentPage} of ${totalCustPages}`;
+                el("custPrevBtn").disabled = customersCurrentPage === 1;
+                el("custNextBtn").disabled = customersCurrentPage === totalCustPages;
+                el("custPrevBtn").style.display = "";
+                el("custNextBtn").style.display = "";
+                el("custShowAllBtn").textContent = "Show All";
             } else {
                 pagContainer.style.display = "none";
             }
         }
 
         function changeCustomerPage(direction) {
-            customersCurrentPage += direction;
-            renderCustomers();
+            const next = customersCurrentPage + direction;
+            if (next < 1 || next > totalCustPages) return;
+            customersCurrentPage = next;
+            fetchCustomers();
         }
 
         function toggleShowAllCustomers() {
-            showAllCustomers = !showAllCustomers;
-            customersCurrentPage = 1;
-            renderCustomers();
+            // Fetch all with limit=all
+            const search = (el("custSearchInput")?.value || "").trim();
+            const sort   = el("custSortSelect")?.value || "name-asc";
+            const params = new URLSearchParams({ page: 1, limit: 'all', search, sort });
+            el("customersBody").innerHTML = '<tr><td colspan="7" class="center-text">Loading...</td></tr>';
+            fetch('/api/customers?' + params.toString())
+                .then(r => r.json())
+                .then(json => {
+                    customersData = json.data || [];
+                    totalCustPages = 1;
+                    customersCurrentPage = 1;
+                    renderCustomers(customersData, json.total || 0);
+                    el("customersPagination").style.display = "none";
+                })
+                .catch(() => { el("customersBody").innerHTML = '<tr><td colspan="7" class="center-text">Error.</td></tr>'; });
         }
 
         async function fetchActivePayLater() {
@@ -1251,89 +1215,95 @@
             }
         }
 
-        function applyFilters() {
+        async function fetchTransactions() {
             const statusFilter = el("filterStatus").value;
             const methodFilter = el("filterPaymentMethod").value;
-            const dateFrom = el("filterDateFrom").value;
-            const dateTo = el("filterDateTo").value;
-            const searchTerm = el("searchInput") ? el("searchInput").value.trim().toLowerCase() : "";
+            const dateFrom  = el("filterDateFrom").value;
+            const dateTo    = el("filterDateTo").value;
+            const searchTerm = el("searchInput") ? el("searchInput").value.trim() : "";
+            const sortVal   = el("sortAmount").value;
 
-            if (el("tabBadgeHistory")) el("tabBadgeHistory").textContent = allTransactions.length;
+            // Map UI status to API status
+            let apiStatus = '';
+            if (statusFilter === 'pay_later_group') apiStatus = '';  // filter client-side
+            else if (statusFilter !== 'all') apiStatus = statusFilter;
 
-            filteredTransactions = allTransactions.filter(txn => {
-                // Status filter
-                if (statusFilter === 'pay_later_group') {
-                    if (txn.paymentStatus !== 'Unpaid' && txn.paymentStatus !== 'Partial') return false;
-                } else if (statusFilter !== 'all' && txn.paymentStatus !== statusFilter) {
-                    return false;
-                }
+            // Map sort UI to API sort
+            let apiSort = 'newest';
+            if (sortVal === 'date-asc') apiSort = 'oldest';
 
-                // Payment method filter
-                if (methodFilter !== 'all') {
-                    if (methodFilter === 'Pay Later') {
-                        if (txn.paymentMethod !== 'Pay Later') return false;
-                    } else if ((txn.paymentMethod || '') !== methodFilter) {
-                        return false;
-                    }
-                }
-
-                // Date filter
-                if (dateFrom || dateTo) {
-                    const txnDate = new Date(txn.transDateTime).toLocaleDateString('en-CA');
-                    if (dateFrom && txnDate < dateFrom) return false;
-                    if (dateTo && txnDate > dateTo) return false;
-                }
-
-                // Search filter
-                if (searchTerm) {
-                    const code = (txn.transactionCode || '').toLowerCase();
-                    if (!code.includes(searchTerm)) return false;
-                }
-
-                return true;
+            const params = new URLSearchParams({
+                page: currentPage,
+                limit: perPage,
+                search: searchTerm,
+                status: apiStatus,
+                dateFrom,
+                dateTo,
+                sort: apiSort
             });
 
-            currentPage = 1;
+            el("historyBody").innerHTML = '<tr><td colspan="6" class="empty-cart-msg">Loading...</td></tr>';
 
-            // Apply sort
-            const sortVal = el("sortAmount").value;
-            if (sortVal === 'amount-desc') {
-                filteredTransactions.sort((a, b) => parseFloat(b.totalAmount || 0) - parseFloat(a.totalAmount || 0));
-            } else if (sortVal === 'amount-asc') {
-                filteredTransactions.sort((a, b) => parseFloat(a.totalAmount || 0) - parseFloat(b.totalAmount || 0));
-            } else if (sortVal === 'date-asc') {
-                filteredTransactions.sort((a, b) => new Date(a.transDateTime) - new Date(b.transDateTime));
-            } else {
-                // date-desc (default)
-                filteredTransactions.sort((a, b) => new Date(b.transDateTime) - new Date(a.transDateTime));
+            try {
+                const res  = await fetch('/api/transactions?' + params.toString());
+                const json = await res.json();
+
+                let data  = json.data || [];
+                const total = json.total || 0;
+                totalTxnPages = Math.ceil(total / perPage) || 1;
+                if (currentPage > totalTxnPages) currentPage = totalTxnPages;
+
+                // Client-side pay_later_group filter (can't express OR in simple status param)
+                if (statusFilter === 'pay_later_group') {
+                    data = data.filter(txn => txn.paymentStatus === 'Unpaid' || txn.paymentStatus === 'Partial');
+                }
+
+                // Client-side method filter
+                if (methodFilter !== 'all') {
+                    data = data.filter(txn => {
+                        if (methodFilter === 'Pay Later') return txn.paymentMethod === 'Pay Later';
+                        return (txn.paymentMethod || '') === methodFilter;
+                    });
+                }
+
+                // Client-side amount sort (if needed)
+                if (sortVal === 'amount-desc') data.sort((a, b) => parseFloat(b.totalAmount || 0) - parseFloat(a.totalAmount || 0));
+                else if (sortVal === 'amount-asc') data.sort((a, b) => parseFloat(a.totalAmount || 0) - parseFloat(b.totalAmount || 0));
+
+                allTransactions = data;
+                filteredTransactions = data;
+
+                if (el('tabBadgeHistory')) el('tabBadgeHistory').textContent = total;
+
+                await updateSummaryCards(total, data);
+                renderTable(data, total, totalTxnPages);
+            } catch (err) {
+                console.error(err);
+                el("historyBody").innerHTML = `<tr><td colspan="6" class="empty-cart-msg">Failed to load transactions.</td></tr>`;
             }
+        }
 
-            updateSummaryCards();
-            renderTable();
+        function applyFilters() {
+            currentPage = 1;
+            fetchTransactions();
         }
 
         function fmtPeso(val) {
             return '₱\u00A0' + Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        async function updateSummaryCards() {
-            const totalCount = filteredTransactions.length;
+        async function updateSummaryCards(total, data) {
+            const totalCount = total || 0;
             const todayStr = new Date().toLocaleDateString('en-CA');
             const dateFrom = el("filterDateFrom").value;
             const dateTo = el("filterDateTo").value;
 
-            // Sales for selected date range (or all filtered if no range, but let's sum up everything in filteredTransactions that is not Refunded/Exchanged)
-            // Wait, actually, let's sum everything in filteredTransactions that is a positive sale
-            const dateSales = filteredTransactions
-                .filter(t => parseFloat(t.totalAmount || 0) > 0)
+            const dateSales = (data || []).filter(t => parseFloat(t.totalAmount || 0) > 0)
                 .reduce((sum, t) => sum + parseFloat(t.totalAmount || 0), 0);
 
-            // Refunds / Exchanges
-            const totalRefunds = filteredTransactions
-                .filter(t => t.paymentStatus === 'Refunded' || t.paymentStatus === 'Exchanged')
+            const totalRefunds = (data || []).filter(t => t.paymentStatus === 'Refunded' || t.paymentStatus === 'Exchanged')
                 .reduce((sum, t) => sum + Math.abs(parseFloat(t.totalAmount || 0)), 0);
 
-            // Dynamic page title based on selected date
             const salesLabel = document.querySelector('#stat-sales').closest('.dash-stat-info').querySelector('.sub-text');
             const txnsLabel = document.querySelector('#stat-count').closest('.dash-stat-info').querySelector('.sub-text');
 
@@ -1351,7 +1321,6 @@
             el("stat-sales").textContent = fmtPeso(dateSales);
             el("stat-refunds").textContent = fmtPeso(totalRefunds);
 
-            // Fetch accurate Collections from payment_log API (includes installments and settlements)
             try {
                 let colUrl = '/api/dashboard/collections';
                 if (dateFrom && dateTo) {
@@ -1365,11 +1334,8 @@
                     const colData = await colRes.json();
                     if (el("stat-collected")) el("stat-collected").textContent = fmtPeso(colData.totalCollected);
                 }
-            } catch (err) {
-                console.error("Failed to fetch collections:", err);
-            }
+            } catch (err) { console.error("Failed to fetch collections:", err); }
 
-            // Fetch overall receivables from API (unaffected by UI filters)
             try {
                 const recRes = await fetch('/api/dashboard/overall-receivables');
                 if (recRes.ok) {
@@ -1378,9 +1344,7 @@
                 } else {
                     if (el("stat-receivables")) el("stat-receivables").textContent = "N/A";
                 }
-            } catch (err) {
-                if (el("stat-receivables")) el("stat-receivables").textContent = "N/A";
-            }
+            } catch (err) { if (el("stat-receivables")) el("stat-receivables").textContent = "N/A"; }
         }
 
         function performSearch() {
@@ -1393,16 +1357,13 @@
             applyFilters();
         }
 
-        function renderTable() {
+        function renderTable(data, total, tPages) {
             const tbody = el("historyBody");
-            const start = (currentPage - 1) * perPage;
-            const pageData = showAllTransactions ? filteredTransactions : filteredTransactions.slice(start, start + perPage);
-            const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / perPage));
 
-            if (pageData.length === 0) {
+            if (!data || data.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="empty-cart-msg">No transactions found.</td></tr>`;
             } else {
-                tbody.innerHTML = pageData.map(txn => {
+                tbody.innerHTML = data.map(txn => {
                     const date = new Date(txn.transDateTime);
                     const dateStr = date.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
                     const timeStr = date.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
@@ -1454,27 +1415,27 @@
                 }).join('');
             }
 
-            el("page-info").textContent = showAllTransactions ? `All ${filteredTransactions.length} shown` : `Page ${currentPage} of ${totalPages}`;
-            el("prevBtn").disabled = showAllTransactions || currentPage <= 1;
-            el("nextBtn").disabled = showAllTransactions || currentPage >= totalPages;
-            el("prevBtn").style.display = showAllTransactions ? "none" : "";
-            el("nextBtn").style.display = showAllTransactions ? "none" : "";
-            el("txnShowAllBtn").textContent = showAllTransactions ? "Paginate" : "Show All";
+            const showAll = showAllTransactions;
+            el("page-info").textContent = showAll ? `All ${total} shown` : `Page ${currentPage} of ${tPages}`;
+            el("prevBtn").disabled = showAll || currentPage <= 1;
+            el("nextBtn").disabled = showAll || currentPage >= tPages;
+            el("prevBtn").style.display = showAll ? "none" : "";
+            el("nextBtn").style.display = showAll ? "none" : "";
+            el("txnShowAllBtn").textContent = showAll ? "Paginate" : "Show All";
         }
 
         function changePage(delta) {
-            const totalPages = Math.ceil(filteredTransactions.length / perPage);
-            const newPage = currentPage + delta;
-            if (newPage >= 1 && newPage <= totalPages) {
-                currentPage = newPage;
-                renderTable();
+            const next = currentPage + delta;
+            if (next >= 1 && next <= totalTxnPages) {
+                currentPage = next;
+                fetchTransactions();
             }
         }
 
         function toggleShowAllTransactions() {
             showAllTransactions = !showAllTransactions;
             currentPage = 1;
-            renderTable();
+            fetchTransactions();
         }
 
         // Keyboard shortcuts
