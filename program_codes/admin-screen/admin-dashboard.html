@@ -143,36 +143,64 @@
       onclick="window.location.href='../inventory-screen/inventory-order-management.html?filter=due'">
       <div style="display: flex; align-items: center; gap: 10px;">
         <div>
-          <div style="font-weight: 700; color: #b45309; font-size: 14px;" id="poDueBannerTitle">Purchase Orders Due Soon</div>
+          <div style="font-weight: 700; color: #b45309; font-size: 14px;" id="poDueBannerTitle">Purchase Orders Due Soon
+          </div>
           <div style="font-size: 12px; color: #d97706;" id="poDueBannerMsg"></div>
         </div>
-        <span style="margin-left: auto; font-size: 12px; color: #b45309; font-weight: 600;" id="poDueBannerLinkText">View Orders</span>
+        <span style="margin-left: auto; font-size: 12px; color: #b45309; font-weight: 600;"
+          id="poDueBannerLinkText">View Orders</span>
       </div>
     </div>
 
     <!-- CONTENT SPLIT: Most Bought Items | Pay Later Customers -->
     <div class="split dash-lower-split">
 
-      <!-- MOST BOUGHT ITEMS -->
+      <!-- PRODUCT ANALYTICS -->
       <div class="dash-main-col">
-        <div class="table-container">
-          <div class="page-header">
-            <h3 class="mt-0">Most Bought Items</h3>
+        <div class="table-container" style="padding: 0; overflow: hidden;">
+
+          <!-- Analytics Header -->
+          <div class="page-header"
+            style="padding: 18px 20px 14px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <h3 id="analyticsMainTitle" class="mt-0" style="margin-bottom: 2px;">Product Analytics</h3>
+              <p id="analyticsSubtitle" class="sub-text" style="margin: 0; font-size: 12px;">Fast moving goods (Last 30
+                Days)</p>
+            </div>
+            <div class="toolbar-right" style="display: flex; gap: 8px;">
+              <select id="analyticsTimeframe" onchange="loadTopProducts()"
+                style="padding: 5px 10px; border-radius: var(--rad-md); border: 1px solid rgba(255,255,255,0.2); font-size: 12px; color: var(--white); background: var(--bg-dark); cursor: pointer; width: auto; margin: 0;">
+                <option value="30">Last 30 Days</option>
+                <option value="7">Last 7 Days</option>
+                <option value="365">This Year</option>
+                <option value="all">All Time</option>
+              </select>
+              <select id="analyticsView" onchange="switchAnalyticsView(this.value)"
+                style="padding: 5px 10px; border-radius: var(--rad-md); border: 1px solid rgba(255,255,255,0.2); font-size: 12px; color: var(--white); background: var(--bg-dark); cursor: pointer; width: auto; margin: 0;">
+                <option value="products">Top Selling Products</option>
+                <option value="profitable">Top Revenue</option>
+                <option value="categories">By Category</option>
+              </select>
+            </div>
           </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Product Name</th>
-                <th>Total Sold</th>
-              </tr>
-            </thead>
-            <tbody id="dash-top-products-body">
-              <tr>
-                <td colspan="3" class="center-text sub-text">Loading…</td>
-              </tr>
-            </tbody>
-          </table>
+
+          <!-- Summary Mini Cards Removed by request -->
+
+          <!-- Products View -->
+          <div id="analytics-products-view" style="padding: 0;">
+            <div style="padding: 16px 20px 12px;">
+              <canvas id="productsBarChart" style="width: 100%; height: 220px;"></canvas>
+            </div>
+          </div>
+
+          <!-- Categories View (hidden by default) -->
+          <div id="analytics-categories-view" style="padding: 20px; display: none;">
+            <div style="display: flex; gap: 20px; align-items: flex-start;">
+              <canvas id="categoryDonutChart" width="160" height="160" style="flex-shrink: 0;"></canvas>
+              <div id="analytics-category-legend" style="flex: 1; font-size: 12px;"></div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -380,52 +408,52 @@
         threeDaysFromNow.setDate(today.getDate() + 3);
 
         const almostDuePOs = orders.filter(o => {
-            if (o.paymentStatus === 'Completed') return false;
-            if (o.status === 'Cancelled') return false;
-            if (!o.dueDate) return false;
-            const due = new Date(o.dueDate);
-            due.setHours(0, 0, 0, 0);
-            return due >= today && due <= threeDaysFromNow;
+          if (o.paymentStatus === 'Completed') return false;
+          if (o.status === 'Cancelled') return false;
+          if (!o.dueDate) return false;
+          const due = new Date(o.dueDate);
+          due.setHours(0, 0, 0, 0);
+          return due >= today && due <= threeDaysFromNow;
         });
 
         const overduePOs = orders.filter(o => {
-            if (o.paymentStatus === 'Completed') return false;
-            if (o.status === 'Cancelled') return false;
-            if (!o.dueDate) return false;
-            const due = new Date(o.dueDate);
-            due.setHours(0, 0, 0, 0);
-            return due < today;
+          if (o.paymentStatus === 'Completed') return false;
+          if (o.status === 'Cancelled') return false;
+          if (!o.dueDate) return false;
+          const due = new Date(o.dueDate);
+          due.setHours(0, 0, 0, 0);
+          return due < today;
         });
 
         const banner = document.getElementById('poDueBanner');
         if (banner) {
-            let msg = '';
-            if (overduePOs.length > 0) {
-                msg += `${overduePOs.length} Purchase Order(s) overdue! `;
-                banner.style.background = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
-                banner.style.borderColor = '#fca5a5';
-                document.getElementById('poDueBannerTitle').style.color = '#b91c1c';
-                document.getElementById('poDueBannerTitle').textContent = 'Overdue Purchase Orders';
-                document.getElementById('poDueBannerMsg').style.color = '#dc2626';
-                document.getElementById('poDueBannerLinkText').style.color = '#b91c1c';
-            } else {
-                banner.style.background = 'linear-gradient(135deg, #fffbeb, #fef3c7)';
-                banner.style.borderColor = '#fcd34d';
-                document.getElementById('poDueBannerTitle').style.color = '#b45309';
-                document.getElementById('poDueBannerTitle').textContent = 'Purchase Orders Due Soon';
-                document.getElementById('poDueBannerMsg').style.color = '#d97706';
-                document.getElementById('poDueBannerLinkText').style.color = '#b45309';
-            }
-            if (almostDuePOs.length > 0) {
-                msg += `${almostDuePOs.length} Purchase Order(s) due within 3 days.`;
-            }
+          let msg = '';
+          if (overduePOs.length > 0) {
+            msg += `${overduePOs.length} Purchase Order(s) overdue! `;
+            banner.style.background = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
+            banner.style.borderColor = '#fca5a5';
+            document.getElementById('poDueBannerTitle').style.color = '#b91c1c';
+            document.getElementById('poDueBannerTitle').textContent = 'Overdue Purchase Orders';
+            document.getElementById('poDueBannerMsg').style.color = '#dc2626';
+            document.getElementById('poDueBannerLinkText').style.color = '#b91c1c';
+          } else {
+            banner.style.background = 'linear-gradient(135deg, #fffbeb, #fef3c7)';
+            banner.style.borderColor = '#fcd34d';
+            document.getElementById('poDueBannerTitle').style.color = '#b45309';
+            document.getElementById('poDueBannerTitle').textContent = 'Purchase Orders Due Soon';
+            document.getElementById('poDueBannerMsg').style.color = '#d97706';
+            document.getElementById('poDueBannerLinkText').style.color = '#b45309';
+          }
+          if (almostDuePOs.length > 0) {
+            msg += `${almostDuePOs.length} Purchase Order(s) due within 3 days.`;
+          }
 
-            if (msg.trim().length > 0) {
-                banner.style.display = 'block';
-                document.getElementById('poDueBannerMsg').textContent = msg.trim();
-            } else {
-                banner.style.display = 'none';
-            }
+          if (msg.trim().length > 0) {
+            banner.style.display = 'block';
+            document.getElementById('poDueBannerMsg').textContent = msg.trim();
+          } else {
+            banner.style.display = 'none';
+          }
         }
       } else {
         document.getElementById('stat-pending-pos').textContent = 'N/A';
@@ -443,33 +471,361 @@
       }
     }
 
-    // --- Most Bought Items ---
-    async function loadTopProducts() {
-      const tbody = document.getElementById('dash-top-products-body');
-      const data = await safeFetch('/api/dashboard/top-products');
+    // --- Product Analytics ---
+    let analyticsData = null;
+    const CHART_COLORS = [
+      '#264027', '#2b5e30', '#348a3a', '#43a047', '#4caf50',
+      '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9', '#dcedc8'
+    ];
 
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="center-text sub-text">No sales data yet.</td></tr>';
+    // Draw a sparkline on a canvas
+    function drawSparkline(canvas, data, color = '#2b4c34') {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.scale(dpr, dpr);
+
+      if (!data || data.length < 2) {
+        ctx.fillStyle = '#e0e0e0';
+        ctx.fillRect(0, h / 2 - 1, w, 2);
         return;
       }
 
-      const medals = ['🥇', '🥈', '🥉'];
-      const maxSold = data[0].totalSold;
+      const max = Math.max(...data, 1);
+      const step = w / (data.length - 1);
+      const pad = 3;
 
-      tbody.innerHTML = data.map((item, i) => {
-        const rank = i < 3 ? medals[i] : `${i + 1}`;
-        const barWidth = maxSold > 0 ? Math.round((item.totalSold / maxSold) * 100) : 0;
-        return `<tr>
-          <td><strong>${rank}</strong></td>
-          <td>
-            <div style="font-weight:600;">${item.productName}</div>
-            <div style="height:6px;background:#e5e7eb;border-radius:4px;margin-top:4px;overflow:hidden;">
-              <div style="height:100%;width:${barWidth}%;background:linear-gradient(90deg,#16a34a,#4ade80);border-radius:4px;transition:width .4s;"></div>
-            </div>
-          </td>
-          <td><strong>${parseInt(item.totalSold).toLocaleString()} pcs</strong></td>
-        </tr>`;
+      // Fill gradient
+      ctx.beginPath();
+      ctx.moveTo(0, h - pad - ((data[0] / max) * (h - pad * 2)));
+      for (let i = 1; i < data.length; i++) {
+        ctx.lineTo(i * step, h - pad - ((data[i] / max) * (h - pad * 2)));
+      }
+      ctx.lineTo((data.length - 1) * step, h);
+      ctx.lineTo(0, h);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, color + '30');
+      grad.addColorStop(1, color + '05');
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Line
+      ctx.beginPath();
+      ctx.moveTo(0, h - pad - ((data[0] / max) * (h - pad * 2)));
+      for (let i = 1; i < data.length; i++) {
+        ctx.lineTo(i * step, h - pad - ((data[i] / max) * (h - pad * 2)));
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.8;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // End dot
+      const lastY = h - pad - ((data[data.length - 1] / max) * (h - pad * 2));
+      ctx.beginPath();
+      ctx.arc((data.length - 1) * step, lastY, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+
+    // Draw category donut chart
+    function drawDonutChart(canvasId, categories) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const size = 160;
+      canvas.width = size * dpr;
+      canvas.height = size * dpr;
+      canvas.style.width = size + 'px';
+      canvas.style.height = size + 'px';
+      ctx.scale(dpr, dpr);
+
+      const total = categories.reduce((s, c) => s + parseFloat(c.totalRevenue || 0), 0);
+      if (total === 0) {
+        ctx.fillStyle = '#e0e0e0';
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, 60, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, 38, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+
+      let startAngle = -Math.PI / 2;
+      categories.forEach((c, i) => {
+        const slice = (parseFloat(c.totalRevenue || 0) / total) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(size / 2, size / 2);
+        ctx.arc(size / 2, size / 2, 72, startAngle, startAngle + slice);
+        ctx.closePath();
+        ctx.fillStyle = CHART_COLORS[i % CHART_COLORS.length];
+        ctx.fill();
+
+        // Add white stroke for slice separation
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        startAngle += slice;
+      });
+
+      // Inner circle (donut hole)
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, 42, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      // Center text
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#777';
+      ctx.font = '600 10px Poppins, sans-serif';
+      ctx.fillText('REVENUE', size / 2, size / 2 - 6);
+      ctx.fillStyle = '#264027';
+      ctx.font = '700 14px Poppins, sans-serif';
+      ctx.fillText('₱' + (total / 1000).toFixed(total >= 10000 ? 0 : 1) + 'K', size / 2, size / 2 + 10);
+    }
+
+    function switchAnalyticsView(view) {
+      const prodView = document.getElementById('analytics-products-view');
+      const catView = document.getElementById('analytics-categories-view');
+      const subtitle = document.getElementById('analyticsSubtitle');
+      const periodSelect = document.getElementById('analyticsTimeframe');
+      const period = periodSelect ? periodSelect.value : '30';
+
+      if (view === 'categories') {
+        prodView.style.display = 'none';
+        catView.style.display = 'block';
+        if (subtitle) {
+          subtitle.textContent = period === 'all' ? 'All-time category breakdown' : `Category breakdown (Last ${period} Days)`;
+        }
+        if (analyticsData && analyticsData.categories) {
+          renderCategoryView(analyticsData.categories);
+        }
+      } else {
+        prodView.style.display = 'block';
+        catView.style.display = 'none';
+
+        let titleText = view === 'profitable' ? 'Top revenue items' : 'Fast moving goods';
+        if (subtitle) {
+          subtitle.textContent = period === 'all' ? `All-time ${titleText}` : `${titleText} (Last ${period} Days)`;
+        }
+
+        if (analyticsData) {
+          const listData = view === 'profitable' ? analyticsData.mostProfitable : analyticsData.fastMoving;
+          renderProductsList(listData || [], view);
+        }
+      }
+    }
+
+    function drawHorizontalBarChart(canvasId, products, view) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || !products.length) return;
+
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.parentElement.clientWidth - 40;
+      if (w <= 0) return; // Prevent DOMException if parent is hidden
+
+      const fontSize = 14;
+      const lineHeight = 18;
+      const barH = 18;
+      const rowPad = 12;
+
+      // Label area always takes 25% of the card width
+      const labelW = Math.round(w * 0.25);
+      const valueW = 80;
+      const chartW = Math.max(w - labelW - valueW - 10, 50);
+
+      function wrapText(ctx, text, maxWidth) {
+        const words = text.split(' ');
+        const lines = [];
+        let current = '';
+        for (const word of words) {
+          const test = current ? current + ' ' + word : word;
+          if (ctx.measureText(test).width > maxWidth && current) {
+            lines.push(current);
+            current = word;
+          } else {
+            current = test;
+          }
+        }
+        if (current) lines.push(current);
+        return lines.length > 2 ? [lines[0], lines.slice(1).join(' ')] : lines;
+      }
+
+      // Pre-calculate row heights
+      const tempCtx = canvas.getContext('2d');
+      tempCtx.font = `500 ${fontSize}px Poppins, sans-serif`;
+      const rowData = products.map(item => {
+        const lines = wrapText(tempCtx, item.productName || '', labelW - 12);
+        const textH = lines.length * lineHeight;
+        const rowH = Math.max(textH, barH) + rowPad;
+        return { lines, rowH };
+      });
+
+      const totalH = rowData.reduce((sum, r) => sum + r.rowH, 0) + 16;
+
+      canvas.width = w * dpr;
+      canvas.height = totalH * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = totalH + 'px';
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, w, totalH);
+
+      const maxVal = Math.max(...products.map(p => view === 'profitable' ? parseFloat(p.totalRevenue) || 0 : parseInt(p.totalSold) || 0), 1);
+      const barColors = CHART_COLORS;
+
+      // Draw subtle vertical grid lines
+      ctx.strokeStyle = '#f4f4f4';
+      ctx.lineWidth = 1;
+      const numLines = 4;
+      for (let j = 1; j <= numLines; j++) {
+        const lineX = labelW + (chartW / numLines) * j;
+        ctx.beginPath();
+        ctx.moveTo(lineX, 0);
+        ctx.lineTo(lineX, totalH - 16);
+        ctx.stroke();
+      }
+
+      let y = 8;
+      canvas.hitboxes = [];
+      products.forEach((item, i) => {
+        const { lines, rowH } = rowData[i];
+        const val = view === 'profitable' ? parseFloat(item.totalRevenue) || 0 : parseInt(item.totalSold) || 0;
+        const barWidth = Math.max(Math.round((val / maxVal) * chartW), 2);
+        const centerY = y + rowH / 2;
+
+        // Product name (wrapped lines, right-aligned so it touches the bar)
+        ctx.font = `500 ${fontSize}px Poppins, sans-serif`;
+        ctx.fillStyle = '#555';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        const textBlockH = lines.length * lineHeight;
+        const textStartY = centerY - textBlockH / 2 + lineHeight / 2;
+        lines.forEach((line, li) => {
+          let l = line;
+          while (ctx.measureText(l).width > labelW - 12 && l.length > 3) l = l.slice(0, -2) + '…';
+          ctx.fillText(l, labelW - 10, textStartY + li * lineHeight);
+        });
+
+        // Bar with rounded corners
+        const barX = labelW;
+        const barY = centerY - barH / 2;
+        const radius = 4;
+        ctx.beginPath();
+        ctx.moveTo(barX + radius, barY);
+        ctx.lineTo(barX + barWidth - radius, barY);
+        ctx.quadraticCurveTo(barX + barWidth, barY, barX + barWidth, barY + radius);
+        ctx.lineTo(barX + barWidth, barY + barH - radius);
+        ctx.quadraticCurveTo(barX + barWidth, barY + barH, barX + barWidth - radius, barY + barH);
+        ctx.lineTo(barX + radius, barY + barH);
+        ctx.quadraticCurveTo(barX, barY + barH, barX, barY + barH - radius);
+        ctx.lineTo(barX, barY + radius);
+        ctx.quadraticCurveTo(barX, barY, barX + radius, barY);
+        ctx.closePath();
+        ctx.fillStyle = barColors[i % barColors.length];
+        ctx.fill();
+
+        // Value label
+        ctx.font = `600 ${fontSize}px Poppins, sans-serif`;
+        ctx.fillStyle = '#333';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        const label = view === 'profitable'
+          ? '₱' + val.toLocaleString('en-PH', { maximumFractionDigits: 0 })
+          : val.toLocaleString() + ' units';
+        ctx.fillText(label, barX + barWidth + 8, centerY);
+
+        canvas.hitboxes.push({
+          top: y,
+          bottom: y + rowH,
+          name: item.productName || 'Unknown Product'
+        });
+
+        y += rowH;
+      });
+
+      if (!canvas._hasTooltipListener) {
+        canvas.addEventListener('mousemove', (e) => {
+          if (!canvas.hitboxes) return;
+          const yPos = e.offsetY;
+          let hoveredName = '';
+          for (const box of canvas.hitboxes) {
+            if (yPos >= box.top && yPos <= box.bottom) {
+              hoveredName = box.name;
+              break;
+            }
+          }
+          if (canvas.title !== hoveredName) {
+            canvas.title = hoveredName;
+          }
+        });
+        canvas.addEventListener('mouseleave', () => {
+          canvas.title = '';
+        });
+        canvas._hasTooltipListener = true;
+      }
+    }
+
+    function renderProductsList(products, view = 'products') {
+      requestAnimationFrame(() => drawHorizontalBarChart('productsBarChart', products || [], view));
+    }
+
+    // Make charts responsive on window resize
+    let _resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(_resizeTimer);
+      _resizeTimer = setTimeout(() => {
+        if (!analyticsData) return;
+        const currentView = document.getElementById('analyticsView')?.value || 'products';
+        if (currentView === 'categories') {
+          if (analyticsData.categories) renderCategoryView(analyticsData.categories);
+        } else {
+          const listData = currentView === 'profitable' ? analyticsData.mostProfitable : analyticsData.fastMoving;
+          renderProductsList(listData || [], currentView);
+        }
+      }, 200);
+    });
+
+    function renderCategoryView(categories) {
+      drawDonutChart('categoryDonutChart', categories);
+      const total = categories.reduce((s, c) => s + parseFloat(c.totalRevenue || 0), 0);
+      const legendEl = document.getElementById('analytics-category-legend');
+      legendEl.innerHTML = categories.map((c, i) => {
+        const rev = parseFloat(c.totalRevenue || 0);
+        const pct = total > 0 ? ((rev / total) * 100).toFixed(1) : '0.0';
+        const sold = parseInt(c.totalSold || 0);
+        return `<div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; ${i < categories.length - 1 ? 'border-bottom: 1px solid var(--border-light);' : ''}">
+          <div style="width: 10px; height: 10px; border-radius: 50%; background: ${CHART_COLORS[i % CHART_COLORS.length]}; flex-shrink: 0;"></div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-family: 'Poppins', sans-serif; font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.category}</div>
+            <div style="color: #777; font-size: 11px;">${sold.toLocaleString()} units · ${pct}%</div>
+          </div>
+          <div style="font-family: 'Poppins', sans-serif; font-weight: 700; color: var(--text-dark); white-space: nowrap;">₱${rev.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+        </div>`;
       }).join('');
+    }
+
+    async function loadTopProducts() {
+      const periodSelect = document.getElementById('analyticsTimeframe');
+      const period = periodSelect ? periodSelect.value : '30';
+
+      const data = await safeFetch(`/api/dashboard/top-products?period=${period}`);
+
+      if (!data) return;
+      analyticsData = data;
+
+      const viewSelect = document.getElementById('analyticsView');
+      switchAnalyticsView(viewSelect ? viewSelect.value : 'products');
     }
 
     // --- Helper ---
@@ -613,32 +969,32 @@
 
     // --- View Customer Detail Modal ---
     async function viewCustomerDetail(transactionID) {
-        const content = el('customerDetailContent');
-        content.innerHTML = '<div class="center-text sub-text" style="padding:40px; font-size:16px;">Loading account details...</div>';
-        el('customerDetailModal').style.display = 'flex';
+      const content = el('customerDetailContent');
+      content.innerHTML = '<div class="center-text sub-text" style="padding:40px; font-size:16px;">Loading account details...</div>';
+      el('customerDetailModal').style.display = 'flex';
 
-        try {
-          const [txns, items, installments] = await Promise.all([
-            safeFetch('/api/transactions?limit=500'),
-            safeFetch(`/api/transactions/${transactionID}/items`),
-            safeFetch(`/api/transactions/${transactionID}/installments`)
-          ]);
+      try {
+        const [txns, items, installments] = await Promise.all([
+          safeFetch('/api/transactions?limit=500'),
+          safeFetch(`/api/transactions/${transactionID}/items`),
+          safeFetch(`/api/transactions/${transactionID}/installments`)
+        ]);
 
-          const txn = txns ? txns.find(t => t.transactionID === transactionID) : null;
-          if (!txn) {
-            content.innerHTML = '<div class="center-text sub-text" style="padding:40px; color:#ef4444;">Transaction not found.</div>';
-            return;
-          }
+        const txn = txns ? txns.find(t => t.transactionID === transactionID) : null;
+        if (!txn) {
+          content.innerHTML = '<div class="center-text sub-text" style="padding:40px; color:#ef4444;">Transaction not found.</div>';
+          return;
+        }
 
-          const totalAmt = parseFloat(txn.totalAmount || 0);
-          const cashAmt = parseFloat(txn.cashReceived || 0);
-          const digitalAmt = parseFloat(txn.digitalAmount || 0);
-          const paidAmt = cashAmt + digitalAmt;
-          const balance = totalAmt - paidAmt;
-          const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
+        const totalAmt = parseFloat(txn.totalAmount || 0);
+        const cashAmt = parseFloat(txn.cashReceived || 0);
+        const digitalAmt = parseFloat(txn.digitalAmount || 0);
+        const paidAmt = cashAmt + digitalAmt;
+        const balance = totalAmt - paidAmt;
+        const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
 
-          // Clean compact layout
-          let html = `
+        // Clean compact layout
+        let html = `
         <div style="font-family: 'Inter', system-ui, sans-serif; color: #334155;">
           
           <!-- Header Area -->
@@ -692,9 +1048,9 @@
           </div>
         `;
 
-          // Items Purchased
-          if (items && items.length > 0) {
-            html += `
+        // Items Purchased
+        if (items && items.length > 0) {
+          html += `
           <div style="margin-bottom: 15px;">
             <h4 style="margin: 0 0 8px; font-size: 13px; color: #0f172a; font-weight: 700;">Order Details</h4>
             <div style="border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
@@ -719,12 +1075,12 @@
               </table>
             </div>
           </div>`;
-          }
+        }
 
-          // Installment Schedule
-          if (installments && installments.length > 0) {
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            html += `
+        // Installment Schedule
+        if (installments && installments.length > 0) {
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          html += `
           <div style="margin-bottom: 10px;">
             <h4 style="margin: 0 0 8px; font-size: 13px; color: #0f172a; font-weight: 700;">Installment Schedule</h4>
             <div style="border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
@@ -738,10 +1094,10 @@
                 </thead>
                 <tbody>
                   ${installments.map((inst, i) => {
-              const due = new Date(inst.dueDate); due.setHours(0, 0, 0, 0);
-              const isOverdue = inst.status !== 'Paid' && due < today;
+            const due = new Date(inst.dueDate); due.setHours(0, 0, 0, 0);
+            const isOverdue = inst.status !== 'Paid' && due < today;
 
-              return `
+            return `
                     <tr style="border-bottom: ${i === installments.length - 1 ? 'none' : '1px solid #f1f5f9'}; ${isOverdue ? 'background-color: #fff1f2;' : ''}">
                       <td style="padding: 8px 10px; text-align: center; color: #64748b; font-weight: 500;">${i + 1}</td>
                       <td style="padding: 8px 10px; ${isOverdue ? 'color: #be123c; font-weight: 700;' : 'color: #0f172a; font-weight: 500;'}">
@@ -750,35 +1106,35 @@
                       </td>
                       <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: #0f172a; white-space: nowrap; width: auto;">₱ ${parseFloat(inst.amountDue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                     </tr>`;
-            }).join('')}
+          }).join('')}
                 </tbody>
               </table>
             </div>
           </div>`;
-          }
-
-          html += `</div>`; // Close wrapper
-          content.innerHTML = html;
-
-        } catch (err) {
-          console.error(err);
-          content.innerHTML = '<div class="center-text sub-text" style="padding:40px; color:#ef4444;">An error occurred while loading details.</div>';
         }
+
+        html += `</div>`; // Close wrapper
+        content.innerHTML = html;
+
+      } catch (err) {
+        console.error(err);
+        content.innerHTML = '<div class="center-text sub-text" style="padding:40px; color:#ef4444;">An error occurred while loading details.</div>';
+      }
+    }
+
+    // --- Print Customer Detail ---
+    function printCustomerDetail() {
+      const content = el('customerDetailContent').innerHTML;
+      const printDate = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
+
+      let printContainer = el('reportPrintContainer');
+      if (!printContainer) {
+        printContainer = document.createElement('div');
+        printContainer.id = 'reportPrintContainer';
+        document.body.appendChild(printContainer);
       }
 
-      // --- Print Customer Detail ---
-      function printCustomerDetail() {
-        const content = el('customerDetailContent').innerHTML;
-        const printDate = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
-
-        let printContainer = el('reportPrintContainer');
-        if (!printContainer) {
-          printContainer = document.createElement('div');
-          printContainer.id = 'reportPrintContainer';
-          document.body.appendChild(printContainer);
-        }
-
-        printContainer.innerHTML = `
+      printContainer.innerHTML = `
         <style>
           @media print {
             @page { size: auto; margin: 15mm 0.5in !important; }
@@ -841,26 +1197,26 @@
         </div>
       `;
 
-        // Trigger native print dialog (it uses @media print from style.css)
-        setTimeout(() => {
-          window.print();
-        }, 100);
+      // Trigger native print dialog (it uses @media print from style.css)
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    }
+
+    // --- Print Pay Later List ---
+    function printPayLaterList() {
+      const title = el('viewAllPayLaterTitle').textContent || "Pay Later Accounts";
+      const tableHTML = el('viewAllPayLaterBody').parentElement.outerHTML; // clone the table
+      const printDate = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
+
+      let printContainer = el('reportPrintContainer');
+      if (!printContainer) {
+        printContainer = document.createElement('div');
+        printContainer.id = 'reportPrintContainer';
+        document.body.appendChild(printContainer);
       }
 
-      // --- Print Pay Later List ---
-      function printPayLaterList() {
-        const title = el('viewAllPayLaterTitle').textContent || "Pay Later Accounts";
-        const tableHTML = el('viewAllPayLaterBody').parentElement.outerHTML; // clone the table
-        const printDate = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
-
-        let printContainer = el('reportPrintContainer');
-        if (!printContainer) {
-          printContainer = document.createElement('div');
-          printContainer.id = 'reportPrintContainer';
-          document.body.appendChild(printContainer);
-        }
-
-        printContainer.innerHTML = `
+      printContainer.innerHTML = `
         <style>
           @media print {
             @page { size: auto; margin: 15mm 0.5in !important; }
@@ -926,53 +1282,53 @@
         </div>
       `;
 
-        setTimeout(() => {
-          window.print();
-        }, 100);
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    }
+
+    // --- Stock Alert Table ---
+    function renderAlertTable(lowStockProducts, suppliers) {
+      // Build productID → supplier names map
+      const productSupplierMap = {};
+      (suppliers || []).forEach(s => {
+        if (s.productIDs) {
+          s.productIDs.split(',').forEach(pid => {
+            pid = pid.trim();
+            if (pid) {
+              if (!productSupplierMap[pid]) productSupplierMap[pid] = [];
+              productSupplierMap[pid].push(s.supplierName);
+            }
+          });
+        }
+      });
+
+      const btn = document.getElementById('btn-auto-reorder-dash');
+      const tbody = document.getElementById('dash-alert-body');
+
+      if (!lowStockProducts || lowStockProducts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="center-text sub-text">No stock alerts. All levels are good.</td></tr>';
+        if (btn) btn.disabled = true;
+        return;
       }
 
-      // --- Stock Alert Table ---
-      function renderAlertTable(lowStockProducts, suppliers) {
-        // Build productID → supplier names map
-        const productSupplierMap = {};
-        (suppliers || []).forEach(s => {
-          if (s.productIDs) {
-            s.productIDs.split(',').forEach(pid => {
-              pid = pid.trim();
-              if (pid) {
-                if (!productSupplierMap[pid]) productSupplierMap[pid] = [];
-                productSupplierMap[pid].push(s.supplierName);
-              }
-            });
-          }
-        });
+      tbody.innerHTML = lowStockProducts.map(p => {
+        const isOut = p.stockQuantity === 0;
+        const statusCls = isOut ? 'status-pill status-outstock' : 'status-pill status-lowstock';
+        const badgeCls = isOut ? 'supplier-badge out-stock' : 'supplier-badge low-stock';
+        const label = isOut ? 'Out of Stock' : 'Low Stock';
+        const threshold = (p.lowStockThreshold !== undefined && p.lowStockThreshold !== null)
+          ? parseInt(p.lowStockThreshold) : 10;
 
-        const btn = document.getElementById('btn-auto-reorder-dash');
-        const tbody = document.getElementById('dash-alert-body');
+        const supplierList = productSupplierMap[String(p.productID)] || [];
+        const supplierCell = supplierList.length > 0
+          ? supplierList.map(name => `<span class="${badgeCls}">${name}</span>`).join(' ')
+          : '<span class="no-supplier-tag">No supplier</span>';
+        const reorderBtn = supplierList.length > 0
+          ? `<button class="btn-edit" onclick="openReorderModal(${p.productID})">Reorder</button>`
+          : '<span class="no-supplier-tag">—</span>';
 
-        if (!lowStockProducts || lowStockProducts.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="center-text sub-text">No stock alerts. All levels are good.</td></tr>';
-          if (btn) btn.disabled = true;
-          return;
-        }
-
-        tbody.innerHTML = lowStockProducts.map(p => {
-          const isOut = p.stockQuantity === 0;
-          const statusCls = isOut ? 'status-pill status-outstock' : 'status-pill status-lowstock';
-          const badgeCls = isOut ? 'supplier-badge out-stock' : 'supplier-badge low-stock';
-          const label = isOut ? 'Out of Stock' : 'Low Stock';
-          const threshold = (p.lowStockThreshold !== undefined && p.lowStockThreshold !== null)
-            ? parseInt(p.lowStockThreshold) : 10;
-
-          const supplierList = productSupplierMap[String(p.productID)] || [];
-          const supplierCell = supplierList.length > 0
-            ? supplierList.map(name => `<span class="${badgeCls}">${name}</span>`).join(' ')
-            : '<span class="no-supplier-tag">No supplier</span>';
-          const reorderBtn = supplierList.length > 0
-            ? `<button class="btn-edit" onclick="openReorderModal(${p.productID})">Reorder</button>`
-            : '<span class="no-supplier-tag">—</span>';
-
-          return `<tr>
+        return `<tr>
           <td><strong>${p.productName}</strong></td>
           <td>${p.category || '—'}</td>
           <td>${p.stockQuantity}</td>
@@ -981,40 +1337,40 @@
           <td>${supplierCell}</td>
           <td>${reorderBtn}</td>
         </tr>`;
-        }).join('');
-      }
+      }).join('');
+    }
 
-      // --- Modal helpers ---
-      function showInfoModal(title, message) {
-        document.getElementById('modal-message').innerHTML =
-          `<h3 style="color:var(--bg-dark);margin-bottom:15px;text-align:center;">${title}</h3>
+    // --- Modal helpers ---
+    function showInfoModal(title, message) {
+      document.getElementById('modal-message').innerHTML =
+        `<h3 style="color:var(--bg-dark);margin-bottom:15px;text-align:center;">${title}</h3>
          <div style="text-align:center;font-size:14px;">${message}</div>`;
-        document.getElementById('modal-actions').innerHTML =
-          `<div style="text-align:center;margin-top:20px;">
+      document.getElementById('modal-actions').innerHTML =
+        `<div style="text-align:center;margin-top:20px;">
            <button class="modal-btn btn-ok" onclick="closeModal()">OK</button>
          </div>`;
-        customModal.style.display = 'flex';
-      }
+      customModal.style.display = 'flex';
+    }
 
-      function showConfirmModal(title, message, onConfirm) {
-        document.getElementById('modal-message').innerHTML =
-          `<h3 style="color:var(--bg-dark);margin-bottom:15px;text-align:center;">${title}</h3>
+    function showConfirmModal(title, message, onConfirm) {
+      document.getElementById('modal-message').innerHTML =
+        `<h3 style="color:var(--bg-dark);margin-bottom:15px;text-align:center;">${title}</h3>
          <div style="text-align:center;font-size:14px;">${message}</div>`;
-        document.getElementById('modal-actions').innerHTML =
-          `<div style="text-align:center;margin-top:20px;display:flex;gap:10px;justify-content:center;">
+      document.getElementById('modal-actions').innerHTML =
+        `<div style="text-align:center;margin-top:20px;display:flex;gap:10px;justify-content:center;">
            <button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
            <button class="modal-btn btn-ok" id="dash-confirm-btn">Confirm</button>
          </div>`;
-        document.getElementById('dash-confirm-btn').onclick = () => { closeModal(); onConfirm(); };
-        customModal.style.display = 'flex';
-      }
+      document.getElementById('dash-confirm-btn').onclick = () => { closeModal(); onConfirm(); };
+      customModal.style.display = 'flex';
+    }
 
-      // --- Init ---
-      document.addEventListener('DOMContentLoaded', () => {
-        loadStats();
-        loadTopProducts();
-        loadPayLater();
-      });
+    // --- Init ---
+    document.addEventListener('DOMContentLoaded', () => {
+      loadStats();
+      loadTopProducts();
+      loadPayLater();
+    });
   </script>
 
 </body>
