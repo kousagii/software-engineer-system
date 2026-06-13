@@ -69,23 +69,17 @@ async function openReorderModal(productID = null) {
 
         currentReorderItems = data;
 
-        // Initialize defaults once
-        const supplierCounts = {};
-        data.forEach(p => {
-            p.suppliers.forEach(s => {
-                supplierCounts[s.supplierID] = (supplierCounts[s.supplierID] || 0) + 1;
-            });
-        });
-
         data.forEach(p => {
             let bestSupplierID = p.suppliers[0].supplierID;
-            let maxCount = -1;
+            let lowestPrice = Infinity;
             p.suppliers.forEach(s => {
-                if (supplierCounts[s.supplierID] > maxCount) {
-                    maxCount = supplierCounts[s.supplierID];
+                const sPrice = s.supplierPrice > 0 ? s.supplierPrice : Infinity;
+                if (sPrice < lowestPrice) {
+                    lowestPrice = sPrice;
                     bestSupplierID = s.supplierID;
                 }
             });
+            
             p.selectedSupplierID = bestSupplierID;
             p.selectedQuantity = Math.max(p.lowStockThreshold, 1);
         });
@@ -95,7 +89,7 @@ async function openReorderModal(productID = null) {
         document.getElementById('reorder-modal-title').textContent = productID ? `Reorder: ${data[0].productName}` : 'Auto Reorder All';
         document.getElementById('reorder-modal-subtitle').textContent = productID
             ? 'Adjust the order quantity and choose a supplier.'
-            : 'Review the suggested order quantities and suppliers. The system has automatically grouped suppliers where possible to minimize purchase orders.';
+            : 'Review the suggested order quantities and suppliers. The system has automatically selected the supplier with the lowest price for each item.';
 
         document.getElementById('reorder-custom-modal').style.display = 'flex';
 
@@ -115,9 +109,10 @@ function renderReorderTable() {
     tbody.innerHTML = '';
 
     currentReorderItems.forEach((p, index) => {
-        const supplierOptions = p.suppliers.map(s =>
-            `<option value="${s.supplierID}" ${s.supplierID === p.selectedSupplierID ? 'selected' : ''}>${s.supplierName}</option>`
-        ).join('');
+        const supplierOptions = p.suppliers.map(s => {
+            const priceLabel = s.supplierPrice ? ` (₱${s.supplierPrice.toFixed(2)})` : '';
+            return `<option value="${s.supplierID}" ${s.supplierID === p.selectedSupplierID ? 'selected' : ''}>${s.supplierName}${priceLabel}</option>`;
+        }).join('');
 
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -173,7 +168,7 @@ async function submitReorder() {
             supplierID: p.selectedSupplierID,
             supplierName: supp ? supp.supplierName : 'Unknown',
             quantity: p.selectedQuantity,
-            price: p.price
+            price: supp && supp.supplierPrice ? supp.supplierPrice : p.price
         };
     });
 

@@ -107,7 +107,7 @@
                     <h3 style="margin: 0; color: var(--text-dark);" id="activePayLaterTitle">Active Pay Later Accounts
                     </h3>
                     <div style="display: flex; gap: 10px;">
-                        <button class="btn-export" onclick="printActivePayLater()">
+                        <button class="btn-export" onclick="openPlPrintPreview()">
                             <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path
                                     d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z"
@@ -152,17 +152,19 @@
                         <tr>
                             <th>Date</th>
                             <th>Transaction Code</th>
-                            <th>Customer</th>
+                            <th>Customer Name</th>
+                            <th class="center-text">Installment</th>
+                            <th class="center-text">Payment Status</th>
                             <th class="center-text">Total Amount</th>
                             <th class="center-text">Paid Amount</th>
-                            <th class="center-text">Balance Due</th>
-                            <th>Due Date</th>
-                            <th class="center-text">Action</th>
+                            <th class="center-text text-danger">Balance Due</th>
+                            <th class="center-text">Due Date</th>
+                            <th class="center-text">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="activePayLaterBody">
                         <tr>
-                            <td colspan="8" class="center-text">Loading...</td>
+                            <td colspan="10" class="center-text">Loading...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -252,7 +254,21 @@
                 </div>
             </div>
             <div class="table-container">
-                <div class="toolbar">
+                <div class="toolbar" style="padding-bottom: 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; color: var(--text-dark);" id="historyTitle">Transaction History</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-export" onclick="openTxnPrintPreview()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M14 2V8H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M9 15H15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M9 11H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            Export to PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="toolbar" style="margin-bottom: 15px; border-bottom: none;">
                     <div class="toolbar-left search-bar-extended" style="align-items:center;">
                         <label for="searchInput"
                             style="margin:0; font-size:13px; font-weight:600; white-space:nowrap;">Search:</label>
@@ -394,6 +410,17 @@
                 <div class="toolbar"
                     style="padding-bottom: 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="margin: 0; color: var(--text-dark);" id="customersTitle">Customer Directory</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-export" onclick="openCustPrintPreview()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M14 2V8H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M9 15H15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M9 11H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            Export to PDF
+                        </button>
+                    </div>
                 </div>
                 <div class="toolbar" style="margin-bottom: 15px; border-bottom: none;">
                     <div class="toolbar-left search-bar-extended" style="align-items:center;">
@@ -421,16 +448,17 @@
                         <tr>
                             <th>Customer Name</th>
                             <th>Contact Info</th>
-                            <th>Address</th>
                             <th class="center-text">Transactions</th>
                             <th class="center-text">Total Spent</th>
                             <th class="center-text">Outstanding</th>
+                            <th class="center-text">Installment</th>
+                            <th class="center-text">Payment Status</th>
                             <th>Last Transaction</th>
                         </tr>
                     </thead>
                     <tbody id="customersBody">
                         <tr>
-                            <td colspan="7" class="center-text">Loading...</td>
+                            <td colspan="8" class="center-text">Loading...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -804,6 +832,140 @@
         </div>
     </div>
 
+    <!-- Transaction History Print Preview Modal -->
+    <div class="modal-overlay" id="txnPrintPreviewModal" style="display: none;">
+        <div style="background: white; border-radius: 8px; padding: 30px; max-width: 900px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" id="printableTxnReport">
+            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px;">
+                <h2 style="margin: 0 0 5px 0; font-size: 22px; font-weight: 800; text-transform: uppercase; color: #000;">UDICON TRADING, OPC</h2>
+                <p style="margin: 2px 0; font-size: 13px; color: #333;"># 2 National Road, Brgy. San Juan, Taytay, Rizal, Philippines 1920</p>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 15px;">
+                    <h3 style="margin: 0; font-size: 16px; font-weight: bold; text-transform: uppercase; color: #000;">Sales Transaction History Report</h3>
+                    <p style="margin: 0; font-size: 12px; color: #333;" id="txn-report-date">---</p>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 15px;">
+                <div>Total Txns: <strong id="txn-report-count" style="color:#000;">0</strong></div>
+                <div>Sales: <strong id="txn-report-sales" style="color:#000;">₱0.00</strong></div>
+                <div>Paid: <strong id="txn-report-collected" style="color:#000;">₱0.00</strong></div>
+                <div>Unpaid: <strong id="txn-report-receivables" style="color:#000;">₱0.00</strong></div>
+                <div>Refunds/Exchanges: <strong id="txn-report-refunds" style="color:#000;">₱0.00</strong></div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Date</th>
+                        <th style="text-align: left; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Code</th>
+                        <th style="text-align: left; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Customer</th>
+                        <th style="text-align: center; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Installment</th>
+                        <th style="text-align: right; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Total Amt</th>
+                        <th style="text-align: right; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Paid Amt</th>
+                        <th style="text-align: right; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Unpaid (Due)</th>
+                        <th style="text-align: center; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Due Date</th>
+                    </tr>
+                </thead>
+                <tbody id="txn-report-body">
+                    <!-- Rows injected via JS -->
+                </tbody>
+            </table>
+
+            <div class="no-print" style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
+                <button class="btn-cancel-large" onclick="el('txnPrintPreviewModal').style.display='none'">Cancel</button>
+                <button class="btn-confirm" onclick="printTxnReport()">Print PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pay Later Customers Print Preview Modal -->
+    <div class="modal-overlay" id="plPrintPreviewModal" style="display: none;">
+        <div style="background: white; border-radius: 8px; padding: 30px; max-width: 900px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" id="printablePlReport">
+            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px;">
+                <h2 style="margin: 0 0 5px 0; font-size: 22px; font-weight: 800; text-transform: uppercase; color: #000;">UDICON TRADING, OPC</h2>
+                <p style="margin: 2px 0; font-size: 13px; color: #333;"># 2 National Road, Brgy. San Juan, Taytay, Rizal, Philippines 1920</p>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 15px;">
+                    <h3 style="margin: 0; font-size: 16px; font-weight: bold; text-transform: uppercase; color: #000;">Pay Later Accounts Report</h3>
+                    <p style="margin: 0; font-size: 12px; color: #333;" id="pl-report-date">---</p>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 15px;">
+                <div>Total Accounts: <strong id="pl-report-count" style="color:#000;">0</strong></div>
+                <div>Total Collected: <strong id="pl-report-collected" style="color:#000;">₱0.00</strong></div>
+                <div>Total Outstanding: <strong id="pl-report-debt" style="color:#000;">₱0.00</strong></div>
+                <div>Overdue: <strong id="pl-report-overdue" style="color:#000;">0</strong></div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Customer</th>
+                        <th style="text-align: left; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Date</th>
+                        <th style="text-align: center; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Installment</th>
+                        <th style="text-align: center; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Status</th>
+                        <th style="text-align: center; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Due Date</th>
+                        <th style="text-align: right; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Total Amt</th>
+                        <th style="text-align: right; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Paid Amt</th>
+                        <th style="text-align: right; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Balance Due</th>
+                        <th style="text-align: center; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Overdue</th>
+                    </tr>
+                </thead>
+                <tbody id="pl-report-body">
+                    <!-- Rows injected via JS -->
+                </tbody>
+            </table>
+
+            <div class="no-print" style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
+                <button class="btn-cancel-large" onclick="el('plPrintPreviewModal').style.display='none'">Cancel</button>
+                <button class="btn-confirm" onclick="printPlReport()">Print PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Directory Print Preview Modal -->
+    <div class="modal-overlay" id="custPrintPreviewModal" style="display: none;">
+        <div style="background: white; border-radius: 8px; padding: 30px; max-width: 900px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" id="printableCustReport">
+            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px;">
+                <h2 style="margin: 0 0 5px 0; font-size: 22px; font-weight: 800; text-transform: uppercase; color: #000;">UDICON TRADING, OPC</h2>
+                <p style="margin: 2px 0; font-size: 13px; color: #333;"># 2 National Road, Brgy. San Juan, Taytay, Rizal, Philippines 1920</p>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 15px;">
+                    <h3 style="margin: 0; font-size: 16px; font-weight: bold; text-transform: uppercase; color: #000;">Customer Directory Report</h3>
+                    <p style="margin: 0; font-size: 12px; color: #333;" id="cust-report-date">---</p>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 15px;">
+                <div>Total Customers: <strong id="cust-report-count" style="color:#000;">0</strong></div>
+                <div>Total Transactions: <strong id="cust-report-txns" style="color:#000;">0</strong></div>
+                <div>Total Revenue: <strong id="cust-report-revenue" style="color:#000;">₱0.00</strong></div>
+                <div>Total Outstanding: <strong id="cust-report-debt" style="color:#000;">₱0.00</strong></div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Customer Name</th>
+                        <th style="text-align: left; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Contact / Address</th>
+                        <th style="text-align: center; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Transactions</th>
+                        <th style="text-align: right; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Total Spent</th>
+                        <th style="text-align: right; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Outstanding</th>
+                        <th style="text-align: center; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Installment</th>
+                        <th style="text-align: center; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Status</th>
+                        <th style="text-align: center; border-bottom: 1px solid #000; padding: 8px 4px; color: #000;">Last Active</th>
+                    </tr>
+                </thead>
+                <tbody id="cust-report-body">
+                    <!-- Rows injected via JS -->
+                </tbody>
+            </table>
+
+            <div class="no-print" style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
+                <button class="btn-cancel-large" onclick="el('custPrintPreviewModal').style.display='none'">Cancel</button>
+                <button class="btn-confirm" onclick="printCustReport()">Print PDF</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../authGuard.js"></script>
     <script>
         const el = (id) => document.getElementById(id);
@@ -843,7 +1005,7 @@
 
             const params = new URLSearchParams({ page: customersCurrentPage, limit: custItemsPerPage, search, sort });
 
-            el("customersBody").innerHTML = '<tr><td colspan="7" class="center-text">Loading...</td></tr>';
+            el("customersBody").innerHTML = '<tr><td colspan="8" class="center-text">Loading...</td></tr>';
 
             try {
                 const res  = await fetch('/api/customers?' + params.toString());
@@ -859,7 +1021,7 @@
                 renderCustomers(customersData, total);
             } catch (err) {
                 console.error(err);
-                el("customersBody").innerHTML = '<tr><td colspan="7" class="center-text">Failed to load customers.</td></tr>';
+                el("customersBody").innerHTML = '<tr><td colspan="8" class="center-text">Failed to load customers.</td></tr>';
             }
         }
 
@@ -872,7 +1034,7 @@
             const tbody = el("customersBody");
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="center-text">No customers match your search.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="center-text">No customers match your search.</td></tr>';
                 el("customersPagination").style.display = "none";
                 return;
             }
@@ -885,15 +1047,20 @@
             tbody.innerHTML = data.map(c => {
                 const totalSpent = parseFloat(c.totalSpent || 0);
                 const outstanding = parseFloat(c.outstandingBalance || 0);
+                const totalTxns = c.totalTransactions || 0;
 
                 return `
                     <tr>
-                        <td style="font-weight: 600;">${c.customerName || 'N/A'}</td>
-                        <td>${c.contactInfo || 'N/A'}</td>
-                        <td>${c.address || 'N/A'}</td>
-                        <td class="center-text">${c.totalTransactions || 0}</td>
+                        <td><strong>${c.customerName || 'N/A'}</strong></td>
+                        <td>
+                            <div>${c.contactInfo || 'N/A'}</div>
+                            <div class="sub-text" style="font-size:11px;">${c.address || 'N/A'}</div>
+                        </td>
+                        <td class="center-text">${totalTxns}</td>
                         <td class="center-text" style="color: var(--blue-hover); font-weight: 600;">₱${totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td class="center-text" style="${outstanding > 0 ? 'color: #b91c1c; font-weight: 600;' : ''}">${outstanding > 0 ? '₱' + outstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'None'}</td>
+                        <td class="center-text" style="font-weight:600; ${outstanding > 0 ? 'color:#b91c1c;' : 'color:#2b8a4e;'}">${outstanding > 0 ? 'Active' : 'None'}</td>
+                        <td class="center-text" style="font-weight:600; ${outstanding > 0 ? 'color:#b91c1c;' : 'color:#2b8a4e;'}">${outstanding > 0 ? 'Unpaid Balance' : 'Fully Paid'}</td>
                         <td>${formatDate(c.lastTransactionDate)}</td>
                     </tr>
                 `;
@@ -955,7 +1122,7 @@
                 }
             } catch (err) {
                 console.error(err);
-                el("activePayLaterBody").innerHTML = `<tr><td colspan="8" class="empty-cart-msg">Failed to load active pay later accounts.</td></tr>`;
+                el("activePayLaterBody").innerHTML = `<tr><td colspan="10" class="center-text">Failed to load active pay later accounts.</td></tr>`;
             }
         }
 
@@ -1016,7 +1183,7 @@
             const titleEl = el("activePayLaterTitle");
             if (filteredPayLaterData.length === 0) {
                 if (titleEl) titleEl.textContent = `Active Pay Later Accounts`;
-                tbody.innerHTML = '<tr><td colspan="8" class="center-text">No active pay later accounts match your search.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="center-text">No active pay later accounts match your search.</td></tr>';
                 el("activePayLaterPagination").style.display = "none";
                 return;
             }
@@ -1071,6 +1238,8 @@
                     dueDateDisplay = 'N/A';
                 }
 
+                const payStatus = paidAmt > 0 ? 'Partial' : 'Unpaid';
+
                 return `
                     <tr${isOverdueRow ? ' style="background:#fef2f2;"' : ''}>
                         <td>${formatDate(r.transDateTime)}</td>
@@ -1079,6 +1248,8 @@
                             <div><strong>${r.customerName || 'Unknown'}</strong></div>
                             <div class="sub-text" style="font-size: 11px;">${r.contactInfo || 'N/A'}</div>
                         </td>
+                        <td class="center-text"><span style="color:#b91c1c; font-weight:600;">Yes</span></td>
+                        <td class="center-text"><span style="color:#f97316; font-weight:600;">${payStatus}</span></td>
                         <td class="center-text">₱ ${totalAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                         <td class="center-text">₱ ${paidAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                         <td class="center-text text-danger"><strong>₱ ${balanceDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></td>
@@ -1118,84 +1289,154 @@
             renderActivePayLater();
         }
 
-        function printActivePayLater() {
-            const title = el('activePayLaterTitle').textContent || "Active Pay Later Accounts";
-            const tableHTML = el('activePayLaterBody').parentElement.outerHTML; // clone the table
-            const printDate = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
+        async function openPlPrintPreview() {
+            el('pl-report-body').innerHTML = '<tr><td colspan="9" style="text-align:center;">Loading report data...</td></tr>';
+            el('plPrintPreviewModal').style.display = 'flex';
 
-            const printWin = window.open('', '_blank', 'width=800,height=1000');
+            // We use the actively filtered pay later array
+            const data = filteredPayLaterData || [];
+            
+            let totalColl = 0;
+            let totalDebt = 0;
+            let overdueCount = 0;
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            const tbodyHTML = data.map(r => {
+                const totalAmt = parseFloat(r.totalAmount || 0);
+                const paidAmt = parseFloat(r.amountPaid || 0);
+                const bal = parseFloat(r.balanceDue || 0);
+                
+                totalColl += paidAmt;
+                totalDebt += bal;
+
+                let overdue = false;
+                let dueDateStr = 'N/A';
+                if (r.nextInstallmentDue) {
+                    const nd = new Date(r.nextInstallmentDue);
+                    nd.setHours(0,0,0,0);
+                    overdue = nd < today;
+                    dueDateStr = nd.toLocaleDateString();
+                } else if (r.dueDate) {
+                    const dd = new Date(r.dueDate);
+                    dd.setHours(0,0,0,0);
+                    overdue = dd < today;
+                    dueDateStr = dd.toLocaleDateString();
+                }
+                
+                if (overdue) overdueCount++;
+
+                const payStatus = paidAmt > 0 ? 'Partial' : 'Unpaid';
+
+                return `<tr>
+                    <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.customerName || 'N/A'}</td>
+                    <td>${new Date(r.transDateTime).toLocaleDateString()}</td>
+                    <td style="text-align:center; font-weight:bold; color:#b91c1c;">Yes</td>
+                    <td style="text-align:center; font-weight:bold; color:#f97316;">${payStatus}</td>
+                    <td style="text-align:center;">${dueDateStr}</td>
+                    <td style="text-align:right;">₱${totalAmt.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td style="text-align:right;">₱${paidAmt.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td style="text-align:right; font-weight:bold; ${bal > 0 ? 'color:#b91c1c;' : ''}">₱${bal.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td style="text-align:center; font-weight:bold; ${overdue ? 'color:#b91c1c;' : ''}">${overdue ? 'YES' : 'NO'}</td>
+                </tr>`;
+            }).join('');
+
+            el('pl-report-count').textContent = data.length;
+            el('pl-report-collected').textContent = '₱' + totalColl.toLocaleString('en-US', {minimumFractionDigits:2});
+            el('pl-report-debt').textContent = '₱' + totalDebt.toLocaleString('en-US', {minimumFractionDigits:2});
+            el('pl-report-overdue').textContent = overdueCount;
+            el('pl-report-date').textContent = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
+            
+            el('pl-report-body').innerHTML = tbodyHTML || '<tr><td colspan="9" style="text-align:center;">No records found.</td></tr>';
+        }
+
+        function printPlReport() {
+            const receiptEl = document.getElementById('printablePlReport');
+            if (!receiptEl) return;
+            const printWin = window.open('', '_blank', 'width=1000,height=800');
             printWin.document.write(`
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <meta charset="UTF-8">
-                    <title>Active Pay Later Accounts</title>
+                    <title>Pay Later Accounts Report</title>
                     <style>
-                        @page { size: auto; margin: 15mm 0.5in !important; }
-                        body { font-family: 'Inter', Arial, sans-serif; color: #000; margin: 0; padding: 20px; background: white; }
-                        
-                        /* Professional Header */
-                        .print-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
-                        .print-company h1 { font-size: 24px; font-weight: 800; margin: 0 0 5px 0; color: #000; text-transform: uppercase; }
-                        .print-company p { font-size: 12px; color: #333; margin: 2px 0; line-height: 1.4; }
-                        .print-report-info { text-align: right; }
-                        .print-report-info h2 { font-size: 16px; margin: 0 0 5px 0; color: #000; text-transform: uppercase; font-weight: 800; }
-                        .print-report-info p { font-size: 12px; color: #333; margin: 2px 0; }
-                        
-                        /* Professional Table */
-                        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; table-layout: auto; }
-                        th { background: transparent !important; color: #000 !important; font-size: 12px; font-weight: bold !important; text-transform: uppercase; border-bottom: 2px solid #000 !important; border-top: 2px solid #000 !important; padding: 12px 8px; text-align: left; }
-                        td { border-bottom: 1px solid #94a3b8 !important; padding: 10px 8px; color: #000 !important; word-wrap: break-word; white-space: normal; background: transparent !important; }
-                        td:nth-child(3) { max-width: 180px; } /* Constrain Customer column */
-                        
-                        /* Hide unnecessary UI elements */
-                        th:last-child, td:last-child { display: none !important; }
-                        .center-text { text-align: center; }
-                        .text-danger { color: #dc2626; font-weight: 700; }
-                        .sub-text { color: #333; }
-                        span[style*="OVERDUE"] { background: transparent !important; border: 1px solid #000 !important; color: #000 !important; font-weight: 800 !important; }
-                        
-                        /* Professional Footer */
-                        .print-footer { margin-top: 50px; display: flex; justify-content: space-between; page-break-inside: avoid; }
-                        .sign-box { width: 200px; text-align: center; }
-                        .sign-line { border-bottom: 1px solid #000; margin-bottom: 5px; height: 30px; }
-                        .sign-label { font-size: 11px; color: #000; text-transform: uppercase; font-weight: 700; }
-                        .page-footer { margin-top: 30px; text-align: center; font-size: 11px; color: #555; border-top: 1px solid #000; padding-top: 10px; }
+                        @page { size: A4 portrait; margin: 15mm; }
+                        body { background: white; margin: 0; padding: 0; display: block; font-family: 'Inter', Arial, sans-serif; color: #000; }
+                        .no-print { display: none !important; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                        th { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; color-adjust: exact; padding: 8px !important; border-bottom: 2px solid #ccc !important; font-size: 11px !important; }
+                        td { padding: 8px !important; border-bottom: 1px solid #eee !important; font-size: 11px !important; word-wrap: break-word; white-space: normal; }
                     </style>
                 </head>
-                <body onload="setTimeout(() => { window.print(); window.close(); }, 200);">
-                    <div style="max-width: 100%; margin: 0 auto;">
-                        
-                        <div class="print-header">
-                            <div class="print-company">
-                                <h1>UDICON TRADING, OPC</h1>
-                                <p># 2 National Road, Brgy. San Juan<br>Taytay, Rizal, Philippines 1920</p>
-                                <p>Tel Nos.: 8658-7984 / 8658-6202 | Vat Reg TIN: 764-682-065-00000</p>
-                            </div>
-                            <div class="print-report-info">
-                                <h2>${title}</h2>
-                                <p><strong>Generated On:</strong> ${printDate}</p>
-                                <p><strong>System:</strong> Sales & Inventory System</p>
-                            </div>
-                        </div>
-                        
-                        ${tableHTML}
-                        
-                        <div class="print-footer">
-                            <div class="sign-box">
-                                <div class="sign-line"></div>
-                                <div class="sign-label">Prepared By</div>
-                            </div>
-                            <div class="sign-box">
-                                <div class="sign-line"></div>
-                                <div class="sign-label">Approved By</div>
-                            </div>
-                        </div>
-                        
-                        <div class="page-footer">
-                            Confidential - Udicon Trading, OPC. This is a system generated report.
-                        </div>
-                    </div>
+                <body onload="setTimeout(() => { window.print(); window.close(); }, 300);">
+                    ${receiptEl.outerHTML}
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+            printWin.focus();
+        }
+
+        async function openCustPrintPreview() {
+            el('cust-report-body').innerHTML = '<tr><td colspan="6" style="text-align:center;">Loading report data...</td></tr>';
+            el('custPrintPreviewModal').style.display = 'flex';
+
+            const data = filteredCustomersData || [];
+            
+            let totalTxns = 0, totalRev = 0, totalDebt = 0;
+
+            const tbodyHTML = data.map(c => {
+                const txns = parseInt(c.totalTransactions || 0);
+                const spent = parseFloat(c.totalSpent || 0);
+                const debt = parseFloat(c.outstandingBalance || 0);
+                
+                totalTxns += txns;
+                totalRev += spent;
+                totalDebt += debt;
+
+                return `<tr>
+                    <td style="max-width:180px; font-weight:bold;">${c.name}</td>
+                    <td style="max-width:200px;">${c.contactInfo || ''}<br><span style="font-size:10px; color:#555;">${c.address || ''}</span></td>
+                    <td style="text-align:center;">${txns}</td>
+                    <td style="text-align:right;">₱${spent.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td style="text-align:right; font-weight:bold; ${debt > 0 ? 'color:#b91c1c;' : ''}">₱${debt.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td style="text-align:center; font-weight:bold; ${debt > 0 ? 'color:#b91c1c;' : 'color:#2b8a4e;'}">${debt > 0 ? 'Active' : 'None'}</td>
+                    <td style="text-align:center; font-weight:bold; ${debt > 0 ? 'color:#b91c1c;' : 'color:#2b8a4e;'}">${debt > 0 ? 'Unpaid Bal' : 'Fully Paid'}</td>
+                    <td style="text-align:center;">${c.lastTransactionDate ? new Date(c.lastTransactionDate).toLocaleDateString() : 'Never'}</td>
+                </tr>`;
+            }).join('');
+
+            el('cust-report-count').textContent = data.length;
+            el('cust-report-txns').textContent = totalTxns;
+            el('cust-report-revenue').textContent = '₱' + totalRev.toLocaleString('en-US', {minimumFractionDigits:2});
+            el('cust-report-debt').textContent = '₱' + totalDebt.toLocaleString('en-US', {minimumFractionDigits:2});
+            el('cust-report-date').textContent = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
+            
+            el('cust-report-body').innerHTML = tbodyHTML || '<tr><td colspan="6" style="text-align:center;">No records found.</td></tr>';
+        }
+
+        function printCustReport() {
+            const receiptEl = document.getElementById('printableCustReport');
+            if (!receiptEl) return;
+            const printWin = window.open('', '_blank', 'width=1000,height=800');
+            printWin.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Customer Directory Report</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 15mm; }
+                        body { background: white; margin: 0; padding: 0; display: block; font-family: 'Inter', Arial, sans-serif; color: #000; }
+                        .no-print { display: none !important; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                        th { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; color-adjust: exact; padding: 8px !important; border-bottom: 2px solid #ccc !important; font-size: 11px !important; }
+                        td { padding: 8px !important; border-bottom: 1px solid #eee !important; font-size: 11px !important; word-wrap: break-word; white-space: normal; }
+                    </style>
+                </head>
+                <body onload="setTimeout(() => { window.print(); window.close(); }, 300);">
+                    ${receiptEl.outerHTML}
                 </body>
                 </html>
             `);
@@ -1286,6 +1527,130 @@
         function applyFilters() {
             currentPage = 1;
             fetchTransactions();
+        }
+
+        async function openTxnPrintPreview() {
+            el('txn-report-body').innerHTML = '<tr><td colspan="8" class="center-text">Loading report data...</td></tr>';
+            el('txnPrintPreviewModal').style.display = 'flex';
+
+            const statusFilter = el("filterStatus").value;
+            const methodFilter = el("filterPaymentMethod").value;
+            const dateFrom  = el("filterDateFrom").value;
+            const dateTo    = el("filterDateTo").value;
+            const searchTerm = el("searchInput") ? el("searchInput").value.trim() : "";
+            const sortVal   = el("sortAmount").value;
+
+            let apiStatus = '';
+            if (statusFilter === 'pay_later_group') apiStatus = '';
+            else if (statusFilter !== 'all') apiStatus = statusFilter;
+
+            let apiSort = 'newest';
+            if (sortVal === 'date-asc') apiSort = 'oldest';
+
+            const params = new URLSearchParams({
+                page: 1,
+                limit: 'all',
+                search: searchTerm,
+                status: apiStatus,
+                dateFrom,
+                dateTo,
+                sort: apiSort
+            });
+
+            try {
+                const res = await fetch('/api/transactions?' + params.toString());
+                const json = await res.json();
+                let data = json.data || [];
+
+                if (statusFilter === 'pay_later_group') {
+                    data = data.filter(txn => txn.paymentStatus === 'Unpaid' || txn.paymentStatus === 'Partial');
+                }
+                if (methodFilter !== 'all') {
+                    data = data.filter(txn => {
+                        if (methodFilter === 'Pay Later') return txn.paymentMethod === 'Pay Later';
+                        return (txn.paymentMethod || '') === methodFilter;
+                    });
+                }
+                if (sortVal === 'amount-desc') data.sort((a, b) => parseFloat(b.totalAmount || 0) - parseFloat(a.totalAmount || 0));
+                else if (sortVal === 'amount-asc') data.sort((a, b) => parseFloat(a.totalAmount || 0) - parseFloat(b.totalAmount || 0));
+
+                const totalTxns = data.length;
+                let totalSales = 0, totalPaid = 0, totalUnpaid = 0, totalRefunds = 0;
+
+                const tbodyHTML = data.map(t => {
+                    const tAmt = parseFloat(t.totalAmount || 0);
+                    const pAmt = parseFloat(t.amountPaid || 0);
+                    const bal = parseFloat(t.balanceDue || 0);
+                    
+                    if (t.paymentStatus === 'Refunded' || t.paymentStatus === 'Exchanged') {
+                        totalRefunds += Math.abs(tAmt);
+                    } else {
+                        totalSales += tAmt;
+                        totalPaid += pAmt;
+                        totalUnpaid += bal;
+                    }
+
+                    const isInst = (t.paymentMethod === 'Pay Later' || bal > 0) ? '<span style="color:#b91c1c; font-weight:bold;">Yes</span>' : 'No';
+                    const dueDateDisplay = t.nextInstallmentDue ? new Date(t.nextInstallmentDue).toLocaleDateString() : (t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'N/A');
+                    const dateDisplay = new Date(t.transDateTime).toLocaleDateString();
+
+                    return `<tr>
+                        <td>${dateDisplay}</td>
+                        <td>${t.transactionCode}</td>
+                        <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.customerName || 'N/A'}</td>
+                        <td class="center-text">${isInst}</td>
+                        <td class="text-right">₱${tAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        <td class="text-right">₱${pAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        <td class="text-right" style="${bal > 0 ? 'color: #b91c1c; font-weight: bold;' : ''}">₱${bal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        <td class="center-text">${dueDateDisplay}</td>
+                    </tr>`;
+                }).join('');
+
+                el('txn-report-count').textContent = totalTxns;
+                el('txn-report-sales').textContent = '₱' + totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 });
+                el('txn-report-collected').textContent = '₱' + totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 });
+                el('txn-report-receivables').textContent = '₱' + totalUnpaid.toLocaleString('en-US', { minimumFractionDigits: 2 });
+                el('txn-report-refunds').textContent = '₱' + totalRefunds.toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+                el('txn-report-body').innerHTML = tbodyHTML || '<tr><td colspan="8" class="center-text">No records found.</td></tr>';
+
+                el('txn-report-date').textContent = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
+
+            } catch (err) {
+                console.error(err);
+                el('txn-report-body').innerHTML = '<tr><td colspan="8" class="center-text" style="color:red;">Error loading data.</td></tr>';
+            }
+        }
+
+        function printTxnReport() {
+            const receiptEl = document.getElementById('printableTxnReport');
+            if (!receiptEl) return;
+            const printWin = window.open('', '_blank', 'width=1000,height=800');
+            printWin.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Sales Transaction History Report</title>
+                    <link rel="stylesheet" href="../style.css">
+                    <style>
+                        @page { size: A4 portrait; margin: 15mm; }
+                        body { background: white; margin: 0; padding: 0; display: block; font-family: 'Inter', Arial, sans-serif; }
+                        .receipt-container { max-width: 100% !important; box-shadow: none !important; margin: 0 !important; width: 100% !important; border: none !important; border-radius: 0 !important; padding: 0 !important; }
+                        .no-print { display: none !important; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                        th { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; color-adjust: exact; padding: 8px !important; border-bottom: 2px solid #ccc !important; font-size: 11px !important; }
+                        td { padding: 8px !important; border-bottom: 1px solid #eee !important; font-size: 11px !important; word-wrap: break-word; white-space: normal; background: transparent !important; }
+                        td:nth-child(3) { max-width: 180px; }
+                    </style>
+                </head>
+                <body onload="setTimeout(() => { window.print(); window.close(); }, 300);">
+                    ${receiptEl.outerHTML}
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+            printWin.focus();
         }
 
         function fmtPeso(val) {

@@ -196,7 +196,7 @@
             </div>
 
             <!-- Summary Cards using CSS .split and .form-panel -->
-            <div id="report-summary" class="split hidden" style="margin-bottom: 20px; gap: 20px;">
+            <div id="sales-summary" class="report-summary split hidden" style="margin-bottom: 20px; gap: 20px;">
                 <div class="form-panel center-text p-20 flex-column-center">
                     <div class="sub-text">Sales</div>
                     <h3 id="summaryTotal" class="report-summary-value">₱ 0.00</h3>
@@ -224,6 +224,69 @@
                 <div class="form-panel center-text p-20 flex-column-center">
                     <div class="sub-text">Outstanding Receivables</div>
                     <h3 id="summaryReceivables" class="report-summary-value text-danger">₱ 0.00</h3>
+                </div>
+            </div>
+
+            <div id="stocks-summary" class="report-summary split hidden" style="margin-bottom: 20px; gap: 20px;">
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Out of Stock Items</div>
+                    <h3 id="summaryOutStock" class="report-summary-value text-danger">0</h3>
+                </div>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Low Stock Items</div>
+                    <h3 id="summaryLowStock" class="report-summary-value text-warning">0</h3>
+                </div>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Total Flagged Items</div>
+                    <h3 id="summaryTotalFlagged" class="report-summary-value">0</h3>
+                </div>
+            </div>
+
+            <div id="userlogs-summary" class="report-summary split hidden" style="margin-bottom: 20px; gap: 20px;">
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Total User Activity Logs</div>
+                    <h3 id="summaryTotalLogs" class="report-summary-value">0</h3>
+                </div>
+            </div>
+
+            <div id="thresholds-summary" class="report-summary split hidden" style="margin-bottom: 20px; gap: 20px;">
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Needs Update</div>
+                    <h3 id="summaryNeedsUpdate" class="report-summary-value text-highlight-blue">0</h3>
+                </div>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Up to Date</div>
+                    <h3 id="summaryUpToDate" class="report-summary-value" style="color: #28a745;">0</h3>
+                </div>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Total Items Analyzed</div>
+                    <h3 id="summaryTotalThresholds" class="report-summary-value">0</h3>
+                </div>
+            </div>
+
+            <div id="pay-later-summary" class="report-summary split hidden" style="margin-bottom: 20px; gap: 20px;">
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Total Accounts</div>
+                    <h3 id="summaryPLAccounts" class="report-summary-value">0</h3>
+                </div>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Total Unpaid Balance</div>
+                    <h3 id="summaryPLUnpaid" class="report-summary-value text-danger">₱ 0.00</h3>
+                </div>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Total Paid Amount</div>
+                    <h3 id="summaryPLPaid" class="report-summary-value" style="color: #28a745;">₱ 0.00</h3>
+                </div>
+            </div>
+
+            <div id="losses-summary" class="report-summary split hidden" style="margin-bottom: 20px; gap: 20px;">
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Total Lost Items</div>
+                    <h3 id="summaryTotalLosses" class="report-summary-value text-danger">0</h3>
+                </div>
+                <div class="form-panel center-text p-20 flex-column-center">
+                    <div class="sub-text">Total Incidents</div>
+                    <h3 id="summaryLossIncidents" class="report-summary-value">0</h3>
                 </div>
             </div>
 
@@ -297,7 +360,6 @@
         function updateReportUI() {
             const stockStatusDiv = $('stockStatusFilterDiv');
             const lossSourceDiv = $('lossSourceFilterDiv');
-            const summaryPanel = $('report-summary');
             const reorderBtn = $('btn-auto-reorder-report');
 
             const userFilterDiv = $('userFilterDiv');
@@ -306,6 +368,17 @@
             const userLogSortByDiv = $('userLogSortByDiv');
             const thresholdSearchDiv = $('thresholdSearchDiv');
             const thresholdStatusFilterDiv = $('thresholdStatusFilterDiv');
+
+            // Hide all summaries, show the active one
+            document.querySelectorAll('.report-summary').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+            });
+            const activeSummary = $(currentReportType + '-summary');
+            if (activeSummary) {
+                activeSummary.classList.remove('hidden');
+                activeSummary.classList.add('flex');
+            }
 
             // Hide/show filters based on report type
             if (currentReportType === 'sales') {
@@ -321,8 +394,6 @@
                     salesSortByDiv.style.flexDirection = 'column';
                     salesSortByDiv.style.gap = '0';
                 }
-                summaryPanel.classList.remove('hidden');
-                summaryPanel.classList.add('flex');
                 if (reorderBtn) reorderBtn.classList.add('hidden');
                 $('report-table-head').innerHTML = `
                     <tr>
@@ -353,8 +424,6 @@
                     userLogSortByDiv.style.flexDirection = 'column';
                     userLogSortByDiv.style.gap = '0';
                 }
-                summaryPanel.classList.add('hidden');
-                summaryPanel.classList.remove('flex');
                 if (reorderBtn) reorderBtn.classList.add('hidden');
                 $('report-table-head').innerHTML = `
                     <tr>
@@ -375,8 +444,6 @@
                 if (logFilterByDiv) logFilterByDiv.style.display = 'none';
                 if (salesSortByDiv) salesSortByDiv.style.display = 'none';
                 if (userLogSortByDiv) userLogSortByDiv.style.display = 'none';
-                summaryPanel.classList.add('hidden');
-                summaryPanel.classList.remove('flex');
                 if (reorderBtn) reorderBtn.classList.remove('hidden');
                 $('report-table-head').innerHTML = `
                     <tr>
@@ -400,8 +467,6 @@
                 if (logFilterByDiv) logFilterByDiv.style.display = 'none';
                 if (salesSortByDiv) salesSortByDiv.style.display = 'none';
                 if (userLogSortByDiv) userLogSortByDiv.style.display = 'none';
-                summaryPanel.classList.add('hidden');
-                summaryPanel.classList.remove('flex');
                 if (reorderBtn) reorderBtn.classList.add('hidden');
                 $('report-table-head').innerHTML = `
                     <tr>
@@ -429,8 +494,6 @@
                 if (logFilterByDiv) logFilterByDiv.style.display = 'none';
                 if (salesSortByDiv) salesSortByDiv.style.display = 'none';
                 if (userLogSortByDiv) userLogSortByDiv.style.display = 'none';
-                summaryPanel.classList.add('hidden');
-                summaryPanel.classList.remove('flex');
                 if (reorderBtn) reorderBtn.classList.add('hidden');
                 $('report-table-head').innerHTML = `
                     <tr>
@@ -451,8 +514,6 @@
                 if (logFilterByDiv) logFilterByDiv.style.display = 'none';
                 if (salesSortByDiv) salesSortByDiv.style.display = 'none';
                 if (userLogSortByDiv) userLogSortByDiv.style.display = 'none';
-                summaryPanel.classList.add('hidden');
-                summaryPanel.classList.remove('flex');
                 if (reorderBtn) reorderBtn.classList.add('hidden');
                 $('report-table-head').innerHTML = `
                     <tr>
@@ -575,12 +636,12 @@
             }
 
             renderReport();
-            if (currentReportType === 'sales') {
-                updateSalesSummary();
-            }
-            if (currentReportType === 'losses') {
-                updateLossesSummary();
-            }
+            if (currentReportType === 'sales') updateSalesSummary();
+            else if (currentReportType === 'losses') updateLossesSummary();
+            else if (currentReportType === 'stocks') updateStocksSummary();
+            else if (currentReportType === 'userlogs') updateUserlogsSummary();
+            else if (currentReportType === 'thresholds') updateThresholdsSummary();
+            else if (currentReportType === 'pay-later') updatePayLaterSummary();
         }
 
         function renderReport() {
@@ -783,7 +844,44 @@
         }
 
         function updateLossesSummary() {
-            // Could add a summary card for total losses in the future
+            if (currentReportType !== 'losses') return;
+            const totalLosses = reportData.reduce((sum, r) => sum + parseInt(r.qtyLost || 0), 0);
+            const totalIncidents = reportData.length;
+            $('summaryTotalLosses').textContent = totalLosses;
+            $('summaryLossIncidents').textContent = totalIncidents;
+        }
+
+        function updateStocksSummary() {
+            if (currentReportType !== 'stocks') return;
+            const outStock = reportData.filter(r => r.status === 'Out of Stock').length;
+            const lowStock = reportData.filter(r => r.status === 'Low Stock').length;
+            $('summaryOutStock').textContent = outStock;
+            $('summaryLowStock').textContent = lowStock;
+            $('summaryTotalFlagged').textContent = outStock + lowStock;
+        }
+
+        function updateUserlogsSummary() {
+            if (currentReportType !== 'userlogs') return;
+            $('summaryTotalLogs').textContent = reportData.length;
+        }
+
+        function updateThresholdsSummary() {
+            if (currentReportType !== 'thresholds') return;
+            const needsUpdate = reportData.filter(r => r.currentThreshold !== r.suggestedThreshold).length;
+            const upToDate = reportData.filter(r => r.currentThreshold === r.suggestedThreshold).length;
+            $('summaryNeedsUpdate').textContent = needsUpdate;
+            $('summaryUpToDate').textContent = upToDate;
+            $('summaryTotalThresholds').textContent = reportData.length;
+        }
+
+        function updatePayLaterSummary() {
+            if (currentReportType !== 'pay-later') return;
+            const totalAccounts = reportData.length;
+            const totalUnpaid = reportData.reduce((sum, r) => sum + parseFloat(r.balanceDue || 0), 0);
+            const totalPaid = reportData.reduce((sum, r) => sum + parseFloat(r.paidAmount || 0), 0);
+            $('summaryPLAccounts').textContent = totalAccounts;
+            $('summaryPLUnpaid').textContent = `₱ ${totalUnpaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            $('summaryPLPaid').textContent = `₱ ${totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         }
 
         // Helper: map DB category/actionType to a badge class based on action type

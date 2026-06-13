@@ -1294,15 +1294,22 @@
 
     // --- Stock Alert Table ---
     function renderAlertTable(lowStockProducts, suppliers) {
-      // Build productID → supplier names map
       const productSupplierMap = {};
-      (suppliers || []).forEach(s => {
-        if (s.productIDs) {
+      suppliers.forEach(s => {
+        if (s.productPricing) {
+          s.productPricing.split(',').forEach(item => {
+            const [pid, price] = item.split(':');
+            if (pid) {
+              if (!productSupplierMap[pid]) productSupplierMap[pid] = [];
+              productSupplierMap[pid].push({ name: s.supplierName, price: price ? parseFloat(price) : null });
+            }
+          });
+        } else if (s.productIDs) {
           s.productIDs.split(',').forEach(pid => {
             pid = pid.trim();
             if (pid) {
               if (!productSupplierMap[pid]) productSupplierMap[pid] = [];
-              productSupplierMap[pid].push(s.supplierName);
+              productSupplierMap[pid].push({ name: s.supplierName, price: null });
             }
           });
         }
@@ -1327,7 +1334,7 @@
 
         const supplierList = productSupplierMap[String(p.productID)] || [];
         const supplierCell = supplierList.length > 0
-          ? supplierList.map(name => `<span class="${badgeCls}">${name}</span>`).join(' ')
+          ? supplierList.map(supp => `<span class="${badgeCls}">${supp.name}${supp.price !== null ? ` (₱${supp.price.toFixed(2)})` : ''}</span>`).join(' ')
           : '<span class="no-supplier-tag">No supplier</span>';
         const reorderBtn = supplierList.length > 0
           ? `<button class="btn-edit" onclick="openReorderModal(${p.productID})">Reorder</button>`

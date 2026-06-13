@@ -6,6 +6,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supplier Management | Udicon Trading</title>
     <link rel="stylesheet" href="../style.css">
+    <style>
+        .supplier-product-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #ffffff;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            cursor: pointer;
+        }
+        .supplier-product-item:hover {
+            border-color: #356ac3;
+            box-shadow: 0 4px 6px rgba(53, 106, 195, 0.1);
+        }
+        .supplier-product-item.selected {
+            border-color: #356ac3;
+            background: #f8faff;
+        }
+        .product-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 15px;
+            cursor: pointer;
+            accent-color: #356ac3;
+        }
+        .supplier-product-name {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1e293b;
+        }
+        .supplier-price-wrapper {
+            display: flex;
+            align-items: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            overflow: hidden;
+            width: 130px;
+            background: #ffffff;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(10px);
+            transition: all 0.3s ease;
+        }
+        .supplier-price-wrapper.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(0);
+        }
+        .supplier-price-wrapper span {
+            background: #f1f5f9;
+            padding: 6px 12px;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 600;
+            border-right: 1px solid #cbd5e1;
+        }
+        .supplier-price-wrapper input {
+            border: none !important;
+            padding: 6px 10px !important;
+            width: 100% !important;
+            margin: 0 !important;
+            outline: none !important;
+            font-size: 14px;
+            color: #0f172a;
+        }
+        .supplier-price-wrapper input:focus {
+            box-shadow: none !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -129,14 +202,14 @@
                 </div>
 
                 <div class="align-right">
-                    <button class="btn-create-supplier active" id="btn-save" onclick="saveSupplier()">Create</button>
+                    <button type="button" class="btn-create-supplier active" id="btn-save" onclick="saveSupplier()">Create</button>
                 </div>
 
                 <!-- Danger zone: archive only visible in edit mode -->
                 <div id="delete-zone"
                     style="display:none; margin-top:18px; border-top:1px solid #eee; padding-top:14px;">
                     <p class="sub-text" style="margin:0 0 8px 0; color: #888;">⚠ Danger Zone</p>
-                    <button class="btn-delete" style="width: 100%; margin: 0;" onclick="deleteCurrentSupplier()">Archive
+                    <button type="button" class="btn-delete" style="width: 100%; margin: 0;" onclick="deleteCurrentSupplier()">Archive
                         This Supplier</button>
                 </div>
             </div>
@@ -187,10 +260,31 @@
         }
 
         // --- Updated View Products to display as a styled list ---
-        function viewProducts(name, productsStr) {
-            const listItems = productsStr
-                ? productsStr.split(',').map(p => `<li class="modal-list-item">${p.trim()}</li>`).join('')
-                : '<li class="modal-list-item">No products assigned.</li>';
+        function viewProducts(name, productsStr, pricingStr) {
+            let listItems = '';
+            if (!productsStr) {
+                listItems = '<li class="modal-list-item">No products assigned.</li>';
+            } else {
+                const names = productsStr.split(',');
+                const pricingParts = pricingStr ? pricingStr.split(',') : [];
+                const priceMap = {};
+                
+                pricingParts.forEach(part => {
+                    const [pid, price] = part.split(':');
+                    if (pid && price) priceMap[pid] = price;
+                });
+
+                // Assuming productIDs in supplierList is available globally for mapping, or we just map by index
+                // Since ORDER BY is used in the query, productNames and productPricing should match by index
+                listItems = names.map((pName, i) => {
+                    let priceText = '';
+                    if (pricingParts[i]) {
+                        const [, price] = pricingParts[i].split(':');
+                        if (price) priceText = `<span style="float:right; color:#28a745; font-weight:bold;">₱ ${parseFloat(price).toFixed(2)}</span>`;
+                    }
+                    return `<li class="modal-list-item" style="display:block; overflow:hidden;">${pName.trim()} ${priceText}</li>`;
+                }).join('');
+            }
 
             showAlert(`
                 <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 18px;">Products for ${name}:</h3>
@@ -257,6 +351,7 @@
                 const count = s.productIDs ? s.productIDs.toString().split(',').length : 0;
                 const safeName = s.supplierName.replace(/'/g, "\\'");
                 const safeProds = (s.productNames || '').replace(/'/g, "\\'");
+                const safePricing = (s.productPricing || '').replace(/'/g, "\\'");
                 const terms = s.termsOfPayment || 'COD';
 
                 return `
@@ -266,7 +361,7 @@
                         <td class="sub-text">${s.email || 'N/A'}</td>
                         <td class="sub-text address-cell">${addr}</td>
                         <td class="sub-text">${terms}</td>
-                        <td><button class="btn-view" onclick="viewProducts('${safeName}', '${safeProds}')">View (${count})</button></td>
+                        <td><button class="btn-view" onclick="viewProducts('${safeName}', '${safeProds}', '${safePricing}')">View (${count})</button></td>
                         <td>
                             <div style="display: flex; gap: 5px;">
                                 <button class="btn-edit" onclick="openForm(${s.supplierID})">Edit</button>
@@ -280,7 +375,7 @@
         // --- Form Logic ---
         function openForm(id = null) {
             currentEditId = id;
-            const s = supplierList.find(x => x.supplierID === id) || { supplierName: '', contactNumber: '', email: '', address: '', termsOfPayment: '', productIDs: '' };
+            const s = supplierList.find(x => x.supplierID == id) || { supplierName: '', contactNumber: '', email: '', address: '', termsOfPayment: '', productIDs: '' };
 
             val('supName', s.supplierName || '');
             val('supContact', s.contactNumber || '');
@@ -299,8 +394,36 @@
                 $('supTermsCustom').style.display = 'block';
             }
 
-            const selectedIDs = (s.productIDs || '').toString().split(',');
-            document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = selectedIDs.includes(cb.value));
+            // Clear all checkboxes and prices
+            document.querySelectorAll('.supplier-price-input').forEach(input => { input.value = ''; });
+            document.querySelectorAll('.supplier-price-wrapper').forEach(wrapper => { wrapper.classList.remove('visible'); });
+            document.querySelectorAll('.supplier-product-item').forEach(item => { item.classList.remove('selected'); });
+            document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false);
+
+            if (s.productPricing) {
+                s.productPricing.split(',').forEach(item => {
+                    const [pid, price] = item.split(':');
+                    const cb = document.querySelector(`.product-checkbox[value="${pid}"]`);
+                    if (cb) {
+                        cb.checked = true;
+                        const input = $('supp-price-' + pid);
+                        const wrapper = $('supp-price-wrapper-' + pid);
+                        const card = $('supp-item-' + pid);
+                        wrapper.classList.add('visible');
+                        card.classList.add('selected');
+                        if (price) input.value = parseFloat(price).toFixed(2);
+                    }
+                });
+            } else if (s.productIDs) {
+                const selectedIDs = (s.productIDs || '').toString().split(',');
+                document.querySelectorAll('.product-checkbox').forEach(cb => {
+                    if (selectedIDs.includes(cb.value)) {
+                        cb.checked = true;
+                        $('supp-price-wrapper-' + cb.value).classList.add('visible');
+                        $('supp-item-' + cb.value).classList.add('selected');
+                    }
+                });
+            }
 
             $('form-title').innerHTML = `${id ? 'Edit' : 'Create'} Supplier`;
             $('btn-save').innerText = id ? 'Save Changes' : 'Create';
@@ -316,12 +439,18 @@
                 const json = await res.json();
                 productList = json.data || [];
                 $('product-checkbox-container').innerHTML = productList.length ? productList.map(p => {
-                    const brandStr = p.brand ? ` (${p.brand})` : '';
+                    const brandStr = p.brand ? ` <span style="color:#64748b; font-size:12px;">(${p.brand})</span>` : '';
                     return `
-                    <label class="product-checkbox-label" style="display: flex; align-items: center; font-weight: normal; margin-top: 5px; cursor: pointer;">
-                        <input type="checkbox" class="product-checkbox" value="${p.productID}" style="width: auto; margin-right: 10px; transform: scale(1.2);">
-                        ${p.productName}${brandStr}
-                    </label>
+                    <div class="supplier-product-item product-checkbox-label" id="supp-item-${p.productID}">
+                        <label style="display: flex; align-items: center; flex: 1; cursor: pointer; margin: 0;">
+                            <input type="checkbox" class="product-checkbox" value="${p.productID}" onchange="togglePriceInput(this, ${p.productID})">
+                            <div class="supplier-product-name">${p.productName}${brandStr}</div>
+                        </label>
+                        <div class="supplier-price-wrapper" id="supp-price-wrapper-${p.productID}">
+                            <span>₱</span>
+                            <input type="number" id="supp-price-${p.productID}" class="supplier-price-input" placeholder="0.00" step="0.01">
+                        </div>
+                    </div>
                     `;
                 }).join('') : '<p style="color: #888; text-align: center;">No products available.</p>';
             } catch { console.error("Failed to load products for checkboxes."); }
@@ -335,6 +464,21 @@
             });
         }
 
+        function togglePriceInput(cb, id) {
+            const input = $('supp-price-' + id);
+            const wrapper = $('supp-price-wrapper-' + id);
+            const item = $('supp-item-' + id);
+            if (cb.checked) {
+                wrapper.classList.add('visible');
+                item.classList.add('selected');
+                input.focus();
+            } else {
+                wrapper.classList.remove('visible');
+                item.classList.remove('selected');
+                input.value = '';
+            }
+        }
+
         async function loadSuppliers() {
             currentPage = 1;
             await fetchSuppliers();
@@ -346,13 +490,22 @@
 
             if (termsSelect === 'Others' && !finalTerms) return showAlert("Please enter the custom payment term.");
 
+            const productData = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => {
+                const pid = parseInt(cb.value);
+                const priceVal = $('supp-price-' + pid).value;
+                return {
+                    id: pid,
+                    price: priceVal ? parseFloat(priceVal) : null
+                };
+            });
+
             const payload = {
                 supplierName: val('supName'),
                 contactNumber: val('supContact'),
                 email: val('supEmail'),
                 address: val('supAddress'),
                 termsOfPayment: finalTerms,
-                productIDs: Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => parseInt(cb.value))
+                productIDs: productData
             };
 
             if (!payload.supplierName) return showAlert("Please fill in the Supplier Name!");

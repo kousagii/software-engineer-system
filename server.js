@@ -910,8 +910,9 @@ app.get('/api/suppliers', (req, res) => {
 
     const baseQuery = `
         SELECT s.supplierID, s.supplierName, s.contactNumber, s.email, s.address, s.termsOfPayment,
-               GROUP_CONCAT(DISTINCT sp.productID) AS productIDs,
-               GROUP_CONCAT(DISTINCT p.productName) AS productNames
+               GROUP_CONCAT(sp.productID ORDER BY p.productName ASC) AS productIDs,
+               GROUP_CONCAT(p.productName ORDER BY p.productName ASC) AS productNames,
+               GROUP_CONCAT(CONCAT(sp.productID, ':', IFNULL(sp.supplierPrice, '')) ORDER BY p.productName ASC) AS productPricing
         FROM supplier s
         LEFT JOIN supplier_products sp ON s.supplierID = sp.supplierID
         LEFT JOIN product p ON sp.productID = p.productID
@@ -957,8 +958,8 @@ app.post('/api/suppliers', (req, res) => {
         }
 
         if (productIDs && productIDs.length > 0) {
-            const spSql = `INSERT INTO supplier_products (supplierID, productID) VALUES ?`;
-            const values = productIDs.map(pid => [newSupplierId, pid]);
+            const spSql = `INSERT INTO supplier_products (supplierID, productID, supplierPrice) VALUES ?`;
+            const values = productIDs.map(p => [newSupplierId, p.id, p.price || null]);
 
             db.query(spSql, [values], (spErr) => {
                 if (spErr) console.error(spErr);
@@ -989,8 +990,8 @@ app.put('/api/suppliers/:id', (req, res) => {
             if (delErr) console.error(delErr);
 
             if (productIDs && productIDs.length > 0) {
-                const spSql = `INSERT INTO supplier_products (supplierID, productID) VALUES ?`;
-                const values = productIDs.map(pid => [id, pid]);
+                const spSql = `INSERT INTO supplier_products (supplierID, productID, supplierPrice) VALUES ?`;
+                const values = productIDs.map(p => [id, p.id, p.price || null]);
 
                 db.query(spSql, [values], (spErr) => {
                     res.status(200).json({ message: "Supplier updated successfully!" });
@@ -1468,7 +1469,8 @@ app.get('/api/auto-reorder/preview', async (req, res) => {
                 p.lowStockThreshold,
                 p.price,
                 s.supplierID,
-                s.supplierName
+                s.supplierName,
+                sp.supplierPrice
             FROM product p
             JOIN supplier_products sp ON p.productID = sp.productID
             JOIN supplier s ON sp.supplierID = s.supplierID
@@ -1490,7 +1492,8 @@ app.get('/api/auto-reorder/preview', async (req, res) => {
             }
             productsMap[row.productID].suppliers.push({
                 supplierID: row.supplierID,
-                supplierName: row.supplierName
+                supplierName: row.supplierName,
+                supplierPrice: parseFloat(row.supplierPrice) || 0
             });
         });
 
