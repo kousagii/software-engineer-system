@@ -21,6 +21,32 @@
     <!-- Hidden container for printable PDF reports -->
     <div id="reportPrintContainer"></div>
 
+    <!-- Preview Modal -->
+    <div id="reportPreviewModal" class="modal-overlay hidden" style="z-index: 1000;">
+        <div class="modal-box"
+            style="max-width: 800px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #f1f5f9; padding: 20px;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #cbd5e1; margin-bottom: 15px;">
+                <h3 style="margin: 0; color: #1e293b;">Report Preview</h3>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-cancel"
+                        style="width: 150px; margin: 0; font-weight: bold; padding: 10px; border-radius: 6px;"
+                        onclick="closeReportPreview()">Cancel</button>
+                    <button id="modalPrintBtn" class="btn-ok"
+                        style="width: 150px; margin: 0; font-weight: bold; padding: 10px; border-radius: 6px;"
+                        onclick="confirmPrintReport()">Print PDF</button>
+                    <button id="modalExcelBtn" class="btn-ok hidden"
+                        style="width: 150px; margin: 0; font-weight: bold; padding: 10px; border-radius: 6px;"
+                        onclick="confirmExcelExport()">Download Excel</button>
+                </div>
+            </div>
+            <div
+                style="flex: 1; overflow-y: auto; background: white; padding: 20px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div id="pdfPreviewContent"></div>
+            </div>
+        </div>
+    </div>
+
     <main class="dashboard-main">
         <div id="report-list-view" class="w-full">
 
@@ -116,13 +142,25 @@
                                 <option value="ok">Up to date</option>
                             </select>
                         </div>
+                        <div id="quickDateDiv">
+                            <label>Date Range</label>
+                            <select id="quickDate" onchange="applyQuickDate()">
+                                <option value="custom">Custom</option>
+                                <option value="weekly">This Week</option>
+                                <option value="monthly">This Month</option>
+                                <option value="quarterly">This Quarter</option>
+                                <option value="yearly">This Year</option>
+                            </select>
+                        </div>
                         <div id="dateFromDiv">
                             <label>From Date</label>
-                            <input type="date" id="dateFrom" onchange="generateReport()">
+                            <input type="date" id="dateFrom"
+                                onchange="document.getElementById('quickDate').value='custom'; generateReport()">
                         </div>
                         <div id="dateToDiv">
                             <label>To Date</label>
-                            <input type="date" id="dateTo" onchange="generateReport()">
+                            <input type="date" id="dateTo"
+                                onchange="document.getElementById('quickDate').value='custom'; generateReport()">
                         </div>
                         <div id="salesSortByDiv" style="display: none;">
                             <label>Sort By</label>
@@ -230,6 +268,7 @@
         };
 
         let reportData = [];
+        let currentFilteredData = [];
         let currentPage = 1;
         let currentReportType = 'sales';
 
@@ -430,6 +469,7 @@
 
             // Show/hide date range pickers
             const showDates = currentReportType !== 'stocks' && currentReportType !== 'thresholds';
+            if ($('quickDateDiv')) $('quickDateDiv').style.display = showDates ? '' : 'none';
             $('dateFromDiv').style.display = showDates ? '' : 'none';
             $('dateToDiv').style.display = showDates ? '' : 'none';
 
@@ -608,6 +648,7 @@
                 }
             }
 
+            currentFilteredData = filteredData;
             const totalPages = Math.ceil(filteredData.length / limit) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
             if (currentPage < 1) currentPage = 1;
@@ -859,32 +900,31 @@
 
             if (currentReportType === 'sales') {
                 headers = ['Product', 'No. of Products Sold', 'No. of Returns', 'Income (Sales)'];
-                rows = reportData.map(r => [r.productName, r.qtySold, r.qtyReturned, r.income]);
+                rows = currentFilteredData.map(r => [r.productName, r.qtySold, r.qtyReturned, r.income]);
             } else if (currentReportType === 'userlogs') {
                 headers = ['Date', 'Time', 'User', 'Role', 'Category', 'Action Performed'];
-                rows = reportData.map(r => [r.date, r.time, r.userName, r.userType, getCategoryLabel(r.category), r.action]);
+                rows = currentFilteredData.map(r => [r.date, r.time, r.userName, r.userType, getCategoryLabel(r.category), r.action]);
             } else if (currentReportType === 'stocks') {
                 headers = ['Category', 'Product Name', 'Stock Level', 'Threshold', 'Status'];
-                rows = reportData.map(r => [r.category, r.product, r.stocks, r.threshold, r.status]);
+                rows = currentFilteredData.map(r => [r.category, r.product, r.stocks, r.threshold, r.status]);
             } else if (currentReportType === 'losses') {
                 headers = ['Date', 'Source', 'Product', 'Qty Lost', 'Reason / Reference'];
-                rows = reportData.map(r => [r.date, r.source, r.product, r.qtyLost, r.reason]);
+                rows = currentFilteredData.map(r => [r.date, r.source, r.product, r.qtyLost, r.reason]);
             } else if (currentReportType === 'thresholds') {
                 headers = ['Product Name', 'Current Threshold', 'Suggested Threshold', 'Reasoning'];
-                rows = reportData.map(r => [r.productName, r.currentThreshold, r.suggestedThreshold, r.reason]);
+                rows = currentFilteredData.map(r => [r.productName, r.currentThreshold, r.suggestedThreshold, r.reason]);
             } else if (currentReportType === 'pay-later') {
                 headers = ['Date', 'Txn Code', 'Customer', 'Total Amount', 'Paid Amount', 'Balance Due', 'Due Date'];
-                rows = reportData.map(r => [formatDate(r.transDate), r.transactionCode, `${r.customerName} (${r.contactInfo || 'N/A'})`, `₱${parseFloat(r.totalAmount || 0).toFixed(2)}`, `₱${parseFloat(r.paidAmount || 0).toFixed(2)}`, `₱${parseFloat(r.balanceDue || 0).toFixed(2)}`, r.dueDate ? formatDate(r.dueDate) : 'N/A']);
+                rows = currentFilteredData.map(r => [formatDate(r.transDate), r.transactionCode, `${r.customerName} (${r.contactInfo || 'N/A'})`, parseFloat(r.totalAmount || 0).toFixed(2), parseFloat(r.paidAmount || 0).toFixed(2), parseFloat(r.balanceDue || 0).toFixed(2), r.dueDate ? formatDate(r.dueDate) : 'N/A']);
             }
 
             return { headers, rows };
         }
 
-        function exportToExcel() {
-            if (!reportData || reportData.length === 0) {
-                showAlert('No data to export. Generate a report first.');
-                return;
-            }
+        function confirmExcelExport() {
+            closeReportPreview();
+            
+            if (!currentFilteredData || currentFilteredData.length === 0) return;
 
             const { headers, rows } = getExportData();
             const reportLabel = currentReportType === 'sales' ? 'Sales Performance'
@@ -893,60 +933,279 @@
                         : currentReportType === 'thresholds' ? 'Threshold Suggestions'
                             : currentReportType === 'pay-later' ? 'Pay Later Accounts'
                                 : 'Stock Alerts';
+                                
+            const dateInfo = currentReportType === 'stocks' || currentReportType === 'thresholds' || currentReportType === 'pay-later'
+                ? `Generated: ${new Date().toLocaleString('en-PH')}`
+                : `Date Range: ${val('dateFrom')} to ${val('dateTo')} | Generated: ${new Date().toLocaleString('en-PH')}`;
 
-            // Build CSV content with BOM for Excel compatibility
-            let csv = '\uFEFF'; // UTF-8 BOM
-            csv += `Udicon Trading - ${reportLabel} Report\n`;
-            if (currentReportType !== 'stocks' && currentReportType !== 'thresholds' && currentReportType !== 'pay-later') {
-                csv += `Date Range: ${val('dateFrom')} to ${val('dateTo')}\n`;
-            }
-            csv += `Generated: ${new Date().toLocaleString('en-PH')}\n\n`;
+            const colCount = headers.length;
 
-            // Add summary for sales
+            // Determine which columns are numeric (for SUM formulas)
+            let numericCols = [];
             if (currentReportType === 'sales') {
-                const totalQtySold = reportData.reduce((sum, r) => sum + (parseInt(r.qtySold) || 0), 0);
-                const totalReturns = reportData.reduce((sum, r) => sum + (parseInt(r.qtyReturned) || 0), 0);
-                const totalIncome = reportData.reduce((sum, r) => sum + (parseFloat(r.incomeRaw) || 0), 0);
-                csv += `Total Products,${reportData.length}\n`;
-                csv += `Total Qty Sold,${totalQtySold}\n`;
-                csv += `Total Returns,${totalReturns}\n`;
-                csv += `Total Income,₱ ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n\n`;
+                numericCols = [1, 2, 3];
+            } else if (currentReportType === 'losses') {
+                numericCols = [3];
+            } else if (currentReportType === 'stocks') {
+                numericCols = [2, 3];
+            } else if (currentReportType === 'thresholds') {
+                numericCols = [1, 2];
+            } else if (currentReportType === 'pay-later') {
+                numericCols = [3, 4, 5];
             }
 
-            // Escape CSV fields
-            const escapeCSV = (val) => {
-                const str = String(val ?? '');
-                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                    return '"' + str.replace(/"/g, '""') + '"';
-                }
-                return str;
-            };
+            // Build summary text
+            let summaryText = '';
+            if (currentReportType === 'sales') {
+                summaryText = `Unique Products: ${currentFilteredData.length}`;
+            } else if (currentReportType === 'stocks') {
+                const outOfStock = currentFilteredData.filter(r => r.status === 'Out of Stock').length;
+                const lowStock = currentFilteredData.filter(r => r.status === 'Low Stock').length;
+                summaryText = `Out of Stock: ${outOfStock} | Low Stock: ${lowStock} | Total Flagged: ${currentFilteredData.length}`;
+            } else if (currentReportType === 'userlogs') {
+                summaryText = `Total User Activity Logs: ${currentFilteredData.length}`;
+            } else if (currentReportType === 'thresholds') {
+                const needsUpdate = currentFilteredData.filter(r => r.currentThreshold !== r.suggestedThreshold).length;
+                const upToDate = currentFilteredData.filter(r => r.currentThreshold === r.suggestedThreshold).length;
+                summaryText = `Needs Update: ${needsUpdate} | Up to Date: ${upToDate} | Total Items: ${currentFilteredData.length}`;
+            } else if (currentReportType === 'losses') {
+                summaryText = `Total Records: ${currentFilteredData.length}`;
+            } else if (currentReportType === 'pay-later') {
+                summaryText = `Total Accounts: ${currentFilteredData.length}`;
+            }
 
-            csv += headers.map(escapeCSV).join(',') + '\n';
-            rows.forEach(row => {
-                csv += row.map((val, index) => {
-                    let str = String(val ?? '');
-                    if (index === 0) {
-                        str = '\t' + str;
-                    }
-                    return escapeCSV(str);
-                }).join(',') + '\n';
+            // Calculate dynamic column widths based on content
+            const colWidths = headers.map((h, colIndex) => {
+                let maxLen = h.length;
+                rows.forEach(row => {
+                    const cellVal = String(row[colIndex] || '');
+                    if (cellVal.length > maxLen) maxLen = cellVal.length;
+                });
+                return Math.min(55, Math.max(12, maxLen + 4));
             });
 
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            // Helper: convert 0-based index to Excel column letter
+            function colLetter(idx) {
+                let letter = '';
+                let n = idx;
+                while (n >= 0) {
+                    letter = String.fromCharCode(65 + (n % 26)) + letter;
+                    n = Math.floor(n / 26) - 1;
+                }
+                return letter;
+            }
+
+            // Escape XML special characters
+            function escXml(str) {
+                return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            // Build SpreadsheetML XML
+            let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles>
+ <Style ss:ID="Default" ss:Name="Normal">
+  <Alignment ss:Vertical="Center"/>
+  <Font ss:FontName="Arial" ss:Size="11"/>
+ </Style>
+ <Style ss:ID="sTitle">
+  <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+  <Font ss:FontName="Arial" ss:Size="18" ss:Bold="1"/>
+  <Interior ss:Color="#F2F2F2" ss:Pattern="Solid"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="sReportName">
+  <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+  <Font ss:FontName="Arial" ss:Size="14" ss:Bold="1"/>
+  <Interior ss:Color="#F2F2F2" ss:Pattern="Solid"/>
+ </Style>
+ <Style ss:ID="sDateInfo">
+  <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+  <Font ss:FontName="Arial" ss:Size="11"/>
+  <Interior ss:Color="#F2F2F2" ss:Pattern="Solid"/>
+ </Style>
+ <Style ss:ID="sSummary">
+  <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+  <Font ss:FontName="Arial" ss:Size="11" ss:Bold="1"/>
+  <Interior ss:Color="#F8F9FA" ss:Pattern="Solid"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDDDDD"/>
+   <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDDDDD"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="sColHeader">
+  <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+  <Font ss:FontName="Arial" ss:Size="11" ss:Bold="1"/>
+  <Interior ss:Color="#E2E8F0" ss:Pattern="Solid"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="sCell">
+  <Alignment ss:Vertical="Center"/>
+  <Font ss:FontName="Arial" ss:Size="11"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="sCellNum">
+  <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+  <Font ss:FontName="Arial" ss:Size="11"/>
+  <NumberFormat ss:Format="#,##0.00"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="sCellNumInt">
+  <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+  <Font ss:FontName="Arial" ss:Size="11"/>
+  <NumberFormat ss:Format="#,##0"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="sCellWarn">
+  <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+  <Font ss:FontName="Arial" ss:Size="11" ss:Bold="1" ss:Color="#D32F2F"/>
+  <NumberFormat ss:Format="#,##0"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="sTotal">
+  <Alignment ss:Vertical="Center"/>
+  <Font ss:FontName="Arial" ss:Size="11" ss:Bold="1"/>
+  <Interior ss:Color="#D1E7DD" ss:Pattern="Solid"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#333333"/>
+   <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#333333"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="sTotalNum">
+  <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+  <Font ss:FontName="Arial" ss:Size="11" ss:Bold="1"/>
+  <Interior ss:Color="#D1E7DD" ss:Pattern="Solid"/>
+  <NumberFormat ss:Format="#,##0.00"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#333333"/>
+   <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>
+   <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#333333"/>
+  </Borders>
+ </Style>
+</Styles>
+<Worksheet ss:Name="Report">
+<Table ss:DefaultRowHeight="20">
+`;
+            // Column widths
+            colWidths.forEach(w => {
+                xml += ` <Column ss:AutoFitWidth="0" ss:Width="${w * 7}"/>\n`;
+            });
+
+            const mergeCount = colCount - 1;
+
+            // Row 1: Title
+            xml += ` <Row ss:Height="35"><Cell ss:MergeAcross="${mergeCount}" ss:StyleID="sTitle"><Data ss:Type="String">Udicon Trading</Data></Cell></Row>\n`;
+            // Row 2: Report Name
+            xml += ` <Row ss:Height="28"><Cell ss:MergeAcross="${mergeCount}" ss:StyleID="sReportName"><Data ss:Type="String">${escXml(reportLabel)} Report</Data></Cell></Row>\n`;
+            // Row 3: Date Info
+            xml += ` <Row ss:Height="22"><Cell ss:MergeAcross="${mergeCount}" ss:StyleID="sDateInfo"><Data ss:Type="String">${escXml(dateInfo)}</Data></Cell></Row>\n`;
+            // Row 4: Summary
+            xml += ` <Row ss:Height="22"><Cell ss:MergeAcross="${mergeCount}" ss:StyleID="sSummary"><Data ss:Type="String">${escXml(summaryText)}</Data></Cell></Row>\n`;
+            // Row 5: Blank
+            xml += ` <Row ss:Height="10"></Row>\n`;
+            // Row 6: Column Headers
+            xml += ` <Row ss:Height="24">`;
+            headers.forEach(h => {
+                xml += `<Cell ss:StyleID="sColHeader"><Data ss:Type="String">${escXml(h)}</Data></Cell>`;
+            });
+            xml += `</Row>\n`;
+
+            // Data rows start at row 7
+            const dataStartRow = 7;
+            const dataEndRow = 6 + rows.length;
+
+            // Determine if column should use integer or decimal format
+            const decimalCols = [];
+            if (currentReportType === 'sales') decimalCols.push(3); // Income
+            if (currentReportType === 'pay-later') decimalCols.push(3, 4, 5); // Amounts
+
+            rows.forEach(row => {
+                xml += ` <Row ss:Height="20">`;
+                row.forEach((cell, index) => {
+                    const isNumeric = numericCols.includes(index);
+                    if (isNumeric) {
+                        let numVal = parseFloat(String(cell).replace(/[₱,\s]/g, '')) || 0;
+                        const isDecimal = decimalCols.includes(index);
+                        let styleId = isDecimal ? 'sCellNum' : 'sCellNumInt';
+                        // Red highlight for returns > 0
+                        if (currentReportType === 'sales' && index === 2 && numVal > 0) {
+                            styleId = 'sCellWarn';
+                        }
+                        xml += `<Cell ss:StyleID="${styleId}"><Data ss:Type="Number">${numVal}</Data></Cell>`;
+                    } else {
+                        xml += `<Cell ss:StyleID="sCell"><Data ss:Type="String">${escXml(cell)}</Data></Cell>`;
+                    }
+                });
+                xml += `</Row>\n`;
+            });
+
+            // Totals row with SUM formulas
+            if (numericCols.length > 0) {
+                xml += ` <Row ss:Height="24">`;
+                headers.forEach((h, index) => {
+                    if (index === 0) {
+                        xml += `<Cell ss:StyleID="sTotal"><Data ss:Type="String">TOTAL</Data></Cell>`;
+                    } else if (numericCols.includes(index)) {
+                        const col = colLetter(index);
+                        xml += `<Cell ss:StyleID="sTotalNum" ss:Formula="=SUM(${col}${dataStartRow}:${col}${dataEndRow})"><Data ss:Type="Number">0</Data></Cell>`;
+                    } else {
+                        xml += `<Cell ss:StyleID="sTotal"><Data ss:Type="String"></Data></Cell>`;
+                    }
+                });
+                xml += `</Row>\n`;
+            }
+
+            xml += `</Table>
+</Worksheet>
+</Workbook>`;
+
+            const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `udicon-${currentReportType}-report-${new Date().toISOString().split('T')[0]}.csv`;
+            link.download = `udicon-${currentReportType}-report-${new Date().toISOString().split('T')[0]}.xls`;
             document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
             URL.revokeObjectURL(link.href);
         }
 
-        function exportToPDF() {
-            if (!reportData || reportData.length === 0) {
+        function generatePreviewHTML() {
+            if (!currentFilteredData || currentFilteredData.length === 0) {
                 showAlert('No data to export. Generate a report first.');
-                return;
+                return null;
             }
 
             const { headers, rows } = getExportData();
@@ -962,45 +1221,71 @@
                 : `Date Range: ${val('dateFrom')} to ${val('dateTo')}<br>Generated: ${new Date().toLocaleString('en-PH')}`;
 
             let html = `
-                <div style="text-align: center; margin-bottom: 20px; font-family: Arial, sans-serif;">
-                    <h2 style="margin: 0; font-size: 24px; color: #333;">Udicon Trading</h2>
+                <div style="text-align: center; margin-bottom: 20px; font-family: Arial, sans-serif; border-bottom: 2px solid #333; padding-bottom: 15px;">
+                    <h2 style="margin: 0; font-size: 24px; color: #333; text-transform: uppercase; letter-spacing: 1px;">Udicon Trading</h2>
                     <h3 style="margin: 5px 0; font-size: 18px; color: #555;">${reportLabel} Report</h3>
                     <p style="margin: 5px 0; font-size: 14px; color: #777;">${dateInfo}</p>
                 </div>
             `;
 
             if (currentReportType === 'sales') {
-                const totalQtySold = reportData.reduce((sum, r) => sum + (parseInt(r.qtySold) || 0), 0);
-                const totalReturns = reportData.reduce((sum, r) => sum + (parseInt(r.qtyReturned) || 0), 0);
-                const totalIncome = reportData.reduce((sum, r) => sum + (parseFloat(r.incomeRaw) || 0), 0);
+                const totalQtySold = currentFilteredData.reduce((sum, r) => sum + (parseInt(r.qtySold) || 0), 0);
+                const totalReturns = currentFilteredData.reduce((sum, r) => sum + (parseInt(r.qtyReturned) || 0), 0);
+                const totalIncome = currentFilteredData.reduce((sum, r) => sum + (parseFloat(r.incomeRaw) || 0), 0);
                 html += `
-                    <div style="display: flex; flex-wrap: wrap; justify-content: space-around; margin-bottom: 20px; font-weight: bold; padding: 10px; background-color: #f8f9fa; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 13px; gap: 10px;">
-                        <span>Unique Products: ${reportData.length}</span>
+                    <div style="display: flex; flex-wrap: wrap; justify-content: space-around; margin-bottom: 20px; font-weight: bold; padding: 12px; background-color: #f8f9fa !important; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 13px; gap: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                        <span>Unique Products: ${currentFilteredData.length}</span>
                         <span>Total Qty Sold: ${totalQtySold}</span>
                         <span>Total Returns: ${totalReturns}</span>
                         <span>Total Income: ₱ ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </div>
                 `;
             } else if (currentReportType === 'losses') {
-                const totalLost = reportData.reduce((sum, r) => sum + (parseInt(r.qtyLost) || 0), 0);
+                const totalLost = currentFilteredData.reduce((sum, r) => sum + (parseInt(r.qtyLost) || 0), 0);
                 html += `
-                    <div style="display: flex; justify-content: space-around; margin-bottom: 20px; font-weight: bold; padding: 10px; background-color: #f8f9fa; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-around; margin-bottom: 20px; font-weight: bold; padding: 12px; background-color: #f8f9fa !important; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 13px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
                         <span>Total Quantity Lost: ${totalLost}</span>
                     </div>
                 `;
             } else if (currentReportType === 'stocks') {
-                const outOfStock = reportData.filter(r => r.status === 'Out of Stock').length;
-                const lowStock = reportData.filter(r => r.status === 'Low Stock').length;
+                const outOfStock = currentFilteredData.filter(r => r.status === 'Out of Stock').length;
+                const lowStock = currentFilteredData.filter(r => r.status === 'Low Stock').length;
                 html += `
-                    <div style="display: flex; justify-content: space-around; margin-bottom: 20px; font-weight: bold; padding: 10px; background-color: #f8f9fa; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-around; margin-bottom: 20px; font-weight: bold; padding: 12px; background-color: #f8f9fa !important; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 13px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
                         <span>Out of Stock Items: ${outOfStock}</span>
                         <span>Low Stock Items: ${lowStock}</span>
-                        <span>Total Flagged Items: ${reportData.length}</span>
+                        <span>Total Flagged Items: ${currentFilteredData.length}</span>
+                    </div>
+                `;
+            } else if (currentReportType === 'userlogs') {
+                html += `
+                    <div style="display: flex; justify-content: space-around; margin-bottom: 20px; font-weight: bold; padding: 12px; background-color: #f8f9fa !important; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                        <span>Total User Activity Logs: ${currentFilteredData.length}</span>
+                    </div>
+                `;
+            } else if (currentReportType === 'thresholds') {
+                const needsUpdate = currentFilteredData.filter(r => r.currentThreshold !== r.suggestedThreshold).length;
+                const upToDate = currentFilteredData.filter(r => r.currentThreshold === r.suggestedThreshold).length;
+                html += `
+                    <div style="display: flex; justify-content: space-around; margin-bottom: 20px; font-weight: bold; padding: 12px; background-color: #f8f9fa !important; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                        <span>Needs Update: ${needsUpdate}</span>
+                        <span>Up to Date: ${upToDate}</span>
+                        <span>Total Items: ${currentFilteredData.length}</span>
+                    </div>
+                `;
+            } else if (currentReportType === 'pay-later') {
+                const totalBalance = currentFilteredData.reduce((sum, r) => sum + (parseFloat(r.balanceDue) || 0), 0);
+                const totalPaid = currentFilteredData.reduce((sum, r) => sum + (parseFloat(r.paidAmount) || 0), 0);
+                html += `
+                    <div style="display: flex; flex-wrap: wrap; justify-content: space-around; margin-bottom: 20px; font-weight: bold; padding: 12px; background-color: #f8f9fa !important; border: 1px solid #ddd; font-family: Arial, sans-serif; font-size: 12px; gap: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                        <span>Total Accounts: ${currentFilteredData.length}</span>
+                        <span>Total Unpaid Balance: ₱ ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                        <span>Total Paid Amount: ₱ ${totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </div>
                 `;
             }
 
-            html += '<table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 13px;"><thead><tr>';
+            html += '<table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px;"><thead><tr>';
             headers.forEach(h => {
                 html += `<th style="border: 1px solid #ddd; padding: 10px 8px; text-align: left; background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact;">${h}</th>`;
             });
@@ -1027,19 +1312,36 @@
 
             html += '</tbody></table>';
 
-            const printContainer = document.getElementById('reportPrintContainer');
-            printContainer.innerHTML = html;
+            return html;
+        }
 
-            // Dynamically add a page margin just for this PDF report
-            const printStyle = document.createElement('style');
-            printStyle.innerHTML = '@media print { @page { margin: 15mm 0.5in !important; } }';
-            document.head.appendChild(printStyle);
+        function exportToPDF() {
+            const html = generatePreviewHTML();
+            if (!html) return;
 
-            // Allow DOM to update then trigger print
-            setTimeout(() => {
-                window.print();
-                document.head.removeChild(printStyle);
-            }, 100);
+            document.getElementById('reportPrintContainer').innerHTML = html;
+            document.getElementById('pdfPreviewContent').innerHTML = html;
+
+            document.getElementById('modalPrintBtn').classList.remove('hidden');
+            document.getElementById('modalExcelBtn').classList.add('hidden');
+
+            const modal = document.getElementById('reportPreviewModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function exportToExcel() {
+            const html = generatePreviewHTML();
+            if (!html) return;
+
+            document.getElementById('pdfPreviewContent').innerHTML = html;
+
+            document.getElementById('modalPrintBtn').classList.add('hidden');
+            document.getElementById('modalExcelBtn').classList.remove('hidden');
+
+            const modal = document.getElementById('reportPreviewModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
 
@@ -1055,6 +1357,56 @@
             }
             // Both Admin and Staff can view the Losses report
         };
+
+        function closeReportPreview() {
+            const modal = document.getElementById('reportPreviewModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmPrintReport() {
+            const printStyle = document.createElement('style');
+            printStyle.innerHTML = '@media print { @page { margin: 15mm 0.5in !important; } }';
+            document.head.appendChild(printStyle);
+
+            setTimeout(() => {
+                window.print();
+                document.head.removeChild(printStyle);
+                closeReportPreview();
+            }, 100);
+        }
+
+        function applyQuickDate() {
+            const val = $('quickDate').value;
+            if (val === 'custom') return;
+
+            const now = new Date();
+            let fromDate;
+
+            if (val === 'weekly') {
+                const day = now.getDay();
+                const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                fromDate = new Date(now.getFullYear(), now.getMonth(), diff);
+            } else if (val === 'monthly') {
+                fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            } else if (val === 'quarterly') {
+                const quarter = Math.floor(now.getMonth() / 3);
+                fromDate = new Date(now.getFullYear(), quarter * 3, 1);
+            } else if (val === 'yearly') {
+                fromDate = new Date(now.getFullYear(), 0, 1);
+            }
+
+            const formatDateInput = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            $('dateFrom').value = formatDateInput(fromDate);
+            $('dateTo').value = formatDateInput(new Date());
+            generateReport();
+        }
 
         document.addEventListener("DOMContentLoaded", async () => {
             const today = new Date();
