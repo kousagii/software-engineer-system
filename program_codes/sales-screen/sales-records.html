@@ -999,6 +999,20 @@
             await fetchTransactions();
         }
 
+        async function fetchCustomerStats() {
+            try {
+                const res = await fetch('/api/customers/stats');
+                if (res.ok) {
+                    const stats = await res.json();
+                    if (el('cust-stat-count')) el('cust-stat-count').textContent = stats.total || 0;
+                    if (el('cust-stat-top')) el('cust-stat-top').textContent = stats.topSpender || '—';
+                    if (el('cust-stat-active')) el('cust-stat-active').textContent = stats.active30Days || 0;
+                }
+            } catch (err) {
+                console.error("Failed to load customer stats", err);
+            }
+        }
+
         async function fetchCustomers() {
             const search = (el("custSearchInput")?.value || "").trim();
             const sort   = el("custSortSelect")?.value || "name-asc";
@@ -1019,6 +1033,7 @@
                 if (el('tabBadgeCustomers')) el('tabBadgeCustomers').textContent = total;
 
                 renderCustomers(customersData, total);
+                fetchCustomerStats();
             } catch (err) {
                 console.error(err);
                 el("customersBody").innerHTML = '<tr><td colspan="8" class="center-text">Failed to load customers.</td></tr>';
@@ -1092,7 +1107,7 @@
             const search = (el("custSearchInput")?.value || "").trim();
             const sort   = el("custSortSelect")?.value || "name-asc";
             const params = new URLSearchParams({ page: 1, limit: 'all', search, sort });
-            el("customersBody").innerHTML = '<tr><td colspan="7" class="center-text">Loading...</td></tr>';
+            el("customersBody").innerHTML = '<tr><td colspan="8" class="center-text">Loading...</td></tr>';
             fetch('/api/customers?' + params.toString())
                 .then(r => r.json())
                 .then(json => {
@@ -1102,7 +1117,7 @@
                     renderCustomers(customersData, json.total || 0);
                     el("customersPagination").style.display = "none";
                 })
-                .catch(() => { el("customersBody").innerHTML = '<tr><td colspan="7" class="center-text">Error.</td></tr>'; });
+                .catch(() => { el("customersBody").innerHTML = '<tr><td colspan="8" class="center-text">Error.</td></tr>'; });
         }
 
         async function fetchActivePayLater() {
@@ -1379,7 +1394,7 @@
         }
 
         async function openCustPrintPreview() {
-            el('cust-report-body').innerHTML = '<tr><td colspan="6" style="text-align:center;">Loading report data...</td></tr>';
+            el('cust-report-body').innerHTML = '<tr><td colspan="8" style="text-align:center;">Loading report data...</td></tr>';
             el('custPrintPreviewModal').style.display = 'flex';
 
             const data = filteredCustomersData || [];
@@ -1413,7 +1428,7 @@
             el('cust-report-debt').textContent = '₱' + totalDebt.toLocaleString('en-US', {minimumFractionDigits:2});
             el('cust-report-date').textContent = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
             
-            el('cust-report-body').innerHTML = tbodyHTML || '<tr><td colspan="6" style="text-align:center;">No records found.</td></tr>';
+            el('cust-report-body').innerHTML = tbodyHTML || '<tr><td colspan="8" style="text-align:center;">No records found.</td></tr>';
         }
 
         function printCustReport() {

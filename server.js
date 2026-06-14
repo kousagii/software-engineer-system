@@ -2261,6 +2261,26 @@ app.get('/api/searchProducts', (req, res) => {
 });
 
 // GET aggregated customer records based on sales_transaction
+// GET customer stats (for dashboard)
+app.get('/api/customers/stats', async (req, res) => {
+    try {
+        const [totalRes] = await db.promise().query(`SELECT COUNT(DISTINCT customerName) AS total FROM sales_transaction WHERE customerName IS NOT NULL AND TRIM(customerName) != ''`);
+        
+        const [topRes] = await db.promise().query(`SELECT customerName, SUM(totalAmount) as totalSpent FROM sales_transaction WHERE customerName IS NOT NULL AND TRIM(customerName) != '' GROUP BY customerName ORDER BY totalSpent DESC LIMIT 1`);
+        
+        const [activeRes] = await db.promise().query(`SELECT COUNT(DISTINCT customerName) AS active FROM sales_transaction WHERE customerName IS NOT NULL AND TRIM(customerName) != '' AND transDateTime >= DATE_SUB(NOW(), INTERVAL 30 DAY)`);
+
+        res.json({
+            total: totalRes[0]?.total || 0,
+            topSpender: topRes[0] ? topRes[0].customerName : 'N/A',
+            active30Days: activeRes[0]?.active || 0
+        });
+    } catch (err) {
+        console.error('Customer Stats Error:', err);
+        res.status(500).json({ error: 'Failed to load customer stats' });
+    }
+});
+
 app.get('/api/customers', async (req, res) => {
     const page   = Math.max(1, parseInt(req.query.page)  || 1);
     const limit  = req.query.limit === 'all' ? null : Math.max(1, parseInt(req.query.limit) || 15);
